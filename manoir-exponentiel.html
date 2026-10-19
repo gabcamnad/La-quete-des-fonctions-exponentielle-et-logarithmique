@@ -1,0 +1,1513 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Le Manoir Exponentiel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Creepster&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+body{margin:0}
+img{max-width:100%}
+/* Layout: one centered game column (HUD strip, graph-paper canvas, touch pad) with full-screen cards for questions, boss fights and menus */
+:root{
+  --paper:#eef3ef;
+  --ink:#1f2f42;
+  --ink-2:#2b4058;
+  --ink-soft:#52677d;
+  --amber:#f0a83a;
+  --teal:#2e8f83;
+  --red:#d4483c;
+  --good:#2f9a57;
+  --plum:#7a4fb3;
+  --page:#16202c;
+  --page-text:#a9b8c6;
+  --shadow:#0a1018;
+  --card:#fbfdfb;
+  --white:#ffffff;
+  --line:#cbdad3;
+  --empty:#3b5068;
+  --scrim:rgba(20,31,44,.62);
+  --display:"Pixelify Sans","Courier New",monospace;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background-color:var(--page);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  background-image:radial-gradient(ellipse at 50% -10%,#2a3d55 0%,transparent 60%);
+  background-attachment:fixed;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px 24px;
+}
+.game{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+
+/* HUD */
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;background:var(--ink);color:var(--paper);padding:8px 12px;border-radius:6px;font-family:var(--display)}
+.hud-world{display:flex;flex-direction:column;line-height:1.15;margin-right:auto;min-width:0}
+.hud-world b{font-size:1.05rem;font-weight:700}
+.hud-world small{font-family:var(--body);font-size:.78rem;opacity:.8}
+.hearts{display:flex;gap:3px;align-items:center}
+.heart .on{fill:var(--red)} .heart .off{fill:var(--empty)}
+.xp{display:flex;align-items:center;gap:8px}
+.xpbar{width:84px;height:12px;border:2px solid var(--paper);border-radius:2px;overflow:hidden}
+.xpbar i{display:block;height:100%;width:0;background:var(--amber);transition:width .35s}
+.score{font-variant-numeric:tabular-nums}
+.hud-btns{display:flex;gap:6px}
+.icon-btn{font-family:var(--display);font-size:.9rem;background:transparent;color:var(--paper);border:2px solid var(--paper);border-radius:4px;min-width:36px;height:32px;cursor:pointer;padding:0 8px}
+.icon-btn:hover{background:var(--ink-2)}
+.icon-btn[aria-pressed="false"]{opacity:.55}
+
+/* Stage */
+.stage{position:relative;border:3px solid var(--ink);box-shadow:0 0 0 3px var(--amber),6px 6px 0 3px var(--shadow);background:var(--paper);border-radius:4px;overflow:hidden}
+#cv{display:block;width:100%;touch-action:none}
+.toast{position:absolute;left:50%;top:10px;transform:translate(-50%,-6px);background:var(--ink);color:var(--paper);font-family:var(--display);padding:6px 14px;border:2px solid var(--amber);border-radius:4px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.help{font-size:.85rem;color:var(--page-text);text-align:center;margin:0}
+.help kbd{font-family:var(--display);background:var(--card);border:2px solid var(--ink);border-radius:4px;padding:0 5px;font-size:.8rem;color:var(--ink)}
+
+/* Touch pad */
+.pad{display:none;justify-content:space-between;align-items:center;gap:12px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.touch .pad{display:flex}
+.touch .help{display:none}
+.pad-dir{display:flex;gap:10px}
+.pbtn{width:76px;height:66px;font-family:var(--display);font-size:1.5rem;background:var(--card);color:var(--ink);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--shadow);border-radius:12px;touch-action:none;-webkit-tap-highlight-color:transparent}
+.pbtn.jump{width:120px;font-size:1.1rem;background:var(--amber)}
+.pbtn.on{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);background:var(--line)}
+.pbtn.jump.on{background:var(--amber);filter:brightness(.88)}
+
+/* Overlays */
+.ov{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.ov > *{margin-block:auto}
+.card{background:var(--card);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);width:100%;max-width:620px;padding:22px;display:flex;flex-direction:column;gap:14px;border-radius:6px;min-width:0}
+.card h2{font-family:var(--display);margin:0;font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.card p{margin:0}
+.muted{color:var(--ink-soft)}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.btn{font-family:var(--display);font-size:1.05rem;padding:10px 18px;border:3px solid var(--ink);background:var(--white);color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;border-radius:6px}
+.btn.primary{background:var(--amber)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn:focus-visible,.choice:focus-visible,.wcard:focus-visible,.icon-btn:focus-visible,.pbtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* Title */
+.brand{font-family:var(--display);font-weight:700;line-height:.95;margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .3em}
+.brand .q{font-size:clamp(1.3rem,5vw,2rem)}
+.brand .e span{display:inline-block}
+.brand-sub{display:flex;align-items:center;gap:10px;font-size:.9rem;color:var(--teal);font-family:var(--display);letter-spacing:.04em}
+.brand-sub svg{flex:none}
+.worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wcard{text-align:left;font:inherit;padding:12px;border:2px solid var(--ink);background:var(--white);border-radius:6px;cursor:pointer;display:flex;flex-direction:column;gap:4px;box-shadow:3px 3px 0 var(--ink);color:var(--ink);min-width:0}
+.wcard:hover{background:var(--paper)}
+.wcard .n{font-family:var(--display);font-size:.78rem;color:var(--teal);letter-spacing:.08em;text-transform:uppercase}
+.wcard b{font-family:var(--display);font-size:1.08rem;font-weight:700;line-height:1.15}
+.wcard small{color:var(--ink-soft);font-size:.82rem;line-height:1.35}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:.92rem}
+.chip{width:18px;height:18px;border:2px solid var(--ink);border-radius:3px;display:grid;place-items:center;font-family:var(--display);font-size:.7rem;line-height:1}
+.chip.qb{background:var(--amber)} .chip.en{background:var(--red);border-radius:9px 9px 3px 3px} .chip.cv{background:var(--teal)}
+
+/* Questions */
+.q-topic{font-family:var(--display);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.q-text{font-size:1.2rem;line-height:1.55;text-wrap:pretty}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.choice{display:flex;align-items:center;gap:10px;text-align:left;font:inherit;font-size:1.1rem;line-height:1.4;padding:10px 12px;background:var(--white);color:var(--ink);border:2px solid var(--ink);border-radius:6px;cursor:pointer;min-width:0;box-shadow:2px 2px 0 var(--ink)}
+.choice .ct{min-width:0;overflow-wrap:anywhere}
+.choice .key{font-family:var(--display);flex:none;width:26px;height:26px;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:4px;font-size:.85rem}
+.choice:hover:not(:disabled){background:var(--paper)}
+.choice:disabled{cursor:default}
+.choice:disabled:not(.ok):not(.bad){opacity:.5}
+.choice.ok{background:var(--good);border-color:var(--ink);color:var(--white)}
+.choice.bad{background:var(--red);color:var(--white)}
+.choice.ok .key,.choice.bad .key{background:var(--white);color:var(--ink)}
+.feedback{border-top:2px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.verdict{font-family:var(--display);font-size:1.15rem;margin:0}
+.verdict.ok{color:var(--good)} .verdict.bad{color:var(--red)}
+.verdict small{font-family:var(--body);font-size:.9rem;color:var(--ink-soft);font-weight:400}
+.expl{margin:0;background:var(--paper);border-left:4px solid var(--teal);padding:10px 12px;align-self:stretch;line-height:1.55}
+sup{font-size:.7em;line-height:0}
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.88em;line-height:1.15;margin:0 .1em}
+.fr > span:first-child{border-bottom:2px solid currentColor;padding:0 .2em}
+
+/* Minuterie + réglage */
+.timer{display:flex;align-items:center;gap:10px;font-family:var(--display)}
+.timer-bar{flex:1;height:12px;border:2px solid var(--ink);border-radius:3px;overflow:hidden;background:var(--paper)}
+.timer-bar i{display:block;height:100%;width:100%;background:var(--teal);transition:width .1s linear}
+.timer-num{min-width:3.5ch;text-align:right;font-variant-numeric:tabular-nums}
+.timer.warn .timer-bar i{background:var(--red)}
+.timer.warn .timer-num{color:var(--red)}
+.setting{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.setting > span{font-family:var(--display);font-size:.95rem}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font-family:var(--display);font-size:.9rem;padding:6px 12px;border:2px solid var(--ink);background:var(--white);color:var(--ink);border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* Boss arena */
+.arena{background:var(--ink);color:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink-2);width:100%;max-width:660px;padding:18px;display:flex;flex-direction:column;gap:12px;border-radius:6px;min-width:0}
+.arena.hit{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.arena-top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.boss-name{font-family:var(--display);font-size:1.25rem;color:var(--amber);line-height:1.1}
+.bhp{display:flex;gap:4px;align-items:center;font-family:var(--display);font-size:.8rem}
+.bhp i{width:22px;height:12px;background:var(--red);border:2px solid var(--paper);border-radius:2px}
+.bhp i.gone{background:transparent;opacity:.4}
+.arena-mid{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+#bossCv{width:240px;height:180px;max-width:100%;image-rendering:pixelated}
+.arena .log{font-family:var(--display);text-align:center;min-height:1.4em;font-size:1.02rem}
+.arena .you{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--display);font-size:.85rem}
+.arena .card{box-shadow:none;max-width:none;border-color:var(--amber);color:var(--ink)}
+
+/* Memo + stats */
+.memo{display:grid;gap:4px;font-size:.96rem}
+.memo h3{font-family:var(--display);margin:8px 0 2px;font-size:1rem;color:var(--teal)}
+.memo ul{margin:0;padding-left:1.2em;display:grid;gap:3px}
+.tablewrap{overflow-x:auto}
+.stats{width:100%;border-collapse:collapse;font-size:.95rem}
+.stats th,.stats td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.stats td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats th{font-family:var(--display);font-weight:500;font-size:.85rem;color:var(--ink-soft)}
+.tag{font-family:var(--display);font-size:.75rem;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.tag.low{background:var(--red);color:var(--white)} .tag.okk{background:var(--good);color:var(--white)}
+.big{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--teal)}
+
+@media (max-width:620px){
+  .worlds{grid-template-columns:minmax(0,1fr)}
+  .choices{grid-template-columns:minmax(0,1fr)}
+  .card{padding:18px}
+  .q-text{font-size:1.1rem}
+  .xpbar{width:60px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ===== Édition horreur ===== */
+[hidden]{display:none!important}
+:root{
+  --h-bg:#0a080e; --h-surface:#16111d; --h-surface2:#211a2b; --h-text:#ece5f3; --h-muted:#a99cb9; --h-line:#3b304a;
+  --h-glow:#9be36b; --h-pumpkin:#f08a24; --h-violet:#8a63d2;
+  --teal:#9be36b; --amber:#f08a24; --red:#e2605a;
+  --horror:"Creepster","Pixelify Sans",cursive;
+  color-scheme:dark;
+}
+body{background-color:var(--h-bg);color:var(--h-text);background-image:radial-gradient(ellipse at 50% -10%,#2a1838 0%,transparent 60%),radial-gradient(ellipse at 50% 115%,#13240f 0%,transparent 55%)}
+.hud{background:var(--h-surface);border:2px solid var(--h-line);color:var(--h-text)}
+.icon-btn{color:var(--h-text);border-color:var(--h-line)} .icon-btn:hover{background:var(--h-surface2)}
+.xpbar{border-color:var(--h-line)} .xpbar i{background:var(--h-glow)}
+.heart .off{fill:#3b304a}
+.stage{border-color:#000;box-shadow:0 0 0 2px var(--h-line),0 0 28px rgba(155,227,107,.18)}
+.toast{background:#000;color:var(--h-text);border-color:var(--h-glow)}
+.card{background:var(--h-surface);color:var(--h-text);border-color:var(--h-line);box-shadow:0 0 0 1px #000,0 0 46px rgba(155,227,107,.14)}
+.card h2{font-family:var(--horror);font-weight:400;letter-spacing:.04em;color:var(--h-glow);font-size:2rem;text-shadow:0 0 14px rgba(155,227,107,.35)}
+.muted,.brand-sub{color:var(--h-muted)}
+.brand{font-family:var(--horror);font-weight:400;color:var(--h-glow);text-shadow:0 0 16px rgba(155,227,107,.45)}
+.brand .q{font-size:clamp(1.6rem,6vw,2.4rem);color:var(--h-pumpkin);text-shadow:0 0 14px rgba(240,138,36,.45)}
+.q-topic{color:var(--h-glow)}
+.choice{background:var(--h-surface2);color:var(--h-text);border-color:var(--h-line);box-shadow:2px 2px 0 #000}
+.choice:hover:not(:disabled){background:#2c2338;border-color:var(--h-glow)}
+.choice .key{background:var(--h-glow);color:#0a080e}
+.choice.ok{background:#2f8a4e;border-color:var(--h-glow)} .choice.bad{background:#a83a3a;border-color:#000}
+.expl{background:var(--h-surface2);border-left-color:var(--h-glow)}
+.feedback{border-top-color:var(--h-line)}
+.verdict small{color:var(--h-muted)}
+.btn{background:var(--h-surface2);color:var(--h-text);border-color:var(--h-line);box-shadow:3px 3px 0 #000}
+.btn.primary{background:var(--h-pumpkin);color:#160c04;border-color:#000}
+.btn:active{box-shadow:1px 1px 0 #000}
+.wcard{background:var(--h-surface2);color:var(--h-text);border-color:var(--h-line);box-shadow:3px 3px 0 #000}
+.wcard:hover{background:#2c2338;border-color:var(--h-glow)}
+.wcard small{color:var(--h-muted)}
+.seg button{background:var(--h-surface2);color:var(--h-text);border-color:var(--h-line)}
+.seg button[aria-pressed="true"]{background:var(--h-glow);color:#0a080e;border-color:#000}
+.timer-bar{border-color:var(--h-line);background:var(--h-surface2)}
+.chip{border-color:#000} .chip.qb{background:var(--h-pumpkin);border-radius:50%} .chip.en{background:#ece8f6} .chip.cv{background:#5a4f6a}
+.stats th,.stats td{border-bottom-color:var(--h-line)} .stats th{color:var(--h-muted)}
+.big{color:var(--h-glow)}
+.help{color:var(--h-muted)} .help kbd{background:var(--h-surface2);color:var(--h-text);border-color:var(--h-line)}
+.pbtn{background:var(--h-surface2);color:var(--h-text);border-color:var(--h-line);box-shadow:3px 3px 0 #000}
+.pbtn.on{background:#2c2338}
+.pbtn.jump{background:var(--h-pumpkin);color:#160c04}
+.arena{background:#07060a;border-color:var(--h-line);box-shadow:0 0 50px rgba(138,99,210,.25)}
+.arena .card{border-color:var(--h-violet);color:var(--h-text)}
+.boss-name{font-family:var(--horror);font-size:1.7rem;color:var(--h-glow);letter-spacing:.03em;text-shadow:0 0 12px rgba(155,227,107,.4)}
+.bhp i{background:var(--h-glow);border-color:#000}
+details summary{color:var(--h-glow)}
+.scare{position:fixed;inset:0;z-index:200;background:#000;display:grid;place-items:center;pointer-events:none;overflow:hidden}
+.scare svg{width:min(92vw,92vh);height:auto;max-width:100%}
+.scare.go{animation:scareBg .9s steps(1,end) both}
+.scare.go svg{animation:scareZoom .9s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes scareBg{0%{background:#fff}6%{background:#000}40%{background:#16001f}44%{background:#000}70%{background:#0d1a08}74%{background:#000}}
+@keyframes scareZoom{0%{transform:scale(.25) rotate(-6deg)}18%{transform:scale(1.12) rotate(3deg)}30%{transform:scale(1.02) rotate(-2deg) translateX(-6px)}42%{transform:scale(1.18) rotate(2deg) translateX(6px)}60%{transform:scale(1.1) rotate(-1deg)}100%{transform:scale(1.32) rotate(0)}}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+  <header class="hud" aria-label="État du jeu">
+    <div class="hud-world"><b id="hudWorld">Monde 1</b><small id="hudWorldTitle">La plaine des exposants</small></div>
+    <div class="hearts" id="hudHearts"></div>
+    <div class="xp"><span>Niv. <b id="hudLvl">1</b></span><div class="xpbar" title="Expérience"><i id="hudXp"></i></div></div>
+    <div class="score" title="Bonnes réponses">✓ <b id="hudOk">0</b>/<span id="hudTot">0</span></div>
+    <div class="hud-btns">
+      <button class="icon-btn" id="btnMusic" aria-pressed="true" aria-label="Musique activée" title="Musique">♫</button>
+      <button class="icon-btn" id="btnSound" aria-pressed="true" aria-label="Effets sonores activés" title="Effets sonores">♪</button>
+      <button class="icon-btn" id="btnPause" aria-label="Pause et aide-mémoire">II</button>
+      <button class="icon-btn" id="btnHome" hidden aria-label="Changer de jeu" title="Changer de jeu">⌂</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Niveau de plateformes"></canvas>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="pad" id="pad">
+    <div class="pad-dir">
+      <button class="pbtn" data-k="left" aria-label="Aller à gauche">◀</button>
+      <button class="pbtn" data-k="right" aria-label="Aller à droite">▶</button>
+    </div>
+    <button class="pbtn jump" data-k="jump" aria-label="Sauter">SAUTER</button>
+  </div>
+  <p class="help"><kbd>←</kbd> <kbd>→</kbd> bouger · <kbd>Espace</kbd> ou <kbd>↑</kbd> sauter · <kbd>1</kbd>–<kbd>4</kbd> répondre · <kbd>Échap</kbd> pause</p>
+</div>
+
+<div class="ov" id="qov" hidden><div class="card" id="qcard" role="dialog" aria-modal="true" aria-label="Question"></div></div>
+
+<div class="ov" id="bov" hidden>
+  <div class="arena" id="arena" role="dialog" aria-modal="true" aria-label="Combat de boss">
+    <div class="arena-top">
+      <div class="boss-name" id="bossName"></div>
+      <div class="bhp" id="bossHp"></div>
+    </div>
+    <div class="arena-mid">
+      <canvas id="bossCv" width="160" height="120"></canvas>
+      <div class="you"><span>Toi</span><div class="hearts" id="bossHearts"></div></div>
+    </div>
+    <div class="log" id="bossLog" aria-live="polite"></div>
+    <div class="card" id="bossQ"></div>
+  </div>
+</div>
+
+<div class="ov" id="mov"><div class="card" id="mcard" role="dialog" aria-modal="true"></div></div>
+
+<div class="scare" id="scare" hidden aria-hidden="true"></div>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const INK = cssVar('--ink') || '#1f2f42', INK2 = cssVar('--ink-2') || '#2b4058', PAPER = cssVar('--paper') || '#eef3ef';
+const AMBER = cssVar('--amber') || '#f0a83a', TEAL = cssVar('--teal') || '#2e8f83', RED = cssVar('--red') || '#d4483c';
+const PLUM = cssVar('--plum') || '#7a4fb3', INKSOFT = cssVar('--ink-soft') || '#52677d';
+const SKIN = '#e9c8b0', HAIR = '#2a1d16', BRICK = '#4a4153', BRICK_D = '#2b2532', USED = '#5a4636', RULER = '#4b3826', GLOW = '#9be36b', PUMPKIN = '#e8771e', HOOD = '#6b4fa8';
+
+/* ================== Outils de format (notation québécoise) ================== */
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function num(n){
+  n = Math.round(n * 10000) / 10000;
+  const neg = n < 0; const s = Math.abs(n).toString();
+  let [i, d] = s.split('.');
+  i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (neg ? '−' : '') + i + (d ? ',' + d : '');
+}
+const sup = (b, e) => `${b}<sup>${e}</sup>`;
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
+function frac(n, d){
+  if (d < 0){ n = -n; d = -d; }
+  const g = gcd(n, d) || 1; n /= g; d /= g;
+  if (d === 1) return num(n);
+  return `${n<0?'−':''}<span class="fr"><span>${Math.abs(n)}</span><span>${d}</span></span>`;
+}
+const aStr = a => a === 1 ? '' : a === -1 ? '−' : num(a);
+function expStr(b, h){
+  if (h === 0) return b === 1 ? '<i>x</i>' : b === -1 ? '−<i>x</i>' : num(b) + '<i>x</i>';
+  const inner = h > 0 ? `<i>x</i> − ${num(h)}` : `<i>x</i> + ${num(-h)}`;
+  return b === 1 ? inner : b === -1 ? `−(${inner})` : `${num(b)}(${inner})`;
+}
+const kStr = k => k === 0 ? '' : k > 0 ? ` + ${num(k)}` : ` − ${num(-k)}`;
+const FX = '<i>f</i>(<i>x</i>)';
+const rule = (a, c, b, h, k) => `${FX} = ${aStr(a)}(${num(c)})<sup>${expStr(b, h)}</sup>${kStr(k)}`;
+
+function mk(topic, q, correct, wrongs, expl){
+  const seen = new Set([correct]), w = [];
+  for (const x of wrongs){ if (!seen.has(x)){ seen.add(x); w.push(x); } if (w.length === 3) break; }
+  const choices = shuffle([correct, ...w]);
+  return { topic, q, choices, answer: choices.indexOf(correct), expl };
+}
+
+/* ================== Banque de questions ================== */
+const W1 = [
+  () => { const b = pick([2,3,5,7,10]), m = R(2,6), n = R(2,6);
+    return mk('Lois des exposants', `Simplifie : ${sup(b,m)} × ${sup(b,n)}`, sup(b,m+n),
+      [sup(b,m*n), sup(b*b,m+n), sup(b,Math.abs(m-n)), sup(b,m+n+1)],
+      `Même base : on <b>additionne</b> les exposants. ${sup(b,m)} × ${sup(b,n)} = ${sup(b,`${m} + ${n}`)} = ${sup(b,m+n)}.`); },
+  () => { const b = pick(['2','3','5','<i>a</i>','<i>x</i>']), m = R(2,5), n = R(3,5);
+    return mk('Lois des exposants', `Simplifie : (${sup(b,m)})<sup>${n}</sup>`, sup(b,m*n),
+      [sup(b,m+n), sup(b,m*n+n), sup(b,Math.abs(m-n)||1), sup(b,m*n-1)],
+      `Puissance d'une puissance : on <b>multiplie</b> les exposants. ${m} × ${n} = ${m*n}, donc ${sup(b,m*n)}.`); },
+  () => { const b = pick(['2','3','5','<i>a</i>']), m = R(2,6), n = R(m+1,m+4), e = m - n;
+    return mk('Lois des exposants', `Simplifie : ${sup(b,m)} ÷ ${sup(b,n)}`, sup(b,num(e)),
+      [sup(b,n-m), sup(b,m+n), sup(b,num(e-1)), sup(b,m*n)],
+      `Même base : on <b>soustrait</b> les exposants. ${m} − ${n} = ${num(e)}, donc ${sup(b,num(e))}. On peut aussi l'écrire 1 ⁄ ${sup(b,n-m)}.`); },
+  () => { const [b,n] = pick([[2,1],[2,2],[2,3],[2,4],[3,1],[3,2],[3,3],[4,2],[5,2],[10,2],[10,3]]), v = b**n;
+    return mk('Exposants négatifs et nuls', `Évalue : ${sup(b,'−'+n)}`, frac(1,v),
+      [num(-v), frac(1,b*n), num(-b*n), frac(-1,v), num(v), num(b-n)],
+      `Un exposant négatif donne l'<b>inverse</b> : ${sup(b,'−'+n)} = 1 ⁄ ${sup(b,n)} = ${frac(1,v)}. Le résultat reste positif.`); },
+  () => { const b = R(2,9), k = R(2,6);
+    return mk('Exposants négatifs et nuls', `Évalue : ${k} × ${sup(b,0)} + ${sup(b,1)}`, num(k+b),
+      [num(b), num(k*b+b), num(k), num(k*b), num(1)],
+      `Tout nombre non nul exposant 0 vaut <b>1</b>, et ${sup(b,1)} = ${b}. Donc ${k} × 1 + ${b} = ${k+b}.`); },
+  () => { const [B,p,q] = pick([[8,2,3],[27,2,3],[16,3,4],[25,3,2],[32,2,5],[81,3,4],[64,2,3],[4,3,2],[9,3,2],[125,2,3],[100,3,2],[16,1,2],[27,1,3]]);
+    const root = Math.round(B ** (1/q)), v = root ** p;
+    const rn = q === 2 ? 'carrée' : q === 3 ? 'cubique' : `${q}<sup>e</sup>`;
+    return mk('Exposants fractionnaires', `Évalue : ${B}<sup>${p}/${q}</sup>`, num(v),
+      [num(root), num(Math.round(B*p/q*100)/100), num(root**(p+1)), num(B*p), num(v*2), num(-v), num(v+1)],
+      p === 1 ? `${B}<sup>1/${q}</sup> = <sup>${q===2?'':q}</sup>√${B}. La racine ${rn} de ${B} est ${v}.` : `${B}<sup>${p}/${q}</sup> = (<sup>${q===2?'':q}</sup>√${B})<sup>${p}</sup>. La racine ${rn} de ${B} est ${root}, puis ${sup(root,p)} = ${v}.`); },
+  () => { const b = pick([2,3,5]), n = R(2, b===2?6:b===3?4:3), inv = Math.random() < .5;
+    const val = inv ? frac(1, b**n) : num(b**n), x = inv ? -n : n;
+    const ex = inv ? `1 ⁄ ${b**n} = 1 ⁄ ${sup(b,n)} = ${sup(b,'−'+n)}` : `${b**n} = ${sup(b,n)}`;
+    return mk('Exposants négatifs et nuls', `Quelle valeur de <i>x</i> vérifie ${sup(b,'<i>x</i>')} = ${val} ?`, num(x),
+      [num(-x), num(x+1), num(x-1), num(b**n)],
+      `On écrit le nombre avec la base ${b} : ${ex}. Donc <i>x</i> = ${num(x)}.`); },
+  () => { const a = pick([1,2,3,5,-1,-2,-4]), c = pick([2,3,1.5,0.5,0.25,0.8]), b = pick([1,1,2,-1,-2]);
+    const s = Math.sign(a) * (c > 1 ? 1 : -1) * Math.sign(b), cor = s > 0 ? 'Croissante' : 'Décroissante';
+    let ex = `La base ${num(c)} est ${c > 1 ? 'plus grande que 1 (croissance au départ)' : 'entre 0 et 1 (décroissance au départ)'}.`;
+    if (b < 0) ex += ` Le paramètre <i>b</i> est négatif : réflexion par rapport à l'axe des <i>y</i>, ce qui inverse le sens.`;
+    if (a < 0) ex += ` Le paramètre <i>a</i> est négatif : réflexion par rapport à l'axe des <i>x</i>, ce qui inverse aussi le sens.`;
+    ex += ` Résultat : <b>${cor.toLowerCase()}</b>.`;
+    return mk('Croissance ou décroissance', `La fonction ${rule(a,c,b,0,0)} est…`, cor,
+      [s > 0 ? 'Décroissante' : 'Croissante', 'Constante', 'Croissante, puis décroissante'], ex); },
+];
+
+const W2 = [
+  () => { const a = pick([1,2,3,-1,-2,4]), c = pick([2,3,0.5,4]), b = pick([1,2,-1]), h = R(-3,3), k = pick([-5,-4,-3,-2,-1,1,2,3,4,6]);
+    return mk('Asymptote', `Quelle est l'équation de l'asymptote de ${rule(a,c,b,h,k)} ?`, `<i>y</i> = ${num(k)}`,
+      [`<i>y</i> = ${num(-k)}`, `<i>x</i> = ${num(h)}`, `<i>y</i> = ${num(a)}`, `<i>y</i> = 0`, `<i>x</i> = ${num(k)}`],
+      `L'asymptote d'une fonction exponentielle est horizontale : <i>y</i> = <i>k</i>. Ici, <i>k</i> = ${num(k)}. Les paramètres <i>a</i>, <i>b</i> et <i>h</i> ne la déplacent pas.`); },
+  () => { const a = pick([1,2,3,-1,-2,-3]), c = pick([2,3,0.5]), b = pick([1,-1,2]), k = pick([-4,-3,-2,-1,1,2,3,5]);
+    const up = `]${num(k)}, +∞[`, down = `]−∞, ${num(k)}[`, cor = a > 0 ? up : down;
+    return mk('Codomaine', `Quel est le codomaine (image) de ${rule(a,c,b,0,k)} ?`, cor,
+      [a > 0 ? down : up, a > 0 ? `[${num(k)}, +∞[` : `]−∞, ${num(k)}]`, 'ℝ', a > 0 ? `]${num(-k)}, +∞[` : `]−∞, ${num(-k)}[`],
+      `L'asymptote est <i>y</i> = ${num(k)}. Comme <i>a</i> ${a > 0 ? '&gt; 0, la courbe reste au-dessus' : '&lt; 0, la courbe reste en dessous'} de l'asymptote sans jamais la toucher : ${cor}. Le crochet est ouvert du côté de ${num(k)}.`); },
+  () => { const c = pick([2,3]), h = pick([0,-1,-2,-1]), a = pick([1,2,3,4,-1,-2,-3]), k = R(-6,6);
+    const p = c ** (-h), v = a * p + k;
+    const calc = `${a===1?'':a===-1?'−':num(a)+' × '}${sup(c, num(-h))}${kStr(k)} = ${a===1?'':a===-1?'−':num(a)+' × '}${p}${kStr(k)} = ${num(v)}`;
+    return mk(`Ordonnée à l'origine`, `Quelle est l'ordonnée à l'origine de ${rule(a,c,1,h,k)} ?`, num(v),
+      [num(a+k), num(a*p-k), num(a*p), num(k), num(v+a), num(-v), num(v+1), num(v-1)],
+      `On calcule <i>f</i>(0) en remplaçant <i>x</i> par 0 : ${calc}.`); },
+  () => { const c = pick([2,3]), a = pick([1,2,3,5,-1,-2]), k = R(-5,5), x0 = R(1, c===2?4:3), v = a * c**x0 + k;
+    const mul = a===1 ? '' : a===-1 ? '−' : num(a)+' × ';
+    return mk(`Valeur d'une fonction`, `Si ${rule(a,c,1,0,k)}, que vaut <i>f</i>(${x0}) ?`, num(v),
+      [num(a*c*x0+k), num((a*c)**x0+k), num(a*c**x0-k), num(a*c**(x0-1)+k), num(-v), num(a*c**(x0+1)+k), num(v+1)],
+      `On remplace <i>x</i> par ${x0} : ${mul}${sup(c,x0)}${kStr(k)} = ${mul}${c**x0}${kStr(k)} = ${num(v)}. On calcule la puissance <b>avant</b> de multiplier par <i>a</i>.`); },
+  () => { const t = R(0,3); const base = `<i>y</i> = (2)<sup><i>x</i></sup>`; let q, cor, w, ex;
+    if (t === 0){ const k = pick([-4,-3,-2,2,3,5]), K = Math.abs(k), d = k > 0;
+      q = `<i>y</i> = (2)<sup><i>x</i></sup>${kStr(k)}`;
+      cor = `Translation verticale de ${K} vers le ${d?'haut':'bas'}`;
+      w = [`Translation verticale de ${K} vers le ${d?'bas':'haut'}`, `Translation horizontale de ${K} vers la ${d?'droite':'gauche'}`, `Translation horizontale de ${K} vers la ${d?'gauche':'droite'}`];
+      ex = `Le paramètre <i>k</i> = ${num(k)} déplace la courbe verticalement. L'asymptote devient <i>y</i> = ${num(k)}.`;
+    } else if (t === 1){ const h = pick([-3,-2,-1,1,2,4]), H = Math.abs(h), d = h > 0;
+      q = `<i>y</i> = (2)<sup>${expStr(1,h)}</sup>`;
+      cor = `Translation horizontale de ${H} vers la ${d?'droite':'gauche'}`;
+      w = [`Translation horizontale de ${H} vers la ${d?'gauche':'droite'}`, `Translation verticale de ${H} vers le ${d?'bas':'haut'}`, `Translation verticale de ${H} vers le ${d?'haut':'bas'}`];
+      ex = `Dans (<i>x</i> − <i>h</i>), on a <i>h</i> = ${num(h)}. Attention au signe : ${expStr(1,h)} déplace la courbe de ${H} vers la ${d?'droite':'gauche'}.`;
+    } else if (t === 2){
+      q = `<i>y</i> = −(2)<sup><i>x</i></sup>`; cor = `Réflexion par rapport à l'axe des <i>x</i>`;
+      w = [`Réflexion par rapport à l'axe des <i>y</i>`, `Translation verticale de 1 vers le bas`, `Translation horizontale de 1 vers la gauche`];
+      ex = `Le paramètre <i>a</i> = −1 renverse la courbe : chaque <i>y</i> devient −<i>y</i>. La courbe passe sous l'axe des <i>x</i>.`;
+    } else {
+      q = `<i>y</i> = (2)<sup>−<i>x</i></sup>`; cor = `Réflexion par rapport à l'axe des <i>y</i>`;
+      w = [`Réflexion par rapport à l'axe des <i>x</i>`, `Translation horizontale de 1 vers la gauche`, `Translation verticale de 1 vers le bas`];
+      ex = `Le paramètre <i>b</i> = −1 change <i>x</i> en −<i>x</i> : réflexion par rapport à l'axe des <i>y</i>. D'ailleurs, (2)<sup>−<i>x</i></sup> = (0,5)<sup><i>x</i></sup>.`;
+    }
+    return mk('Transformations', `Par rapport à ${base}, quelle transformation subit ${q} ?`, cor, w, ex); },
+  () => { const [a,c] = pick([[2,3],[3,2],[5,2],[4,3],[2,4],[6,0.5],[8,0.5],[4,0.5],[3,4]]), y1 = a * c;
+    return mk('Trouver la règle', `Une fonction de la forme <i>f</i>(<i>x</i>) = <i>a</i>(<i>c</i>)<sup><i>x</i></sup> passe par les points (0, ${num(a)}) et (1, ${num(y1)}). Quelle est sa règle ?`,
+      rule(a,c,1,0,0), [rule(c,a,1,0,0), rule(y1,c,1,0,0), rule(a,y1,1,0,0)],
+      `En <i>x</i> = 0, on a <i>f</i>(0) = <i>a</i>, donc <i>a</i> = ${num(a)}. Quand <i>x</i> augmente de 1, on multiplie par la base : <i>c</i> = ${num(y1)} ÷ ${num(a)} = ${num(c)}.`); },
+];
+
+const W3 = [
+  () => { const c = pick([2,3,5]), n = R(2, c===2?7:c===3?5:4), p = pick([-3,-2,-1,1,2,3]), x = n - p;
+    return mk('Équations exponentielles', `Résous : ${sup(c, expStr(1,-p))} = ${num(c**n)}`, `<i>x</i> = ${num(x)}`,
+      [`<i>x</i> = ${num(n+p)}`, `<i>x</i> = ${num(n)}`, `<i>x</i> = ${num(-x)}`, `<i>x</i> = ${num(x+1)}`],
+      `On écrit ${num(c**n)} avec la base ${c} : ${num(c**n)} = ${sup(c,n)}. Mêmes bases, donc mêmes exposants : ${expStr(1,-p)} = ${n}, d'où <i>x</i> = ${num(x)}.`); },
+  () => { const [B,c,e] = pick([[4,2,2],[9,3,2],[8,2,3],[25,5,2],[27,3,3],[16,2,4]]);
+    const n = R(e+1, c===2?9:c===3?6:4);
+    return mk('Équations exponentielles', `Résous : ${sup(B,'<i>x</i>')} = ${num(c**n)}`, `<i>x</i> = ${frac(n,e)}`,
+      [`<i>x</i> = ${frac(e,n)}`, `<i>x</i> = ${num(n*e)}`, `<i>x</i> = ${num(n)}`, `<i>x</i> = ${num(n-e)}`],
+      `On ramène tout en base ${c} : ${B} = ${sup(c,e)} et ${num(c**n)} = ${sup(c,n)}. Donc ${sup(c,e+'<i>x</i>')} = ${sup(c,n)}, d'où ${e}<i>x</i> = ${n} et <i>x</i> = ${frac(n,e)}.`); },
+  () => { const C = pick([500,1000,1500,2000,5000]), i = pick([2,3,4,5,6,8]), f = 1 + i/100;
+    const C_ = `<i>C</i>(<i>t</i>) = ${num(C)}`;
+    return mk('Intérêts composés', `Tu places ${num(C)} $ à un taux d'intérêt de ${i} % composé annuellement. Quelle règle donne le capital <i>C</i> après <i>t</i> années ?`,
+      `${C_}(${num(f)})<sup><i>t</i></sup>`,
+      [`${C_}(${num(i/100)})<sup><i>t</i></sup>`, `${C_}(${num(1+i/10)})<sup><i>t</i></sup>`, `${C_} + ${num(C*i/100)}<i>t</i>`, `${C_}(${num(1-i/100)})<sup><i>t</i></sup>`],
+      `Chaque année, on garde 100 % du capital et on ajoute ${i} % : on multiplie par 1 + ${num(i/100)} = ${num(f)}. Une règle linéaire (+ ${num(C*i/100)}<i>t</i>) correspondrait à des intérêts simples.`); },
+  () => { const p = pick([10,12,15,20,25,30]), item = pick(['Une voiture','Un téléphone','Une console de jeu','Un vélo électrique']);
+    return mk('Dépréciation', `${item} perd ${p} % de sa valeur chaque année. Par quel facteur multiplie-t-on sa valeur chaque année ?`, num(1-p/100),
+      [num(p/100), num(1+p/100), num(100-p), num(-p/100)],
+      `Il reste 100 % − ${p} % = ${100-p} % de la valeur, soit un facteur de ${num(1-p/100)}. Ce facteur est entre 0 et 1 : la fonction est décroissante.`); },
+  () => { const m = pick([40,80,120,160,200,320,640]), T = pick([2,3,5,6,8]), n = pick([2,3,4]), v = m / 2**n;
+    return mk('Demi-vie', `Un isotope radioactif a une demi-vie de ${T} h. Il y en a ${m} g au départ. Quelle masse reste-t-il après ${T*n} h ?`, `${num(v)} g`,
+      [`${num(m/(2*n))} g`, `${num(m/2**(n+1))} g`, `${num(m/2**(n-1))} g`, `${num(v*3)} g`, `${num(m/2)} g`],
+      `${T*n} h, c'est ${n} demi-vies. On divise par 2 à chaque demi-vie : ${m}(0,5)<sup>${n}</sup> = ${num(v)} g. La règle est <i>m</i>(<i>t</i>) = ${m}(0,5)<sup><i>t</i>/${T}</sup>.`); },
+  () => { const N = pick([50,100,150,200,250,500]), T = pick([2,3,4,6]), n = pick([2,3,4,5]), v = N * 2**n;
+    return mk('Croissance (doublement)', `Une colonie de bactéries double toutes les ${T} h. Elle compte ${N} bactéries au départ. Combien en compte-t-elle après ${T*n} h ?`, num(v),
+      [num(N*2*n), num(N*2**(n+1)), num(N*2**(n-1)), num(N*n*n), num(N*n), num(N*3**n)],
+      `${T*n} h, c'est ${n} périodes de ${T} h. <i>N</i>(<i>t</i>) = ${N}(2)<sup><i>t</i>/${T}</sup>, donc <i>N</i>(${T*n}) = ${N} × ${sup(2,n)} = ${num(v)}.`); },
+  () => { const P0 = pick([800,1200,2500,4000]), r = pick([3,4,6,7,9,12,15]), up = Math.random() < .5, f = up ? 1 + r/100 : 1 - r/100;
+    const A = s => `Augmentation de ${s} % par année`, D = s => `Diminution de ${s} % par année`;
+    return mk('Taux de variation', `Une population est modélisée par <i>P</i>(<i>t</i>) = ${num(P0)}(${num(f)})<sup><i>t</i></sup>, où <i>t</i> est en années. Que décrit cette règle ?`,
+      up ? A(r) : D(r),
+      [up ? D(r) : A(r), up ? A(num(100*f)) : D(num(100*f)), up ? A(num(r/100)) : D(num(r/100))],
+      up ? `Le facteur ${num(f)} = 1 + ${num(r/100)} : on garde 100 % et on ajoute ${r} % chaque année.`
+         : `Le facteur ${num(f)} = 1 − ${num(r/100)} : il reste ${100-r} % chaque année, donc on perd ${r} %.`); },
+];
+
+const LB = b => b === 10 ? 'log' : `log<sub>${b}</sub>`;
+const tf = (a, b) => `<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const r2 = v => Math.round(v * 100) / 100, r1 = v => Math.round(v * 10) / 10;
+const W4 = [
+  () => { const [b,n] = pick([[2,3],[2,4],[2,5],[2,6],[3,2],[3,3],[3,4],[4,2],[4,3],[5,2],[5,3],[6,2],[7,2]]), v = b**n;
+    return mk('Évaluer un logarithme', `Évalue : ${LB(b)} ${num(v)}`, num(n),
+      [num(v/b), num(n+1), num(n-1), num(v/2), num(b*n), num(v)],
+      `On cherche l'exposant : ${b}<sup>?</sup> = ${num(v)}. Comme ${sup(b,n)} = ${num(v)}, on a ${LB(b)} ${num(v)} = ${n}.`); },
+  () => { const t = R(0,2);
+    if (t === 0){ const [b,n] = pick([[2,1],[2,2],[2,3],[3,1],[3,2],[4,1],[5,2],[10,1],[10,2]]), v = b**n;
+      return mk('Évaluer un logarithme', `Évalue : ${LB(b)} ${frac(1,v)}`, num(-n), [num(n), frac(1,n), num(-v), num(0)],
+        `${frac(1,v)} = ${sup(b,'−'+n)}, donc ${LB(b)} ${frac(1,v)} = ${num(-n)}. Le logarithme d'un nombre entre 0 et 1 est négatif quand la base est plus grande que 1.`); }
+    if (t === 1){ const b = pick([2,3,5,7]);
+      return mk('Propriétés de base', `Évalue : ${LB(b)} 1 + ${LB(b)} ${b}`, num(1), [num(0), num(b), num(b+1), num(2)],
+        `${LB(b)} 1 = 0 car ${sup(b,0)} = 1, et ${LB(b)} ${b} = 1 car ${sup(b,1)} = ${b}. Donc 0 + 1 = 1.`); }
+    const n = pick([-3,-2,-1,2,3,4]), v = 10**n;
+    return mk('Logarithme en base 10', `Évalue : log ${num(v)}`, num(n), [num(-n), num(n+1), num(n-1), num(v/10)],
+      `Quand aucune base n'est écrite, « log » signifie la base 10. ${num(v)} = ${sup(10, num(n))}, donc log ${num(v)} = ${num(n)}.`); },
+  () => { const [b,n] = pick([[2,3],[2,5],[3,4],[5,2],[10,3],[4,3],[6,2]]), v = b**n;
+    const ex = `Rappel : log<sub><i>c</i></sub> <i>x</i> = <i>y</i> ⇔ <i>c</i><sup><i>y</i></sup> = <i>x</i>. La base reste la base et le logarithme devient l'exposant.`;
+    if (Math.random() < .5) return mk('Forme exponentielle ↔ logarithmique', `L'égalité ${LB(b)} ${num(v)} = ${n} équivaut à…`, `${sup(b,n)} = ${num(v)}`,
+      [`${sup(n,b)} = ${num(v)}`, `${sup(num(v),n)} = ${b}`, `${sup(b,num(v))} = ${n}`], ex + ` Ici : ${sup(b,n)} = ${num(v)}.`);
+    return mk('Forme exponentielle ↔ logarithmique', `L'égalité ${sup(b,n)} = ${num(v)} s'écrit sous forme logarithmique…`, `${LB(b)} ${num(v)} = ${n}`,
+      [`${LB(n)} ${num(v)} = ${b}`, `${LB(b)} ${n} = ${num(v)}`, `log<sub>${num(v)}</sub> ${b} = ${n}`], ex + ` Ici : ${LB(b)} ${num(v)} = ${n}.`); },
+  () => { const t = R(0,2);
+    if (t === 0){ const [b,m,n] = pick([[2,8,4],[2,16,2],[3,9,3],[6,4,9],[10,50,2],[10,25,4],[2,32,8],[5,25,5],[4,2,8]]), p = m*n, r = Math.round(Math.log(p)/Math.log(b));
+      return mk('Lois des logarithmes', `Simplifie : ${LB(b)} ${m} + ${LB(b)} ${n}`, num(r), [num(r+1), `${LB(b)} ${m+n}`, num(r-1), num(m+n)],
+        `Loi du produit : ${LB(b)} <i>M</i> + ${LB(b)} <i>N</i> = ${LB(b)} (<i>M</i> × <i>N</i>). Donc ${LB(b)} (${m} × ${n}) = ${LB(b)} ${num(p)} = ${num(r)}.`); }
+    if (t === 1){ const [b,m,n] = pick([[2,48,3],[3,54,2],[10,500,5],[2,40,5],[5,250,2],[10,3000,3],[4,128,2]]), q = m/n, r = Math.round(Math.log(q)/Math.log(b));
+      return mk('Lois des logarithmes', `Simplifie : ${LB(b)} ${num(m)} − ${LB(b)} ${n}`, num(r), [num(r+1), `${LB(b)} ${num(m-n)}`, num(r-1), num(q)],
+        `Loi du quotient : ${LB(b)} <i>M</i> − ${LB(b)} <i>N</i> = ${LB(b)} (<i>M</i> ÷ <i>N</i>). Donc ${LB(b)} (${num(m)} ÷ ${n}) = ${LB(b)} ${num(q)} = ${num(r)}.`); }
+    const M = '<i>M</i>', L = 'log<sub><i>c</i></sub>';
+    return mk('Lois des logarithmes', `Laquelle de ces expressions est égale à ${L} ${M}<sup><i>n</i></sup> ?`, `<i>n</i> ${L} ${M}`,
+      [`(${L} ${M})<sup><i>n</i></sup>`, `${L} (<i>n</i>${M})`, `<i>n</i> + ${L} ${M}`],
+      `Loi de la puissance : l'exposant « descend » devant le logarithme. ${L} ${M}<sup><i>n</i></sup> = <i>n</i> ${L} ${M}. Par exemple, log<sub>2</sub> 8<sup>2</sup> = 2 log<sub>2</sub> 8 = 2 × 3 = 6.`); },
+  () => { const b = pick([2,3,5,7]), x = pick([5,6,10,12,20,50].filter(v => v !== b)), val = r2(Math.log(x)/Math.log(b));
+    return mk('Changement de base', `Avec la calculatrice, comment obtient-on ${LB(b)} ${x} ?`, tf('log '+x, 'log '+b),
+      [tf('log '+b, 'log '+x), `log ${x} − log ${b}`, tf('log '+x, b)],
+      `Changement de base : log<sub><i>c</i></sub> <i>x</i> = ${tf('log <i>x</i>','log <i>c</i>')}. Ici, ${tf('log '+x,'log '+b)} ≈ ${num(val)}. Vérification : ${b}<sup>${num(val)}</sup> ≈ ${x}.`); },
+  () => { const c = pick([2,3,5,1.5]), y = pick([7,10,20,30,50,100]), x = Math.log(y)/Math.log(c);
+    const base = c % 1 ? `(${num(c)})` : num(c);
+    return mk('Équation et logarithme', `Résous ${base}<sup><i>x</i></sup> = ${y}. Arrondis au centième.`, `<i>x</i> ≈ ${num(r2(x))}`,
+      [`<i>x</i> ≈ ${num(r2(1/x))}`, `<i>x</i> ≈ ${num(r2(y/c))}`, `<i>x</i> ≈ ${num(r2(Math.log10(y/c)))}`, `<i>x</i> ≈ ${num(r2(x+1))}`],
+      `On passe à la forme logarithmique : <i>x</i> = log<sub>${num(c)}</sub> ${y}. Avec le changement de base : <i>x</i> = log ${y} ÷ log ${num(c)} ≈ ${num(r2(x))}.`); },
+  () => { const c = pick([2,3,10]), h = pick([-4,-3,-2,-1,1,2,3,5]), k = pick([-3,-1,0,2,4]), a = pick([1,2,-1,3]);
+    const inner = h > 0 ? `<i>x</i> − ${h}` : `<i>x</i> + ${-h}`, pre = a === 1 ? '' : a === -1 ? '−' : num(a) + ' ';
+    const f = `${FX} = ${pre}${LB(c)} (${inner})${kStr(k)}`;
+    if (Math.random() < .5) return mk('Fonction logarithmique', `Quel est le domaine de ${f} ?`, `]${num(h)}, +∞[`,
+      [`[${num(h)}, +∞[`, `]${num(-h)}, +∞[`, `]−∞, ${num(h)}[`, 'ℝ'],
+      `L'argument du logarithme doit être positif : ${inner} &gt; 0, donc <i>x</i> &gt; ${num(h)}. On ne peut pas calculer le logarithme d'un nombre négatif ou nul.`);
+    return mk('Fonction logarithmique', `Quelle est l'équation de l'asymptote de ${f} ?`, `<i>x</i> = ${num(h)}`,
+      [`<i>y</i> = ${num(k)}`, `<i>x</i> = ${num(-h)}`, `<i>y</i> = ${num(h)}`, `<i>x</i> = ${num(k)}`, `<i>y</i> = 0`, `<i>x</i> = 0`],
+      `Contrairement à l'exponentielle, la fonction logarithmique a une asymptote <b>verticale</b> : <i>x</i> = <i>h</i>. Ici, ${inner} vaut 0 quand <i>x</i> = ${num(h)}.`); },
+  () => { const c = pick([2,3,4,5,10]);
+    if (Math.random() < .5) return mk('Réciproque', `Quelle est la réciproque de <i>f</i>(<i>x</i>) = ${c}<sup><i>x</i></sup> ?`, `<i>f</i><sup>−1</sup>(<i>x</i>) = ${LB(c)} <i>x</i>`,
+      [`<i>f</i><sup>−1</sup>(<i>x</i>) = log<sub><i>x</i></sub> ${c}`, `<i>f</i><sup>−1</sup>(<i>x</i>) = ${c}<sup>−<i>x</i></sup>`, `<i>f</i><sup>−1</sup>(<i>x</i>) = <i>x</i><sup>${c}</sup>`],
+      `Pour trouver la réciproque, on échange <i>x</i> et <i>y</i> : <i>x</i> = ${c}<sup><i>y</i></sup>, ce qui donne <i>y</i> = ${LB(c)} <i>x</i>. Les fonctions exponentielle et logarithmique de même base sont réciproques.`);
+    const n = c >= 4 ? R(2,3) : R(2,4), v = c**n;
+    return mk('Équation logarithmique', `Résous : ${LB(c)} <i>x</i> = ${n}`, `<i>x</i> = ${num(v)}`,
+      [`<i>x</i> = ${num(c*n)}`, `<i>x</i> = ${num(n**c)}`, `<i>x</i> = ${num(c**(n-1))}`, `<i>x</i> = ${num(c**(n+1))}`, `<i>x</i> = ${num(c+n)}`, `<i>x</i> = ${num(2*v)}`, `<i>x</i> = ${num(v+c)}`, `<i>x</i> = ${frac(n,c)}`],
+      `On passe à la forme exponentielle : <i>x</i> = ${sup(c,n)} = ${num(v)}.`); },
+  () => { const C = pick([500,1000,2000]), i = pick([3,4,5,6,8]), f = 1 + i/100, t = Math.log(2)/Math.log(f);
+    return mk('Situation et logarithme', `Tu places ${num(C)} $ à ${i} % d'intérêt composé annuellement. Après combien d'années ton capital aura-t-il doublé ? Arrondis au dixième.`,
+      `${num(r1(t))} ans`, [`${num(r1(100/i))} ans`, `${num(r1(t/2))} ans`, `${num(r1(Math.log(3)/Math.log(f)))} ans`, `${num(r1(2/f))} ans`],
+      `On résout ${num(C)}(${num(f)})<sup><i>t</i></sup> = ${num(2*C)}. On divise par ${num(C)} : (${num(f)})<sup><i>t</i></sup> = 2. Donc <i>t</i> = log 2 ÷ log ${num(f)} ≈ ${num(r1(t))} ans. Avec des intérêts simples, la réponse serait ${num(r1(100/i))} ans.`); },
+];
+
+const WORLDS = [
+  { name:'Monde 1', title:'Le cimetière des exposants', topics:'Lois des exposants, exposants négatifs et fractionnaires, croissance ou décroissance', gens:W1,
+    boss:{ name:'Le Spectre des Puissances', hp:3, color:'#d9d0f2', glow:'rgba(150,110,230,.5)', f:false },
+    theme:{ kind:'cemetery', skyTop:'#07060d', skyBot:'#251b3b', moon:true, lightning:true, cloud:'#1f1830', cloudShade:'#140f20',
+      far:'#171024', mid:'#110c1a', near:'#0b0811', grass:'#4a5a3a', grassDark:'#26301f', dirt:'#221a24', dirtDot:'#17111a',
+      hill:'#4f4560', hillTop:'#6c5f82', hillDark:'#352d42', label:'#d9cfe8', outline:'#000000', fog:'rgba(170,160,210,' } },
+  { name:'Monde 2', title:'Le manoir des paramètres', topics:'Asymptote, codomaine, ordonnée à l’origine, transformations, trouver la règle', gens:W2,
+    boss:{ name:'La Dame de l’Asymptote', hp:4, color:'#d2f0d2', glow:'rgba(120,220,120,.45)', f:true },
+    theme:{ kind:'manor', skyTop:'#05080a', skyBot:'#1c2c2b', moon:true, lightning:true, cloud:'#16201f', cloudShade:'#0d1413',
+      far:'#0f1716', mid:'#0b1110', near:'#080c0b', grass:'#3a4b33', grassDark:'#1d281b', dirt:'#1e1a1a', dirtDot:'#141111',
+      hill:'#4a4f5a', hillTop:'#666c7a', hillDark:'#30343c', label:'#d4e8d4', outline:'#000000', fog:'rgba(150,200,175,' } },
+  { name:'Monde 3', title:'La crypte des situations', topics:'Équations, intérêts composés, dépréciation, demi-vie, doublement', gens:W3,
+    boss:{ name:'L’Ombre de la Demi-Vie', hp:5, color:'#c9d4f2', glow:'rgba(240,130,60,.45)', f:true },
+    theme:{ kind:'crypt', skyTop:'#0a0708', skyBot:'#1a1214', moon:false, lightning:false, cloud:'#000', cloudShade:'#000',
+      far:'#140e10', mid:'#100b0c', near:'#0b0708', grass:'#5a4f4c', grassDark:'#2e2626', dirt:'#2a2224', dirtDot:'#1c1617',
+      hill:'#5a4f4a', hillTop:'#776a62', hillDark:'#3a332f', label:'#f0d8c0', outline:'#000000', fog:'rgba(210,160,130,' } },
+  { name:'Monde 4', title:'Le marais des logarithmes', topics:'Évaluer un logarithme, lois des logarithmes, changement de base, fonction logarithmique', gens:W4, ext:true,
+    boss:{ name:'La Sorcière des Logarithmes', hp:5, color:'#d8f0c8', glow:'rgba(110,200,255,.45)', f:true },
+    theme:{ kind:'marsh', skyTop:'#05070a', skyBot:'#1b2a20', moon:true, lightning:true, cloud:'#18221c', cloudShade:'#0e1511',
+      far:'#101a14', mid:'#0b130e', near:'#070c09', grass:'#3f5a36', grassDark:'#1f2e1b', dirt:'#1c1e18', dirtDot:'#131510',
+      hill:'#4b5448', hillTop:'#66705f', hillDark:'#30362d', label:'#d9f0c8', outline:'#000000', fog:'rgba(140,210,150,' } },
+];
+let lastGen = -1;
+function genQ(w){
+  const gens = WORLDS[w].gens; let i;
+  do { i = Math.floor(Math.random() * gens.length); } while (i === lastGen && gens.length > 1);
+  lastGen = i; return gens[i]();
+}
+
+/* ================== État RPG ================== */
+const START_HP = 3;
+let world = 0, xp = 0, lvl = 1, maxHp = START_HP, hp = START_HP;
+let stats = { ok:0, tot:0, topics:{} }, worldStats = { ok:0, tot:0 };
+let state = 'title';
+const TIME_OPTS = [0, 20, 45, 90];
+let timeLimit = 0, qTimer = null, scaresOn = true;
+try { if (localStorage.getItem('qe-scares') === '0') scaresOn = false; } catch(_){}
+try { const t = +localStorage.getItem('qe-time'); if (TIME_OPTS.includes(t)) timeLimit = t; } catch(_){}
+const need = () => 100 + 25 * (lvl - 1);
+function record(topic, ok){
+  stats.tot++; worldStats.tot++; if (ok){ stats.ok++; worldStats.ok++; }
+  const t = stats.topics[topic] || (stats.topics[topic] = { ok:0, tot:0 });
+  t.tot++; if (ok) t.ok++;
+  updateHUD();
+}
+
+/* ================== Niveau ================== */
+const TS = 16, ROWS = 15, VH = ROWS * TS;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function genLevel(w){
+  const rnd = mulberry32(4242 + w * 977), ri = (a,b) => a + Math.floor(rnd() * (b - a + 1));
+  const W = 150 + w * 25, g = [];
+  for (let r = 0; r < ROWS; r++) g.push(new Uint8Array(W));
+  for (let x = 0; x < W; x++){ g[13][x] = 1; g[14][x] = 1; }
+  const en = [], labels = [];
+  const mkE = c => en.push({ x:c*TS+1, y:12*TS+4, w:14, h:12, vx:-0.45, vy:0, dead:false, squish:0, onGround:false });
+  let x = 14, last = -1;
+  while (x < W - 26){
+    let f; do { f = ri(0,5); } while (f === last);
+    last = f;
+    if (f === 0){ const gw = ri(2,3); for (let i = 0; i < gw; i++){ g[13][x+i] = 0; g[14][x+i] = 0; } x += gw + ri(3,5); }
+    else if (f === 1){ const n = ri(1,3) + (rnd() < .4 ? 2 : 0);
+      for (let i = 0; i < n; i++) g[9][x+i] = (i % 2 === 0) ? 3 : 2;
+      if (rnd() < .7) mkE(x + n + 2);
+      x += n + ri(5,7); }
+    else if (f === 2){ const n = 5;
+      for (let i = 0; i < n; i++){
+        const h1 = Math.round(2 ** (i/2)), h2 = Math.round(2 ** ((n-1-i)/2));
+        for (let r = 0; r < h1; r++) g[12-r][x+i] = 5;
+        for (let r = 0; r < h2; r++) g[12-r][x+n+i] = 5;
+      }
+      g[5][x+4] = 3;
+      labels.push({ x:x*TS - 20, y:7.3*TS, base:'2', exp:'x/2' });
+      labels.push({ x:(x+8)*TS - 6, y:7.3*TS, base:'(0,5)', exp:'x/2' });
+      x += 2*n + ri(3,5); }
+    else if (f === 3){ const len = ri(3,5);
+      for (let i = 0; i < len; i++) g[10][x+i] = 6;
+      g[6][x + Math.floor(len/2)] = 3;
+      if (rnd() < .6) mkE(x + len - 1);
+      x += len + ri(4,6); }
+    else if (f === 4){ mkE(x + 2); if (rnd() < .6) mkE(x + 5); x += ri(8,10); }
+    else { const h = ri(2,3);
+      for (let r = 0; r < h; r++){ g[12-r][x] = 1; g[12-r][x+1] = 1; }
+      if (rnd() < .5) mkE(x + 4);
+      x += 2 + ri(4,6); }
+  }
+  return { g, W, enemies:en, labels, flagC:W-15, castleC:W-11, doorX:(W-8)*TS };
+}
+
+let LV = null, enemies = [], floats = [], parts = [], bumps = [], pendingQ = 0, frame = 0, camX = 0;
+const P = { x:0, y:0, w:12, h:15, vx:0, vy:0, onGround:false, face:1, coyote:0, jumpBuf:0, inv:0 };
+function tile(c, r){ if (r < 0 || r >= ROWS) return 0; if (c < 0 || c >= LV.W) return 1; return LV.g[r][c]; }
+function solid(c, r){ if (r < 0 || r >= ROWS) return false; if (c < 0 || c >= LV.W) return true; return LV.g[r][c] > 0; }
+
+function loadWorld(w){
+  world = w; LV = genLevel(w);
+  enemies = LV.enemies.map(e => ({ ...e }));
+  Object.assign(P, { x:2*TS, y:11*TS, vx:0, vy:0, face:1, inv:0, onGround:false, coyote:0, jumpBuf:0 });
+  camX = 0; floats = []; parts = []; bumps = []; pendingQ = 0;
+  worldStats = { ok:0, tot:0 };
+  updateHUD();
+}
+
+/* ================== Entrées ================== */
+const keys = { left:false, right:false, jump:false, jumpPressed:false };
+const clearKeys = () => { keys.left = keys.right = keys.jump = keys.jumpPressed = false; document.querySelectorAll('.pbtn.on').forEach(b => b.classList.remove('on')); };
+const KMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump', KeyZ:'jump' };
+const AMAP = { Digit1:0, Digit2:1, Digit3:2, Digit4:3, Numpad1:0, Numpad2:1, Numpad3:2, Numpad4:3, KeyA:0, KeyB:1, KeyC:2, KeyD:3 };
+let activeAnswer = null;
+addEventListener('keydown', e => {
+  unlockAudio();
+  if (state === 'question' || state === 'boss'){
+    if (activeAnswer && e.code in AMAP){ e.preventDefault(); activeAnswer(AMAP[e.code]); }
+    return;
+  }
+  if (e.code === 'Escape' || e.code === 'KeyP'){ if (state === 'play') pauseGame(); else if (state === 'paused') resumeGame(); return; }
+  const k = KMAP[e.code];
+  if (k && state === 'play'){ e.preventDefault(); if (k === 'jump' && !keys.jump) keys.jumpPressed = true; keys[k] = true; }
+});
+addEventListener('keyup', e => { const k = KMAP[e.code]; if (k) keys[k] = false; });
+addEventListener('blur', () => { clearKeys(); if (state === 'play') pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') pauseGame(); });
+
+const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window);
+document.documentElement.classList.toggle('touch', !!isTouch);
+document.querySelectorAll('.pbtn').forEach(b => {
+  const k = b.dataset.k;
+  const down = e => { e.preventDefault(); unlockAudio(); try { b.setPointerCapture(e.pointerId); } catch(_){}
+    if (k === 'jump' && !keys.jump) keys.jumpPressed = true; keys[k] = true; b.classList.add('on'); };
+  const up = e => { keys[k] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', down);
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+/* ================== Son ================== */
+let AC = null, soundOn = true;
+function unlockAudio(){ if (AC) { if (AC.state === 'suspended') AC.resume().catch(()=>{}); return; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){ AC = null; } }
+addEventListener('pointerdown', unlockAudio);
+const TONES = {
+  jump:[[440,.09,'square',760]], stomp:[[260,.09,'square',90]], bump:[[150,.06,'square']],
+  ok:[[660,.08,'square'],[990,.14,'square']], bad:[[220,.22,'sawtooth',110]], hurt:[[320,.16,'sawtooth',90]],
+  lvl:[[523,.08,'square'],[659,.08,'square'],[784,.08,'square'],[1046,.18,'square']], hit:[[180,.14,'square',50]], tick:[[1200,.03,'square']], win:[[392,.1,'square'],[523,.1,'square'],[659,.1,'square'],[784,.25,'square']],
+};
+function sfx(type){
+  if (!soundOn || !AC || AC.state !== 'running') return;
+  let t = AC.currentTime;
+  for (const [f, d, w = 'square', to] of TONES[type]){
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = w; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+    g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0008, t + d);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + .02); t += d;
+  }
+}
+/* ================== Musique : chiptune originale ================== */
+const NOTE = { C:0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, F:5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11 };
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+function parseLead(str){
+  const toks = str.split(/\s+/).filter(t => t && t !== '|'), ev = [];
+  toks.forEach((t, i) => {
+    if (t === '.') return;
+    if (t === '-'){ const l = ev[ev.length - 1]; if (l && l.end === i) l.end = i + 1; return; }
+    const m = t.match(/^([A-G][#b]?)(\d)$/); if (!m) return;
+    ev.push({ step:i, end:i + 1, f:mf((+m[2] + 1) * 12 + NOTE[m[1]]) });
+  });
+  return { ev, len:toks.length };
+}
+function makeTrack(o){
+  const lead = parseLead(o.lead), len = lead.len, steps = [];
+  for (let i = 0; i < len; i++) steps.push({ lead:null, bass:null, drum:o.drums[i % o.drums.length] });
+  for (const e of lead.ev) steps[e.step].lead = e;
+  for (let i = 0; i < len; i++){ const r = o.roots[Math.floor(i / 8) % o.roots.length], d = o.bpat[i % 8]; if (d !== null) steps[i].bass = mf(r + d); }
+  return { steps, len, sd:60 / o.bpm / 2, wave:o.wave || 'square', vol:o.vol || .045 };
+}
+const TRACKS = {
+  // Monde 1 : la mineur, boîte à musique et battements de cœur
+  w0: makeTrack({ bpm:96, wave:'triangle', vol:.11, drums:'k..k....', roots:[45,45,40,40,41,45,40,45], bpat:[0,null,null,null,7,null,null,null],
+    lead:'A5 . E5 . C5 . E5 . | A5 . E5 . C5 . B4 . | G#5 . E5 . B4 . E5 . | G#5 - - . . . . . | F5 . C5 . A4 . C5 . | E5 . C5 . A4 . C5 . | D5 . F5 . G#5 . B5 . | A5 - - . . . . .' }),
+  // Monde 2 : ré mineur, valse du manoir
+  w1: makeTrack({ bpm:88, wave:'triangle', vol:.11, drums:'k...h...', roots:[38,33,34,31,38,38,31,33], bpat:[0,null,7,null,12,null,7,null],
+    lead:'D5 . F5 . A5 . . . | C#5 . E5 . A5 . . . | D5 . F5 . Bb5 . A5 . | G5 - - . . . . . | F5 . E5 . D5 . C#5 . | D5 . A4 . F4 . . . | G4 . Bb4 . D5 . F5 . | E5 - - . C#5 - - .' }),
+  // Monde 3 : mi mineur chromatique, crypte
+  w2: makeTrack({ bpm:104, wave:'triangle', vol:.11, drums:'k..kh..h', roots:[40,35,36,40,40,35,36,40], bpat:[0,0,null,0,0,null,0,null],
+    lead:'E5 . F5 . E5 . . . | D#5 . E5 . B4 . . . | C5 . B4 . A#4 . B4 . | E4 - - . . . . . | G5 . F#5 . F5 . E5 . | D#5 . E5 . G5 . . . | C6 . B5 . A#5 . B5 . | E5 - - . B4 - - .' }),
+  // Monde 4 : sol mineur, marais
+  w3: makeTrack({ bpm:92, wave:'triangle', vol:.11, drums:'k...k.h.', roots:[43,38,39,38,43,38,36,38], bpat:[0,null,7,null,12,null,7,null],
+    lead:'G5 . D5 . Bb4 . D5 . | F#5 . D5 . A4 . D5 . | Eb5 . G5 . Bb5 . A5 . | G5 - - . . . . . | D6 . C6 . Bb5 . A5 . | G5 . F#5 . G5 . D5 . | Eb5 . D5 . C5 . A4 . | G4 - - . F#4 - - .' }),
+  // Boss : do mineur, tendu
+  boss: makeTrack({ bpm:140, wave:'square', vol:.04, drums:'kkshkksh', roots:[36,36,32,31,36,36,32,31], bpat:[0,12,0,12,0,12,0,12],
+    lead:'C5 . C5 . Eb5 . D5 . | C5 . G4 . Ab4 . G4 . | C5 . Eb5 . G5 . Ab5 . | G5 - F#5 - G5 - . . | C6 . B5 . Bb5 . A5 . | Ab5 . G5 . F#5 . G5 . | Eb5 . F5 . G5 . Ab5 . | B5 - - . G5 - - .' }),
+};
+let musicOn = true, musGain = null, noiseBuf = null, wantMusic = null, duck = false;
+const mus = { name:null, step:0, next:0 };
+try { const pref = JSON.parse(localStorage.getItem('qe-audio') || '{}'); if (pref.music === false) musicOn = false; if (pref.sfx === false) soundOn = false; } catch(_){}
+function saveAudio(){ try { localStorage.setItem('qe-audio', JSON.stringify({ music:musicOn, sfx:soundOn })); } catch(_){} }
+function musInit(){
+  if (musGain || !AC) return;
+  musGain = AC.createGain(); musGain.gain.value = .7; musGain.connect(AC.destination);
+  noiseBuf = AC.createBuffer(1, Math.floor(AC.sampleRate * .3), AC.sampleRate);
+  const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+function mtone(f, t, dur, type, vol){
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .006);
+  g.gain.setValueAtTime(vol, t + dur * .65); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(musGain); o.start(t); o.stop(t + dur + .02);
+}
+function mdrum(k, t){
+  if (k === 'k'){
+    const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + .12);
+    g.gain.setValueAtTime(.32, t); g.gain.exponentialRampToValueAtTime(.001, t + .14);
+    o.connect(g).connect(musGain); o.start(t); o.stop(t + .16);
+  } else if (k === 's' || k === 'h'){
+    const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), g = AC.createGain(), dur = k === 's' ? .12 : .04;
+    src.buffer = noiseBuf; fl.type = k === 's' ? 'bandpass' : 'highpass'; fl.frequency.value = k === 's' ? 1800 : 7000;
+    g.gain.setValueAtTime(k === 's' ? .16 : .05, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    src.connect(fl).connect(g).connect(musGain); src.start(t); src.stop(t + dur + .01);
+  }
+}
+function scream(){
+  if (!soundOn || !AC || AC.state !== 'running') return; musInit();
+  const t = AC.currentTime;
+  for (const [a, b] of [[740,180],[784,190],[1046,260],[1480,300]]){
+    const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(a, t); o.frequency.exponentialRampToValueAtTime(b, t + .75);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.06, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + .8);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + .82);
+  }
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = 2500;
+  g.gain.setValueAtTime(.3, t); g.gain.exponentialRampToValueAtTime(.001, t + .3);
+  src.connect(f).connect(g).connect(AC.destination); src.start(t); src.stop(t + .31);
+}
+function thunder(){
+  if (!soundOn || !AC || AC.state !== 'running') return; musInit();
+  const t = AC.currentTime + .15, src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = noiseBuf; src.loop = true; f.type = 'lowpass'; f.frequency.value = 380;
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.3, t + .06); g.gain.exponentialRampToValueAtTime(.001, t + 1.6);
+  src.connect(f).connect(g).connect(AC.destination); src.start(t); src.stop(t + 1.7);
+}
+function musTick(){
+  if (!AC || AC.state !== 'running') return;
+  musInit();
+  const name = musicOn ? wantMusic : null;
+  if (name !== mus.name){ mus.name = name; mus.step = 0; mus.next = AC.currentTime + .06; }
+  musGain.gain.setTargetAtTime(duck ? .25 : .7, AC.currentTime, .15);
+  if (!name) return;
+  if (mus.next < AC.currentTime - .1) mus.next = AC.currentTime + .05;
+  const tr = TRACKS[name];
+  while (mus.next < AC.currentTime + .15){
+    const st = tr.steps[mus.step], t = mus.next;
+    if (st.lead) mtone(st.lead.f, t, (st.lead.end - st.lead.step) * tr.sd * .92, tr.wave, tr.vol);
+    if (st.bass) mtone(st.bass, t, tr.sd * .85, 'triangle', .14);
+    if (st.drum && st.drum !== '.') mdrum(st.drum, t);
+    mus.next += tr.sd; mus.step = (mus.step + 1) % tr.len;
+  }
+}
+setInterval(musTick, 25);
+function syncAudioBtns(){
+  const m = $('#btnMusic'), b = $('#btnSound');
+  m.setAttribute('aria-pressed', musicOn); m.setAttribute('aria-label', musicOn ? 'Musique activée' : 'Musique coupée');
+  b.setAttribute('aria-pressed', soundOn); b.setAttribute('aria-label', soundOn ? 'Effets sonores activés' : 'Effets sonores coupés');
+}
+$('#btnSound').onclick = () => { soundOn = !soundOn; syncAudioBtns(); saveAudio(); unlockAudio(); };
+$('#btnMusic').onclick = () => { musicOn = !musicOn; syncAudioBtns(); saveAudio(); unlockAudio(); };
+syncAudioBtns();
+
+/* ================== HUD ================== */
+function heartsHTML(n, max){
+  let s = '';
+  for (let i = 0; i < max; i++) s += `<svg class="heart" viewBox="0 0 7 6" width="17" height="15" shape-rendering="crispEdges" aria-hidden="true"><g class="${i < n ? 'on' : 'off'}"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>`;
+  return s;
+}
+function updateHUD(){
+  const W = WORLDS[world];
+  $('#hudWorld').textContent = W.name; $('#hudWorldTitle').textContent = W.title;
+  const h = heartsHTML(hp, maxHp);
+  $('#hudHearts').innerHTML = h; $('#hudHearts').setAttribute('aria-label', `${hp} cœurs sur ${maxHp}`);
+  $('#bossHearts').innerHTML = h;
+  $('#hudLvl').textContent = lvl;
+  $('#hudXp').style.width = Math.min(100, xp / need() * 100) + '%';
+  $('#hudOk').textContent = stats.ok; $('#hudTot').textContent = stats.tot;
+}
+let toastT = 0;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
+function addFloat(text, x, y, color){ floats.push({ text, x, y, life:60, color:color || INK }); }
+function addXP(n, x, y){
+  xp += n; if (x != null) addFloat(`+${n} XP`, x, y, TEAL);
+  let up = false;
+  while (xp >= need()){ xp -= need(); lvl++; maxHp = Math.min(HP_CAP, maxHp + 1); hp = maxHp; up = true; }
+  if (up){ sfx('lvl'); toast(`Niveau ${lvl} ! +1 cœur (${maxHp})`); }
+  updateHUD();
+}
+function hurt(n, quiet){
+  hp = Math.max(0, hp - n); updateHUD();
+  if (!quiet){ sfx('hurt'); P.inv = 90; if (hp <= 0) gameOver(false); }
+}
+const HP_CAP = 10;
+function gainHeart(){ if (hp >= HP_CAP) return false; hp++; if (hp > maxHp) maxHp = hp; updateHUD(); return true; }
+
+/* ================== Physique ================== */
+const ACC = .32, MAXV = 2.3, GRAV = .38, JUMP = -6.7;
+function moveX(o){
+  o.x += o.vx; o.hitWall = false;
+  const top = Math.floor(o.y / TS), bot = Math.floor((o.y + o.h - .01) / TS);
+  if (o.vx > 0){ const c = Math.floor((o.x + o.w - .01) / TS);
+    for (let r = top; r <= bot; r++) if (solid(c, r)){ o.x = c*TS - o.w; o.vx = 0; o.hitWall = true; break; } }
+  else if (o.vx < 0){ const c = Math.floor(o.x / TS);
+    for (let r = top; r <= bot; r++) if (solid(c, r)){ o.x = (c+1)*TS; o.vx = 0; o.hitWall = true; break; } }
+}
+function moveY(o){
+  o.y += o.vy; o.onGround = false;
+  const l = Math.floor(o.x / TS), r = Math.floor((o.x + o.w - .01) / TS);
+  if (o.vy >= 0){ const row = Math.floor((o.y + o.h) / TS);
+    for (let c = l; c <= r; c++) if (solid(c, row)){ o.y = row*TS - o.h; o.vy = 0; o.onGround = true; break; } }
+  else { const row = Math.floor(o.y / TS); let hit = -1, best = 1e9;
+    for (let c = l; c <= r; c++) if (solid(c, row)){ const d = Math.abs((c + .5)*TS - (o.x + o.w/2)); if (d < best){ best = d; hit = c; } }
+    if (hit >= 0){ o.y = (row + 1)*TS; o.vy = 0; if (o === P) bumpTile(hit, row); } }
+}
+function bumpTile(c, r){
+  const t = tile(c, r);
+  if (t === 3){ LV.g[r][c] = 4; bumps.push({ c, r, t:10 }); pendingQ = 14; sfx('bump'); addFloat('?', c*TS + 5, r*TS - 4, AMBER); }
+  else if (t === 2){ LV.g[r][c] = 0; sfx('bump');
+    for (let i = 0; i < 4; i++) parts.push({ x:c*TS + 8, y:r*TS + 8, vx:(i%2 ? 1.4 : -1.4), vy:-3 - (i>1 ? 1.5 : 0), life:50 }); }
+  else sfx('bump');
+}
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function respawn(){
+  let c = Math.floor(P.x / TS) - 2;
+  while (c > 1 && !(tile(c,13) === 1 && tile(c+1,13) === 1 && !solid(c,12) && !solid(c,11) && !solid(c+1,12) && !solid(c+1,11))) c--;
+  if (c < 1) c = 2;
+  Object.assign(P, { x:c*TS + 2, y:10*TS, vx:0, vy:0, inv:90 });
+}
+
+function step(){
+  frame++;
+  const L = keys.left, Rt = keys.right;
+  if (L && !Rt){ P.vx -= ACC; P.face = -1; }
+  else if (Rt && !L){ P.vx += ACC; P.face = 1; }
+  else { P.vx *= P.onGround ? .74 : .94; if (Math.abs(P.vx) < .05) P.vx = 0; }
+  P.vx = Math.max(-MAXV, Math.min(MAXV, P.vx));
+  if (keys.jumpPressed){ P.jumpBuf = 7; keys.jumpPressed = false; }
+  if (P.jumpBuf > 0) P.jumpBuf--;
+  if (P.onGround) P.coyote = 6; else if (P.coyote > 0) P.coyote--;
+  if (P.jumpBuf > 0 && P.coyote > 0){ P.vy = JUMP; P.jumpBuf = 0; P.coyote = 0; P.onGround = false; sfx('jump'); }
+  if (!keys.jump && P.vy < -2.4) P.vy = -2.4;
+  P.vy = Math.min(P.vy + GRAV, 7);
+  moveX(P); if (P.x < 0){ P.x = 0; P.vx = 0; }
+  moveY(P);
+  if (P.inv > 0) P.inv--;
+
+  if (P.y > ROWS*TS + 30){ addFloat('−1 ♥', P.x, (ROWS-3)*TS, RED); hurt(1, true); sfx('hurt'); if (hp <= 0){ gameOver(false); return; } respawn(); }
+
+  for (const e of enemies){
+    if (e.dead) continue;
+    if (e.squish > 0){ if (--e.squish === 0) e.dead = true; continue; }
+    if (e.x < camX - 80 || e.x > camX + VW + 140) continue;
+    e.vy = Math.min(e.vy + GRAV, 7);
+    const dir = Math.sign(e.vx) || -1;
+    moveX(e); if (e.hitWall) e.vx = -dir * 0.45;
+    moveY(e);
+    if (e.onGround){ const ahead = e.vx > 0 ? Math.floor((e.x + e.w + 1) / TS) : Math.floor((e.x - 1) / TS);
+      if (!solid(ahead, Math.floor((e.y + e.h + 1) / TS))) e.vx = -e.vx; }
+    if (e.y > ROWS*TS + 20){ e.dead = true; continue; }
+    if (overlap(P, e)){
+      if (P.vy > 0 && (P.y + P.h) - e.y < 9){ e.squish = 24; P.vy = keys.jump ? -6 : -4.2; sfx('stomp'); addXP(10, e.x, e.y - 6); }
+      else if (P.inv === 0){ hurt(1); if (state !== 'play') return; P.vy = -3.2; P.vx = (P.x < e.x ? -1 : 1) * 2.4; addFloat('−1 ♥', P.x, P.y - 6, RED); }
+    }
+  }
+  for (const b of bumps) b.t--; bumps = bumps.filter(b => b.t > 0);
+  for (const p of parts){ p.x += p.vx; p.y += p.vy; p.vy += .3; p.life--; } parts = parts.filter(p => p.life > 0);
+  for (const f of floats){ f.y -= .5; f.life--; } floats = floats.filter(f => f.life > 0);
+
+  if (pendingQ > 0 && --pendingQ === 0){ if (scaresOn && Math.random() < .2) scare(openQuestion); else openQuestion(); return; }
+  if (P.x + P.w/2 >= LV.doorX + 8 && P.onGround){ scare(startBoss); return; }
+  if (TH.lightning && Math.random() < 1 / (60 * 14)){ flashT = 14; thunder(); }
+  if (scaresOn && --scareCD <= 0 && P.onGround && pendingQ === 0){ scareCD = 60 * R(40, 75); scare(); return; }
+}
+
+/* ================== Rendu ================== */
+const cv = $('#cv'), ctx = cv.getContext('2d'), stage = $('#stage');
+let scale = 1, VW = 400;
+function resize(){
+  const cw = stage.clientWidth || 360;
+  const reserve = isTouch ? 250 : 180;
+  const maxH = Math.max(200, Math.min(540, window.innerHeight - reserve));
+  const ch = Math.round(Math.min(cw * (cw < 620 ? .78 : .56), maxH));
+  cv.style.height = ch + 'px';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  scale = cv.height / VH; VW = cv.width / scale;
+}
+new ResizeObserver(resize).observe(stage);
+addEventListener('resize', resize);
+
+let TH = WORLDS[0].theme;
+let shakeT = 0, flashT = 0, lights = [], scareCD = 60 * 45;
+function hash(n){ n = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b); n ^= n >>> 13; n = Math.imul(n, 0xc2b2ae35); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; }
+const tri = t => { t = ((t % 1) + 1) % 1; return 1 - Math.abs(t * 2 - 1); };
+function dot(x, y, r){ ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+function ridge(par, period, baseY, amp, color, step, sharp){
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, VH);
+  const off = par % step;
+  for (let x = -off; x <= VW + step; x += step){
+    const wx = Math.round(x + par);
+    const h = sharp ? tri(wx / period) * .7 + tri(wx / (period * .43) + .3) * .3
+                    : (Math.sin(wx / period * Math.PI * 2) * .5 + .5) * .6 + (Math.sin(wx / (period * .37) + 1.3) * .5 + .5) * .4;
+    const y = Math.round((baseY - amp * h) / 2) * 2;
+    ctx.lineTo(x, y); ctx.lineTo(x + step, y);
+  }
+  ctx.lineTo(VW + step, VH); ctx.closePath(); ctx.fill();
+}
+function drawCloud(x, y, s, a, b){
+  ctx.fillStyle = b; ctx.fillRect(x + 2*s, y + 6*s, 30*s, 6*s);
+  ctx.fillStyle = a; ctx.fillRect(x, y + 4*s, 34*s, 6*s); ctx.fillRect(x + 6*s, y, 12*s, 6*s); ctx.fillRect(x + 17*s, y + 2*s, 11*s, 4*s); ctx.fillRect(x + 3*s, y + 2*s, 5*s, 4*s);
+}
+function drawTree(x, base, h, col){
+  ctx.strokeStyle = col; ctx.lineCap = 'square';
+  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, base); ctx.lineTo(x, base - h); ctx.stroke();
+  ctx.lineWidth = 2; ctx.beginPath();
+  ctx.moveTo(x, base - h*.5); ctx.lineTo(x - h*.32, base - h*.82);
+  ctx.moveTo(x, base - h*.68); ctx.lineTo(x + h*.3, base - h*.95);
+  ctx.moveTo(x, base - h*.86); ctx.lineTo(x - h*.1, base - h*1.08);
+  ctx.moveTo(x - h*.2, base - h*.7); ctx.lineTo(x - h*.36, base - h*.66);
+  ctx.moveTo(x + h*.18, base - h*.84); ctx.lineTo(x + h*.34, base - h*.8);
+  ctx.stroke(); ctx.lineCap = 'butt';
+}
+function drawGrave(x, base, kind, col){
+  ctx.fillStyle = col;
+  if (kind === 0){ ctx.fillRect(x, base - 12, 10, 12); dot(x + 5, base - 12, 5); }
+  else if (kind === 1){ ctx.fillRect(x + 3, base - 18, 4, 18); ctx.fillRect(x, base - 14, 10, 3); }
+  else ctx.fillRect(x, base - 9, 14, 9);
+}
+function drawHouse(x, base, k, col, now){
+  ctx.fillStyle = col;
+  ctx.fillRect(x, base - 60, 70, 60);
+  ctx.beginPath(); ctx.moveTo(x - 6, base - 60); ctx.lineTo(x + 35, base - 92); ctx.lineTo(x + 76, base - 60); ctx.fill();
+  ctx.fillRect(x + 50, base - 100, 14, 44);
+  ctx.beginPath(); ctx.moveTo(x + 46, base - 100); ctx.lineTo(x + 57, base - 122); ctx.lineTo(x + 68, base - 100); ctx.fill();
+  [[10,-48],[28,-48],[46,-48],[10,-26],[46,-26],[54,-90]].forEach(([dx, dy], i) => {
+    const on = (Math.floor(now / 1300 + k * 5 + i * 2) % 6) !== 0 && hash(k * 10 + i) > .35;
+    ctx.fillStyle = on ? '#c9dc6a' : '#05070a'; ctx.fillRect(x + dx, base + dy, 6, 9);
+    if (on) lights.push({ x:x + dx + 3, y:base + dy + 4, r:14, c:'rgba(200,230,110,.18)' });
+  });
+}
+function drawBackdrop(cx, now){
+  const th = TH;
+  const sky = ctx.createLinearGradient(0, 0, 0, VH);
+  sky.addColorStop(0, th.skyTop); sky.addColorStop(1, th.skyBot);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, VW + 1, VH);
+  if (th.kind === 'crypt'){
+    const par = cx * .3;
+    ctx.fillStyle = '#1a1214'; ctx.fillRect(0, 0, VW + 1, VH);
+    ctx.fillStyle = '#0f0a0b';
+    for (let y = 0; y < VH; y += 12){
+      ctx.fillRect(0, y, VW + 1, 1.5);
+      const off = ((y / 12) % 2) * 12;
+      for (let x = -((par + off) % 24); x < VW; x += 24) ctx.fillRect(x, y, 1.5, 12);
+    }
+    const per = 200;
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 100; k++){
+      const x = k * per - par + 60;
+      ctx.fillStyle = '#070506'; ctx.fillRect(x, 70, 44, 140); dot(x + 22, 70, 22);
+      const tx = x + 100, ty = 110, fl = Math.sin(now / 70 + k) * 1.5 + Math.sin(now / 23 + k * 2);
+      ctx.fillStyle = '#3a2a1a'; ctx.fillRect(tx - 1.5, ty, 3, 14);
+      ctx.fillStyle = '#ff9a3a'; ctx.beginPath(); ctx.ellipse(tx, ty - 3, 3.5, Math.max(3, 6 + fl * .6), 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.ellipse(tx, ty - 1, 1.6, 3, 0, 0, Math.PI * 2); ctx.fill();
+      lights.push({ x:tx, y:ty - 3, r:46 + fl * 3, c:'rgba(255,140,50,.32)' });
+    }
+    return;
+  }
+  ctx.fillStyle = '#8f86a8'; const span = VW + 20;
+  for (let i = 0; i < 40; i++){
+    const sx = (((hash(i) * 900 - cx * .04) % span) + span) % span, sy = hash(i + 99) * 110;
+    if (Math.floor(now / 500 + i * 3) % 7) ctx.fillRect(Math.round(sx), Math.round(sy), 1, 1);
+  }
+  if (th.moon){
+    const mx = Math.round(VW * .76 - cx * .02), my = 40;
+    const halo = ctx.createRadialGradient(mx, my, 10, mx, my, 60);
+    halo.addColorStop(0, 'rgba(220,225,255,.28)'); halo.addColorStop(1, 'rgba(220,225,255,0)');
+    ctx.fillStyle = halo; ctx.fillRect(mx - 60, my - 60, 120, 120);
+    ctx.fillStyle = '#ece8d6'; dot(mx, my, 16);
+    ctx.fillStyle = '#cdc8b2'; dot(mx - 5, my - 3, 3.5); dot(mx + 6, my + 5, 2.5); dot(mx + 3, my - 8, 2);
+  }
+  const cpar = cx * .15 + now * .004, cper = 210;
+  for (let k = Math.floor(cpar / cper) - 1; k * cper - cpar < VW + 80; k++)
+    drawCloud(Math.round(k * cper - cpar + hash(k) * 60), Math.round(16 + hash(k + 7) * 50), 1 + (hash(k + 3) < .4 ? 1 : 0), th.cloud, th.cloudShade);
+  ridge(cx * .12, 150, 190, 70, th.far, 4, 1);
+  if (th.kind === 'manor'){
+    const per = 330, par = cx * .22;
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 100; k++) drawHouse(Math.round(k * per - par + hash(k + 40) * 80), 196, k, '#0a0f0e', now);
+  }
+  ridge(cx * .3, 110, 204, 34, th.mid, 4, 0);
+  if (th.kind === 'cemetery'){
+    const per = 70, par = cx * .45;
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 60; k++){
+      const x = Math.round(k * per - par + hash(k) * 30), r = hash(k + 11);
+      if (r < .3) drawTree(x, 209, 46 + hash(k + 5) * 30, th.near);
+      else drawGrave(x, 209, Math.floor(r * 10) % 3, th.near);
+    }
+  } else ridge(cx * .5, 70, 212, 18, th.near, 4, 0);
+}
+function drawEyes(cx, now){
+  const per = 230, par = cx * .55;
+  for (let k = Math.floor(par / per) - 1; k * per - par < VW + 40; k++){
+    if ((Math.floor(now / 2600) + k) % 3 !== 0) continue;
+    if (Math.floor(now / 140 + k * 7) % 19 === 0) continue;
+    const x = Math.round(k * per - par + hash(k + 70) * 120), y = Math.round(150 + hash(k + 71) * 40);
+    ctx.fillStyle = TH.kind === 'crypt' ? '#ff6a3a' : '#e8e25a';
+    ctx.fillRect(x, y, 2, 2); ctx.fillRect(x + 6, y, 2, 2);
+  }
+}
+function drawFog(cx, now){
+  for (let i = 0; i < 3; i++){
+    ctx.fillStyle = TH.fog + (.05 + i * .02) + ')';
+    const span = VW + 260, sp = .6 + i * .25;
+    for (let k = 0; k < 4; k++){
+      const x = ((k * 190 - cx * sp + now * .008 * (i + 1)) % span + span) % span - 130;
+      ctx.beginPath(); ctx.ellipse(x, 200 + i * 9, 110, 9 + i * 2, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+function drawRule(x, y, base, exp, col){
+  ctx.lineWidth = 3; ctx.strokeStyle = TH.outline; ctx.fillStyle = col; ctx.lineJoin = 'round';
+  ctx.font = 'italic 700 10px "Atkinson Hyperlegible", system-ui, sans-serif';
+  const pre = 'y = ' + base; ctx.strokeText(pre, x, y); ctx.fillText(pre, x, y);
+  const w = ctx.measureText(pre).width;
+  ctx.font = 'italic 700 7px "Atkinson Hyperlegible", system-ui, sans-serif';
+  ctx.strokeText(exp, x + w + 1, y - 5); ctx.fillText(exp, x + w + 1, y - 5);
+}
+function drawTile(t, x, y, c, r){
+  switch (t){
+    case 1:
+      ctx.fillStyle = TH.dirt; ctx.fillRect(x, y, TS + .4, TS + .4);
+      ctx.fillStyle = TH.dirtDot; ctx.fillRect(x + 3 + (c*7) % 8, y + 7 + (c*3 + r) % 6, 2, 2); ctx.fillRect(x + 10 - (c*5) % 6, y + 11 - (r*2) % 4, 2, 2);
+      if (tile(c, r-1) !== 1){
+        ctx.fillStyle = TH.grass; ctx.fillRect(x, y, TS + .4, 4);
+        ctx.fillStyle = TH.grassDark; ctx.fillRect(x, y + 4, TS + .4, 1.5);
+        ctx.fillStyle = TH.grass; ctx.fillRect(x + (c*5) % 12, y - 2, 1, 2); ctx.fillRect(x + (c*11 + 7) % 13, y - 3, 1, 3); ctx.fillRect(x + (c*3 + 2) % 14, y - 1, 1, 1);
+      }
+      break;
+    case 2:
+      ctx.fillStyle = BRICK; ctx.fillRect(x, y, TS, TS);
+      ctx.fillStyle = '#5c5266'; ctx.fillRect(x, y, TS, 1);
+      ctx.fillStyle = BRICK_D; ctx.fillRect(x, y + 7, TS, 1.5); ctx.fillRect(x, y + 15, TS, 1);
+      ctx.fillRect(x + 7, y, 1.5, 7); ctx.fillRect(x + 3, y + 8, 1.5, 7); ctx.fillRect(x + 12, y + 8, 1.5, 7);
+      break;
+    case 3: {
+      const fl = .75 + Math.sin(frame / 6 + c) * .15 + Math.sin(frame / 2.3 + r) * .1;
+      ctx.fillStyle = '#4f6b2a'; ctx.fillRect(x + 7, y, 2, 4);
+      ctx.fillStyle = PUMPKIN; ctx.beginPath(); ctx.ellipse(x + 8, y + 9.5, 7.8, 6.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#b8560f'; ctx.fillRect(x + 4.5, y + 5, 1, 9); ctx.fillRect(x + 10.5, y + 5, 1, 9);
+      ctx.fillStyle = `rgba(255,226,122,${fl})`;
+      ctx.font = '700 10px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.fillText('?', x + 8, y + 13.5); ctx.textAlign = 'left';
+      break; }
+    case 4:
+      ctx.fillStyle = '#3a3a2a'; ctx.fillRect(x + 7, y + 1, 2, 3);
+      ctx.fillStyle = USED; ctx.beginPath(); ctx.ellipse(x + 8, y + 9.5, 7.8, 6.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3d2f24'; ctx.fillRect(x + 4.5, y + 5, 1, 9); ctx.fillRect(x + 10.5, y + 5, 1, 9); ctx.fillRect(x + 6, y + 9, 4, 2);
+      break;
+    case 5:
+      ctx.fillStyle = TH.hill; ctx.fillRect(x, y, TS + .4, TS + .4);
+      if (tile(c, r-1) !== 5){ ctx.fillStyle = TH.hillTop; ctx.fillRect(x, y, TS + .4, 3); }
+      ctx.fillStyle = TH.hillDark; ctx.fillRect(x, y + TS - 1, TS, 1); ctx.fillRect(x + 4 + (c % 3), y + 5, 1, 4); ctx.fillRect(x + 5 + (c % 3), y + 8, 1, 3); ctx.fillRect(x + 11, y + 9 + (r % 3), 2, 1);
+      break;
+    case 6:
+      ctx.fillStyle = '#000'; ctx.fillRect(x, y, TS + .4, TS - 2);
+      ctx.fillStyle = RULER; ctx.fillRect(x, y + 1, TS + .4, TS - 4);
+      ctx.fillStyle = '#6a5038'; ctx.fillRect(x, y + 1, TS + .4, 1);
+      ctx.fillStyle = '#2b1f14'; ctx.fillRect(x + 4 + (c % 4), y + 5, 5, 1); ctx.fillRect(x + 2 + (c % 3), y + 9, 4, 1);
+      ctx.fillStyle = '#a9a39a'; ctx.fillRect(x + 1, y + 3, 1, 1); ctx.fillRect(x + 14, y + 3, 1, 1);
+      break;
+  }
+}
+function drawCastle(cx){
+  const x0 = LV.castleC * TS, top = 8 * TS, now = performance.now(), body = '#140f1b';
+  ctx.fillStyle = body; ctx.fillRect(x0, top, 7*TS, 5*TS);
+  ctx.beginPath(); ctx.moveTo(x0 - 8, top); ctx.lineTo(x0 + 3.5*TS, top - 3*TS); ctx.lineTo(x0 + 7*TS + 8, top); ctx.fill();
+  ctx.fillRect(x0 + 5*TS, top - 4*TS, 1.2*TS, 3.2*TS);
+  ctx.beginPath(); ctx.moveTo(x0 + 5*TS - 4, top - 4*TS); ctx.lineTo(x0 + 5.6*TS, top - 5.6*TS); ctx.lineTo(x0 + 6.2*TS + 4, top - 4*TS); ctx.fill();
+  ctx.fillStyle = '#211a2a';
+  for (let r = 0; r < 5; r++) for (let i = 0; i < 7; i++) ctx.fillRect(x0 + i*TS + (r % 2 ? 8 : 0), top + r*TS + 7, 6, 1);
+  [[1, 1], [5, 1], [3.1, -1.8]].forEach(([wx, wy], i) => {
+    const on = Math.floor(now / 700 + i * 2) % 5 !== 0, X = x0 + wx*TS + 2, Y = top + wy*TS;
+    ctx.fillStyle = on ? GLOW : '#05070a'; ctx.fillRect(X, Y + 4, 10, 12); dot(X + 5, Y + 4, 5);
+    ctx.fillStyle = body; ctx.fillRect(X + 4.5, Y - 1, 1, 17); ctx.fillRect(X, Y + 9, 10, 1);
+    if (on) lights.push({ x:X + 5 - cx, y:Y + 9, r:30, c:'rgba(155,227,107,.25)' });
+  });
+  ctx.fillStyle = '#000'; ctx.fillRect(LV.doorX - 2, 11*TS - 2, TS + 4, 2*TS + 2); dot(LV.doorX + 8, 11*TS - 2, 10);
+  lights.push({ x:LV.doorX + 8 - cx, y:12*TS, r:36, c:'rgba(150,100,230,.28)' });
+  const fx = LV.flagC * TS + 7, f2 = .8 + Math.sin(now / 90) * .15;
+  ctx.fillStyle = '#0c0a10'; ctx.fillRect(fx, 6*TS, 2, 7*TS); ctx.fillRect(fx - 4, 6*TS - 2, 10, 2);
+  ctx.fillStyle = '#2a2233'; ctx.fillRect(fx - 4, 6*TS, 10, 11);
+  ctx.fillStyle = `rgba(255,190,90,${f2})`; ctx.fillRect(fx - 2, 6*TS + 2, 6, 7);
+  lights.push({ x:fx + 1 - cx, y:6*TS + 5, r:42, c:'rgba(255,170,70,.3)' });
+  ctx.fillStyle = '#3a2b1c'; ctx.fillRect(fx + 2, 8*TS, 24, 11);
+  ctx.fillStyle = '#e8dcc0'; ctx.font = 'italic 700 8px "Atkinson Hyperlegible", sans-serif'; ctx.fillText('f(x)', fx + 6, 8*TS + 8);
+}
+function drawPlayer(cx){
+  const x = P.x, y = P.y, f = P.face;
+  lights.push({ x:(f > 0 ? x + 13 : x - 1) - cx, y:y + 10, r:48, c:'rgba(255,200,110,.22)' });
+  if (P.inv > 0 && Math.floor(P.inv / 4) % 2 === 0) return;
+  const px = (dx, dy, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(f > 0 ? x + dx : x + P.w - dx - w, y + dy, w, h); };
+  const walking = P.onGround && Math.abs(P.vx) > .3, ph = Math.floor(frame / 6) % 2;
+  px(1, 0, 9, 3, '#3a3150'); px(4, -2, 3, 2, PUMPKIN);
+  px(1, 3, 2, 3, HAIR); px(3, 3, 7, 4, SKIN); px(7, 4, 1, 2, '#000');
+  px(2, 7, 8, 5, HOOD); px(2, 7, 8, 1, '#8a6cc8');
+  px(walking && ph ? 9 : 10, 8, 2, 2, SKIN);
+  px(11, 9, 3, 4, '#ffd36b'); px(11, 8, 3, 1, '#2a2233'); px(12, 7, 1, 1, '#2a2233');
+  const L = '#1b1624';
+  if (!P.onGround){ px(1, 12, 3, 2, L); px(7, 12, 4, 3, L); }
+  else if (walking){ if (ph){ px(2, 12, 3, 3, L); px(7, 12, 3, 2, L); } else { px(2, 12, 3, 2, L); px(7, 12, 3, 3, L); } }
+  else { px(2, 12, 3, 3, L); px(7, 12, 3, 3, L); }
+}
+function drawEnemy(e){
+  const x = e.x, y = e.y - 3 + Math.sin(frame / 12 + e.x * .1) * 1.5;
+  if (e.squish > 0){
+    const a = e.squish / 24; ctx.fillStyle = `rgba(235,232,245,${a * .8})`;
+    for (let i = 0; i < 4; i++){ const ang = i * Math.PI / 2 + (24 - e.squish) * .1, d = (24 - e.squish) * .6; dot(x + 7 + Math.cos(ang) * d, y + 8 + Math.sin(ang) * d, 2.5 * a + 1); }
+    return;
+  }
+  ctx.fillStyle = 'rgba(155,227,107,.12)'; dot(x + 7, y + 7, 11);
+  ctx.fillStyle = 'rgba(238,235,248,.95)';
+  const w = Math.floor(frame / 8) % 2;
+  ctx.beginPath(); ctx.moveTo(x, y + 14); ctx.lineTo(x, y + 7); ctx.arc(x + 7, y + 7, 7, Math.PI, 0); ctx.lineTo(x + 14, y + 14);
+  ctx.lineTo(x + 11.5, y + 12 + w); ctx.lineTo(x + 9.5, y + 14); ctx.lineTo(x + 7, y + 13 - w); ctx.lineTo(x + 4.5, y + 14); ctx.lineTo(x + 2.5, y + 12 + w);
+  ctx.closePath(); ctx.fill();
+  const d = e.vx > 0 ? 1 : -1;
+  ctx.fillStyle = '#0b0910'; ctx.fillRect(x + 3.5 + d, y + 5, 2, 3); ctx.fillRect(x + 8.5 + d, y + 5, 2, 3); ctx.fillRect(x + 6 + d, y + 9, 2, 2);
+}
+function render(){
+  const th = TH = WORLDS[world].theme, now = performance.now();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const sh = shakeT > 0 ? (Math.random() * 6 - 3) : 0;
+  ctx.setTransform(scale, 0, 0, scale, sh * scale, 0);
+  if (!LV) return;
+  const cx = Math.round(camX * scale) / scale;
+  lights = [];
+  drawBackdrop(cx, now);
+  ctx.save(); ctx.translate(-cx, 0);
+  for (const l of LV.labels) if (l.x > cx - 120 && l.x < cx + VW + 20) drawRule(l.x, l.y, l.base, l.exp, th.label);
+  const nearCastle = LV.castleC * TS - 120 < cx + VW;
+  if (nearCastle) drawCastle(cx);
+  const c0 = Math.max(0, Math.floor(cx / TS)), c1 = Math.min(LV.W - 1, Math.ceil((cx + VW) / TS)), qb = [];
+  for (let r = 0; r < ROWS; r++) for (let c = c0; c <= c1; c++){
+    const t = LV.g[r][c]; if (!t) continue;
+    let oy = 0; for (const b of bumps) if (b.c === c && b.r === r) oy = -Math.sin((10 - b.t) / 10 * Math.PI) * 5;
+    if (t === 3){ qb.push([c, r, oy]); lights.push({ x:c*TS + 8 - cx, y:r*TS + 9 + oy, r:30, c:'rgba(255,150,50,.3)' }); continue; }
+    drawTile(t, c*TS, r*TS + oy, c, r);
+  }
+  drawPlayer(cx);
+  ctx.fillStyle = BRICK; for (const p of parts) ctx.fillRect(p.x, p.y, 4, 4);
+  ctx.restore();
+  // obscurité autour de la lanterne
+  const pxs = P.x + P.w / 2 - cx, pys = P.y + P.h / 2;
+  const rad = 92 + Math.sin(now / 90) * 2 + Math.sin(now / 37) * 1.5;
+  const g = ctx.createRadialGradient(pxs, pys, rad * .4, pxs, pys, rad * 1.9);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.45, 'rgba(0,0,0,.5)'); g.addColorStop(1, 'rgba(0,0,0,.84)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VW + 1, VH);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (const l of lights){
+    if (l.x < -l.r || l.x > VW + l.r) continue;
+    const lg = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.r);
+    lg.addColorStop(0, l.c); lg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = lg; ctx.fillRect(l.x - l.r, l.y - l.r, l.r * 2, l.r * 2);
+  }
+  ctx.restore();
+  drawEyes(cx, now);
+  ctx.save(); ctx.translate(-cx, 0);
+  for (const [c, r, oy] of qb) drawTile(3, c*TS, r*TS + oy, c, r);
+  for (const e of enemies) if (!e.dead && e.x > cx - 20 && e.x < cx + VW + 20) drawEnemy(e);
+  if (nearCastle){
+    ctx.font = '700 8px "Pixelify Sans", monospace'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+    ctx.strokeText('BOSS →', LV.doorX - 46, 10*TS + 4); ctx.fillStyle = GLOW; ctx.fillText('BOSS →', LV.doorX - 46, 10*TS + 4);
+  }
+  ctx.font = '700 9px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+  for (const f of floats){ ctx.globalAlpha = Math.min(1, f.life / 20); ctx.strokeText(f.text, f.x + 6, f.y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x + 6, f.y); }
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  ctx.restore();
+  drawFog(cx, now);
+  if (flashT > 0){ ctx.fillStyle = `rgba(215,220,255,${flashT / 14 * .5})`; ctx.fillRect(0, 0, VW + 1, VH); }
+}
+
+/* ================== Sursauts ================== */
+const FACES = [
+  `<svg viewBox="0 0 200 220"><defs><radialGradient id="sg" cx="50%" cy="38%" r="65%"><stop offset="0" stop-color="#ffffff"/><stop offset=".65" stop-color="#d8d2e8"/><stop offset="1" stop-color="#7d7396"/></radialGradient></defs><path d="M100 6C38 6 16 60 16 112V206L38 186 58 210 80 186 100 210 120 186 142 210 162 186 184 206V112C184 60 162 6 100 6Z" fill="url(#sg)"/><ellipse cx="66" cy="92" rx="21" ry="30" fill="#000"/><ellipse cx="134" cy="92" rx="21" ry="30" fill="#000"/><circle cx="70" cy="98" r="5" fill="#9be36b"/><circle cx="130" cy="98" r="5" fill="#9be36b"/><ellipse cx="100" cy="158" rx="28" ry="38" fill="#000"/></svg>`,
+  `<svg viewBox="0 0 220 200"><rect x="100" y="4" width="18" height="34" rx="4" fill="#4f6b2a"/><ellipse cx="110" cy="112" rx="104" ry="84" fill="#e8771e"/><path d="M60 40Q40 110 60 190M160 40Q180 110 160 190M110 30V196" stroke="#b8560f" stroke-width="6" fill="none"/><path d="M48 92L86 64 92 108Z M172 92L134 64 128 108Z" fill="#ffd84a"/><path d="M40 128L64 150 80 132 96 158 112 134 128 158 144 132 160 150 182 128 168 176 52 176Z" fill="#ffd84a"/></svg>`,
+  `<svg viewBox="0 0 240 120"><ellipse cx="66" cy="60" rx="52" ry="34" fill="#f2e85a"/><ellipse cx="174" cy="60" rx="52" ry="34" fill="#f2e85a"/><ellipse cx="66" cy="60" rx="9" ry="30" fill="#000"/><ellipse cx="174" cy="60" rx="9" ry="30" fill="#000"/><path d="M10 38L118 50M230 38L122 50" stroke="#000" stroke-width="10"/></svg>`,
+];
+let lastFace = -1;
+function scare(then){
+  if (!scaresOn){ if (then) then(); return; }
+  const prev = state; state = 'scare'; clearKeys();
+  let i; do { i = Math.floor(Math.random() * FACES.length); } while (i === lastFace); lastFace = i;
+  const el = $('#scare'); el.innerHTML = FACES[i]; el.hidden = false;
+  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+  scream(); shakeT = 24;
+  setTimeout(() => { el.hidden = true; el.classList.remove('go'); if (state === 'scare') state = prev; if (then) then(); }, 900);
+}
+
+/* ================== Questions ================== */
+function stopTimer(){ if (qTimer){ clearInterval(qTimer); qTimer = null; } }
+function renderQuestion(el, q, onAnswer, onContinue){
+  stopTimer();
+  const timed = timeLimit > 0;
+  el.innerHTML = `${timed ? `<div class="timer" role="timer" aria-label="Temps restant"><div class="timer-bar"><i></i></div><span class="timer-num">${timeLimit} s</span></div>` : ''}
+    <div class="q-topic">${q.topic}</div><div class="q-text">${q.q}</div>
+    <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}"><span class="key">${i+1}</span><span class="ct">${c}</span></button>`).join('')}</div>
+    <div class="feedback" hidden></div>`;
+  const btns = [...el.querySelectorAll('.choice')], fb = el.querySelector('.feedback');
+  let done = false;
+  const answer = i => {
+    if (done || i >= btns.length) return; done = true; activeAnswer = null; stopTimer();
+    const timedOut = i < 0, ok = i === q.answer;
+    btns.forEach((b, j) => { b.disabled = true; if (j === q.answer) b.classList.add('ok'); else if (j === i) b.classList.add('bad'); });
+    record(q.topic, ok);
+    const extra = onAnswer(ok) || '';
+    const head = ok ? 'Bonne réponse !' : timedOut ? 'Temps écoulé !' : 'Pas tout à fait.';
+    fb.innerHTML = `<p class="verdict ${ok ? 'ok' : 'bad'}">${head} <small>${extra}</small></p>
+      <p class="expl">${q.expl}</p><button class="btn primary">Continuer</button>`;
+    fb.hidden = false;
+    const cb = fb.querySelector('button');
+    cb.onclick = () => { stopTimer(); onContinue(ok); };
+    cb.focus({ preventScroll:true });
+    fb.scrollIntoView({ block:'nearest' });
+  };
+  btns.forEach(b => b.onclick = () => answer(+b.dataset.i));
+  activeAnswer = answer;
+  if (timed){
+    const tEl = el.querySelector('.timer'), bar = tEl.querySelector('i'), numEl = tEl.querySelector('.timer-num');
+    let left = timeLimit, last = performance.now(), lastSec = timeLimit;
+    qTimer = setInterval(() => {
+      const now = performance.now(), dt = (now - last) / 1000; last = now;
+      if (document.hidden) return;
+      left = Math.max(0, left - dt);
+      bar.style.width = (left / timeLimit * 100) + '%';
+      const sec = Math.ceil(left);
+      if (sec !== lastSec){ lastSec = sec; numEl.textContent = sec + ' s'; if (sec <= 3 && sec > 0) sfx('tick'); }
+      tEl.classList.toggle('warn', left <= 5);
+      if (left <= 0) answer(-1);
+    }, 100);
+  }
+}
+function openQuestion(){
+  state = 'question'; clearKeys();
+  const ov = $('#qov'); ov.hidden = false; ov.scrollTop = 0;
+  renderQuestion($('#qcard'), genQ(world), ok => {
+    if (ok){ sfx('ok'); const g = gainHeart(); addXP(30, P.x, P.y - 10); return g ? '+30 XP et +1 cœur' : '+30 XP'; }
+    sfx('bad'); hurt(1, true); return hp > 0 ? 'Tu perds 1 cœur. Lis l’explication :' : 'Tu n’as plus de cœurs…';
+  }, () => {
+    $('#qov').hidden = true; activeAnswer = null;
+    if (hp <= 0) gameOver(false); else { state = 'play'; }
+  });
+}
+
+/* ================== Boss ================== */
+const bcv = $('#bossCv'), bctx = bcv.getContext('2d');
+let bossHp = 0, bossShake = 0, bossFlash = 0, bossDead = false;
+function rr(c, x, y, w, h, r){ c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function drawBoss(now){
+  const c = bctx, B = WORLDS[world].boss;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 160, 120);
+  const bob = Math.sin(now / 420) * 4, sx = bossShake > 0 ? (bossShake % 4 < 2 ? 4 : -4) : 0, w = Math.sin(now / 200) * 3;
+  c.globalAlpha = bossDead ? .15 : 1;
+  const gl = c.createRadialGradient(80, 60, 8, 80, 60, 80); gl.addColorStop(0, B.glow); gl.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = gl; c.fillRect(0, 0, 160, 120);
+  if (world === 1){ c.strokeStyle = GLOW; c.lineWidth = 2; c.setLineDash([5, 4]); c.beginPath(); c.moveTo(10, 112); c.lineTo(150, 112); c.stroke(); c.setLineDash([]); }
+  c.save(); c.translate(80 + sx, 60 + bob);
+  c.globalAlpha = bossDead ? .15 : .95;
+  c.fillStyle = B.color;
+  c.beginPath(); c.moveTo(-38, 40); c.lineTo(-38, -6); c.bezierCurveTo(-38, -50, 38, -50, 38, -6); c.lineTo(38, 40);
+  for (let i = 1; i <= 8; i++) c.lineTo(38 - i * 9.5, 40 + (i % 2 ? -8 + w : 0));
+  c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(-38, 0); c.quadraticCurveTo(-60, 8 + w, -54, 24); c.lineTo(-38, 16); c.fill();
+  c.beginPath(); c.moveTo(38, 0); c.quadraticCurveTo(60, 8 - w, 54, 24); c.lineTo(38, 16); c.fill();
+  c.fillStyle = '#07060a';
+  c.beginPath(); c.ellipse(-14, -14, 9, 13, 0, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.ellipse(14, -14, 9, 13, 0, 0, Math.PI * 2); c.fill();
+  if (Math.floor(now / 1700) % 6 !== 0){ c.fillStyle = GLOW; c.fillRect(-15, -12, 3, 4); c.fillRect(13, -12, 3, 4); }
+  c.fillStyle = '#07060a'; c.beginPath(); c.ellipse(0, 7, 7, 8 + Math.sin(now / 300) * 2, 0, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#2a2236'; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  if (world === 0){
+    c.font = 'italic 700 15px "Atkinson Hyperlegible", serif'; c.fillText('a', -3, 33);
+    c.font = 'italic 700 9px "Atkinson Hyperlegible", serif'; c.fillText('n', 5, 26);
+    c.fillStyle = '#b8a04a'; c.beginPath(); c.moveTo(-18, -38); c.lineTo(-18, -52); c.lineTo(-9, -44); c.lineTo(0, -56); c.lineTo(9, -44); c.lineTo(18, -52); c.lineTo(18, -38); c.fill();
+  } else if (world === 1){
+    c.font = 'italic 700 12px "Atkinson Hyperlegible", serif'; c.fillText('y = k', 0, 33);
+  } else if (world === 3){
+    c.font = 'italic 700 13px "Atkinson Hyperlegible", serif'; c.fillText('log', 0, 33);
+    c.fillStyle = '#1a1420'; c.beginPath(); c.moveTo(-46, -28); c.lineTo(46, -28); c.lineTo(12, -38); c.lineTo(4, -58); c.lineTo(-12, -38); c.closePath(); c.fill();
+  } else {
+    c.font = '700 14px "Pixelify Sans", monospace'; c.fillText('½', -5, 33);
+    c.font = 'italic 700 8px "Atkinson Hyperlegible", serif'; c.fillText('t/T', 8, 25);
+    c.fillStyle = '#1a1420'; c.beginPath(); c.moveTo(-40, -2); c.bezierCurveTo(-44, -60, 44, -60, 40, -2); c.bezierCurveTo(30, -44, -30, -44, -40, -2); c.fill();
+  }
+  if (bossFlash > 0){ c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(255,255,255,.75)'; c.fillRect(-80, -70, 160, 140); c.globalCompositeOperation = 'source-over'; }
+  c.restore(); c.globalAlpha = 1;
+}
+function bossBar(){
+  const B = WORLDS[world].boss;
+  let s = '<span>PV&nbsp;</span>'; for (let i = 0; i < B.hp; i++) s += `<i class="${i < bossHp ? '' : 'gone'}"></i>`;
+  $('#bossHp').innerHTML = s; $('#bossHp').setAttribute('aria-label', `Boss : ${bossHp} PV sur ${B.hp}`);
+}
+function startBoss(){
+  state = 'boss'; clearKeys(); bossDead = false;
+  const B = WORLDS[world].boss; bossHp = B.hp;
+  $('#bossName').textContent = B.name; bossBar(); updateHUD();
+  $('#bossLog').textContent = `${B.name} te barre la route ! Chaque bonne réponse lui retire 1 PV.`;
+  const ov = $('#bov'); ov.hidden = false; ov.scrollTop = 0;
+  nextBossQ();
+}
+function nextBossQ(){
+  const B = WORLDS[world].boss;
+  renderQuestion($('#bossQ'), genQ(world), ok => {
+    if (ok){ bossHp--; bossShake = 24; bossFlash = 10; sfx('hit'); bossBar(); const g = gainHeart(); addXP(30);
+      if (bossHp <= 0){ bossDead = true; $('#bossLog').textContent = `${B.name} est vaincu${B.f ? 'e' : ''} !`; return 'Coup final !'; }
+      $('#bossLog').textContent = `Ton attaque exponentielle touche ! Il reste ${bossHp} PV.`; return g ? '+30 XP et +1 cœur' : '+30 XP';
+    }
+    sfx('hurt'); hurt(1, true); const a = $('#arena'); a.classList.remove('hit'); void a.offsetWidth; a.classList.add('hit');
+    $('#bossLog').textContent = `${B.name} contre-attaque !`;
+    return hp > 0 ? 'Tu perds 1 cœur. Lis l’explication :' : 'Tu n’as plus de cœurs…';
+  }, () => {
+    if (bossHp <= 0) bossDefeated();
+    else if (hp <= 0){ $('#bov').hidden = true; gameOver(true); }
+    else { nextBossQ(); $('#bov').scrollTop = 0; }
+  });
+}
+function bossDefeated(){
+  $('#bov').hidden = true; activeAnswer = null; sfx('win');
+  const W = WORLDS[world];
+  if (world < WORLDS.length - 1){
+    state = 'menu';
+    showCard(`<div class="q-topic">${W.name} réussi</div><h2>${W.boss.name} est vaincu${W.boss.f ? 'e' : ''} !</h2>
+      <p>Bonnes réponses dans ce monde : <b>${worldStats.ok} / ${worldStats.tot}</b>. Tu es au niveau ${lvl}.</p>
+      <p class="muted">Prochaine destination : <b>${WORLDS[world+1].title}</b>. ${WORLDS[world+1].topics}.</p>
+      <div class="row"><button class="btn primary" data-act="world" data-w="${world+1}">Aller au ${WORLDS[world+1].name}</button>${world === 2 ? '<button class="btn" data-act="victory">Terminer ici (bilan)</button>' : ''}<button class="btn" data-act="pause-memo">Aide-mémoire</button></div>`);
+  } else showVictory();
+}
+
+/* ================== Menus ================== */
+const mov = $('#mov'), mcard = $('#mcard');
+function showCard(html){ mcard.innerHTML = html; mov.hidden = false; mov.scrollTop = 0; const b = mcard.querySelector('.btn.primary, .wcard'); if (b) b.focus({ preventScroll:true }); }
+function hideCard(){ mov.hidden = true; }
+const MEMO = `<div class="memo">
+  <h3>Lois des exposants</h3>
+  <ul><li><i>a</i><sup><i>m</i></sup> × <i>a</i><sup><i>n</i></sup> = <i>a</i><sup><i>m</i> + <i>n</i></sup> et <i>a</i><sup><i>m</i></sup> ÷ <i>a</i><sup><i>n</i></sup> = <i>a</i><sup><i>m</i> − <i>n</i></sup></li>
+  <li>(<i>a</i><sup><i>m</i></sup>)<sup><i>n</i></sup> = <i>a</i><sup><i>mn</i></sup></li>
+  <li><i>a</i><sup>0</sup> = 1 et <i>a</i><sup>−<i>n</i></sup> = 1 ⁄ <i>a</i><sup><i>n</i></sup></li>
+  <li><i>a</i><sup><i>m</i>/<i>n</i></sup> = (<sup><i>n</i></sup>√<i>a</i>)<sup><i>m</i></sup></li></ul>
+  <h3>Fonction <i>f</i>(<i>x</i>) = <i>a</i>(<i>c</i>)<sup><i>b</i>(<i>x</i> − <i>h</i>)</sup> + <i>k</i></h3>
+  <ul><li>Asymptote : <i>y</i> = <i>k</i></li>
+  <li><i>c</i> &gt; 1 : croissance; 0 &lt; <i>c</i> &lt; 1 : décroissance. Un <i>a</i> ou un <i>b</i> négatif inverse le sens.</li>
+  <li>Codomaine : ]<i>k</i>, +∞[ si <i>a</i> &gt; 0; ]−∞, <i>k</i>[ si <i>a</i> &lt; 0</li>
+  <li>Ordonnée à l'origine : calcule <i>f</i>(0)</li></ul>
+  <h3>Situations</h3>
+  <ul><li>Augmentation de <i>i</i> % : facteur 1 + <i>i</i>; diminution : facteur 1 − <i>i</i></li>
+  <li>Demi-vie <i>T</i> : <i>m</i>(<i>t</i>) = <i>m</i><sub>0</sub>(0,5)<sup><i>t</i>/<i>T</i></sup></li>
+  <li>Doublement en <i>T</i> : <i>N</i>(<i>t</i>) = <i>N</i><sub>0</sub>(2)<sup><i>t</i>/<i>T</i></sup></li></ul>
+  <h3>Logarithmes (extension)</h3>
+  <ul><li>log<sub><i>c</i></sub> <i>x</i> = <i>y</i> ⇔ <i>c</i><sup><i>y</i></sup> = <i>x</i>; « log » seul signifie la base 10</li>
+  <li>log<sub><i>c</i></sub> 1 = 0 et log<sub><i>c</i></sub> <i>c</i> = 1</li>
+  <li>log<sub><i>c</i></sub> (<i>MN</i>) = log<sub><i>c</i></sub> <i>M</i> + log<sub><i>c</i></sub> <i>N</i> et log<sub><i>c</i></sub> (<i>M</i> ÷ <i>N</i>) = log<sub><i>c</i></sub> <i>M</i> − log<sub><i>c</i></sub> <i>N</i></li>
+  <li>log<sub><i>c</i></sub> <i>M</i><sup><i>n</i></sup> = <i>n</i> log<sub><i>c</i></sub> <i>M</i></li>
+  <li>Changement de base : log<sub><i>c</i></sub> <i>x</i> = log <i>x</i> ÷ log <i>c</i></li>
+  <li>Fonction log<sub><i>c</i></sub> (<i>x</i> − <i>h</i>) : asymptote verticale <i>x</i> = <i>h</i>, domaine ]<i>h</i>, +∞[</li></ul></div>`;
+function brandHTML(){
+  const word = 'Exponentiel'; let s = '';
+  for (let i = 0; i < word.length; i++) s += `<span style="font-size:calc(clamp(1.2rem, 5vw, 2rem) * ${Math.pow(1.07, i).toFixed(3)})">${word[i]}</span>`;
+  return `<h2 class="brand"><span class="q">Le Manoir</span><span class="e" aria-label="Exponentiel">${s}</span></h2>`;
+}
+function timeSettingHTML(){
+  return `<div class="setting"><span>Temps par question</span><div class="seg" role="group" aria-label="Temps par question">${TIME_OPTS.map(t => `<button data-act="time" data-t="${t}" aria-pressed="${t === timeLimit}">${t ? t + ' s' : 'Aucune limite'}</button>`).join('')}</div></div>`;
+}
+function scareSettingHTML(){
+  return `<div class="setting"><span>Sursauts</span><div class="seg" role="group" aria-label="Sursauts">${[[1, 'Activés'], [0, 'Désactivés']].map(([v, l]) => `<button data-act="scares" data-v="${v}" aria-pressed="${!!v === scaresOn}">${l}</button>`).join('')}</div></div>`;
+}
+function showTitle(){
+  state = 'title'; $('#qov').hidden = true; $('#bov').hidden = true;
+  showCard(`${brandHTML()}
+    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5 · Édition horreur</div>
+    <p>La nuit est tombée sur le manoir. Frappe les citrouilles <b>?</b> par en dessous pour obtenir une question. Tu commences chaque monde avec 3 cœurs; chaque bonne réponse donne de l’XP et un cœur de plus, chaque erreur en coûte un, avec l’explication. Un boss t’attend au bout de chaque monde… et des sursauts peuvent surgir à tout moment.</p>
+    <div class="legend">
+      <span class="chip qb"></span><span>Citrouille question : saute dessous</span>
+      <span class="chip en"></span><span>Fantôme : saute dessus pour le dissiper (+10 XP)</span>
+      <span class="chip cv"></span><span>Colline de pierres tombales : <i>y</i> = 2<sup><i>x</i>/2</sup></span>
+    </div>
+    ${timeSettingHTML()}
+    ${scareSettingHTML()}
+    <div class="worlds">${WORLDS.map((W, i) => `<button class="wcard" data-act="world" data-w="${i}"><span class="n">${W.ext ? W.name + ' · Extension' : W.name}</span><b>${W.title}</b><small>${W.topics}</small></button>`).join('')}</div>
+    <p class="muted" style="font-size:.88rem">${isTouch ? 'Sur téléphone : utilise les boutons sous l’écran de jeu.' : 'Clavier : ← → pour bouger, Espace ou ↑ pour sauter, 1 à 4 pour répondre, Échap pour la pause.'}</p>${(window.QE_LAUNCHER || QE_MENU) ? '<div class="row"><button class="btn" data-act="home">← Changer de jeu</button></div>' : ''}`);
+}
+function pauseGame(){
+  if (state !== 'play') return; state = 'paused'; clearKeys();
+  showCard(`<div class="q-topic">Pause</div>${timeSettingHTML()}${scareSettingHTML()}<h2>Aide-mémoire</h2>${MEMO}
+    <div class="row"><button class="btn primary" data-act="resume">Reprendre</button><button class="btn" data-act="title">Menu principal</button></div>`);
+}
+function resumeGame(){ hideCard(); clearKeys(); state = 'play'; }
+function gameOver(inBoss){
+  state = 'over'; clearKeys(); $('#qov').hidden = true; activeAnswer = null;
+  showCard(`<div class="q-topic" style="color:var(--red)">Plus de cœurs</div><h2>Les fantômes t’ont rattrapé…</h2>
+    <p>Tes points d'XP et ton niveau sont conservés. Relis l'aide-mémoire avant de repartir.</p>
+    <details><summary style="cursor:pointer;font-family:var(--display)">Aide-mémoire</summary>${MEMO}</details>
+    <div class="row">${inBoss ? `<button class="btn primary" data-act="retry-boss">Affronter le boss de nouveau</button>` : ''}
+    <button class="btn ${inBoss ? '' : 'primary'}" data-act="world" data-w="${world}">Recommencer le ${WORLDS[world].name}</button>
+    <button class="btn" data-act="title">Menu</button></div>`);
+}
+function showVictory(){
+  state = 'menu';
+  const pct = stats.tot ? Math.round(stats.ok / stats.tot * 100) : 0;
+  const rows = Object.entries(stats.topics).sort((a, b) => (a[1].ok / a[1].tot) - (b[1].ok / b[1].tot)).map(([t, v]) => {
+    const r = v.ok / v.tot, low = r < .7;
+    return `<tr><td>${t}</td><td class="num">${v.ok} / ${v.tot}</td><td><span class="tag ${low ? 'low' : 'okk'}">${low ? 'À revoir' : 'Maîtrisé'}</span></td></tr>`; }).join('');
+  showCard(`<div class="q-topic">Quête terminée</div><h2>${WORLDS[world].boss.name} est vaincu${WORLDS[world].boss.f ? 'e' : ''} !</h2><p class="muted">Le manoir retrouve son calme… pour l’instant.</p>
+    <div class="row" style="align-items:baseline;gap:16px"><span class="big">${pct} %</span><span>de bonnes réponses (${stats.ok} sur ${stats.tot}) · niveau ${lvl}</span></div>
+    <div class="tablewrap"><table class="stats"><thead><tr><th>Notion</th><th style="text-align:right">Réussite</th><th>Bilan</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="row"><button class="btn primary" data-act="replay">Rejouer depuis le début</button><button class="btn" data-act="title">Choisir un monde</button></div>`);
+}
+mcard.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  unlockAudio();
+  const act = b.dataset.act;
+  if (act === 'world'){ hideCard(); maxHp = START_HP; hp = maxHp; loadWorld(+b.dataset.w); clearKeys(); state = 'play'; toast(`${WORLDS[world].name} · ${WORLDS[world].title}`); }
+  else if (act === 'time'){ timeLimit = +b.dataset.t; try { localStorage.setItem('qe-time', timeLimit); } catch(_){}
+    b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  else if (act === 'scares'){ scaresOn = b.dataset.v === '1'; try { localStorage.setItem('qe-scares', scaresOn ? '1' : '0'); } catch(_){}
+    b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  else if (act === 'victory') showVictory();
+  else if (act === 'home') goHome();
+  else if (act === 'resume') resumeGame();
+  else if (act === 'title'){ loadWorld(world); showTitle(); }
+  else if (act === 'retry-boss'){ hideCard(); hp = maxHp; updateHUD(); startBoss(); }
+  else if (act === 'pause-memo'){ const r = b.closest('.row'); r.insertAdjacentHTML('beforebegin', MEMO); b.remove(); }
+  else if (act === 'replay'){ xp = 0; lvl = 1; maxHp = START_HP; hp = START_HP; stats = { ok:0, tot:0, topics:{} }; hideCard(); loadWorld(0); state = 'play'; }
+});
+$('#btnPause').onclick = () => { if (state === 'play') pauseGame(); else if (state === 'paused') resumeGame(); };
+const QE_MENU = (() => { try { return new URLSearchParams(location.search).has('menu'); } catch (_) { return false; } })();
+function goHome(){ if (window.QE_LAUNCHER) parent.postMessage({ qe:'home' }, '*'); else location.href = 'index.html'; }
+if (window.QE_LAUNCHER || QE_MENU){ const h = $('#btnHome'); h.hidden = false; h.onclick = goHome; }
+
+/* ================== Boucle ================== */
+let lastT = 0, acc = 0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt = Math.min(.1, (t - lastT) / 1000 || 0); lastT = t;
+  if (state === 'play'){ acc += dt; let n = 0; while (acc >= 1/60 && n < 6){ step(); acc -= 1/60; n++; if (state !== 'play') break; } }
+  else acc = 0;
+  if (LV){ const target = Math.max(0, Math.min(LV.W*TS - VW, P.x + P.w/2 - VW * .4)); camX += (target - camX) * .15; if (state === 'title') camX = 0; }
+  if (state !== 'scare'){
+    wantMusic = (state === 'play' || state === 'question') ? 'w' + world : state === 'boss' ? 'boss' : state === 'title' ? 'w0' : null;
+    duck = state === 'question' || state === 'title';
+  }
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  render();
+  if (state === 'boss' || !$('#bov').hidden){ if (bossShake > 0) bossShake--; if (bossFlash > 0) bossFlash--; drawBoss(t); }
+}
+
+/* ================== Démarrage ================== */
+window.claude?.hot?.snapshot?.(() => ({ world, xp, lvl, maxHp, stats }));
+function start(data){
+  data = data || {};
+  if (data.stats){ ({ world, xp, lvl } = data); stats = data.stats; }
+  maxHp = START_HP; hp = maxHp;
+  resize(); loadWorld(world || 0); showTitle();
+  requestAnimationFrame(loop);
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>

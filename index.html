@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les Quêtes Exponentielles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Creepster&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+body{margin:0}
+img{max-width:100%}
+/* Layout: arcade cabinet — marquee title on top, two game cartridges side by side (stacked on phones), short footer */
+:root{
+  --cab:#111722; --cab-2:#1a2231; --line:#2b364b; --text:#eef2f7; --muted:#9fb0c6;
+  --amber:#f0a83a; --teal:#2e8f83; --glow:#9be36b; --pumpkin:#f08a24; --sky:#6cc7f5;
+  --display:"Pixelify Sans","Courier New",monospace;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --horror:"Creepster","Pixelify Sans",cursive;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{min-height:100%}
+body{
+  margin:0;background-color:var(--cab);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.45;
+  background-image:radial-gradient(ellipse at 50% -20%,#24344d 0%,transparent 60%),repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 2px,transparent 2px 4px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 32px;
+}
+.launcher{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.marquee{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.eyebrow{font-family:var(--display);color:var(--amber);letter-spacing:.16em;text-transform:uppercase;font-size:.85rem}
+h1{font-family:var(--display);font-weight:700;margin:0;line-height:.95;display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:0 .28em}
+h1 .les{font-size:clamp(1.3rem,4vw,2.1rem);color:var(--muted)}
+h1 .exp{display:inline-flex;align-items:baseline}
+h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
+.sub{color:var(--muted);margin:0;max-width:58ch;text-wrap:balance}
+.press{font-family:var(--display);color:var(--amber);font-size:.95rem;letter-spacing:.08em}
+.press i{font-style:normal;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.carts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.cart{border:3px solid #000;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.cart.classic{background:#fbfdfb;color:#1f2f42;box-shadow:0 0 0 2px var(--line),8px 8px 0 #05080d}
+.cart.horror{background:#16111d;color:#ece5f3;box-shadow:0 0 0 2px #3b304a,8px 8px 0 #05080d,0 0 44px rgba(155,227,107,.12)}
+.scene{display:block;width:100%;height:auto;max-width:100%;aspect-ratio:16/9;border-bottom:3px solid #000}
+.cart-body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:12px;flex:1}
+.cart h2{margin:0;line-height:1.05;text-wrap:balance}
+.classic h2{font-family:var(--display);font-weight:700;font-size:1.75rem}
+.horror h2{font-family:var(--horror);font-weight:400;font-size:2.15rem;color:var(--glow);letter-spacing:.03em;text-shadow:0 0 14px rgba(155,227,107,.35)}
+.cart p{margin:0}
+.classic .lead{color:#52677d} .horror .lead{color:#a99cb9}
+.worldlist{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:.94rem}
+.worldlist li{display:grid;grid-template-columns:6.4em 1fr;gap:8px;align-items:baseline}
+.worldlist .n{font-family:var(--display);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+.classic .n{color:var(--teal)} .horror .n{color:var(--glow)}
+.classic .ext .n{color:#c27a12} .horror .ext .n{color:var(--pumpkin)}
+.chip{align-self:flex-start;font-family:var(--display);font-size:.8rem;padding:3px 10px;border-radius:999px;border:2px solid currentColor}
+.classic .chip{color:var(--teal)} .horror .chip{color:var(--pumpkin)}
+.play{margin-top:auto;font-family:var(--display);font-size:1.25rem;padding:12px 18px;border:3px solid #000;border-radius:8px;cursor:pointer;box-shadow:4px 4px 0 #000;display:flex;justify-content:center;gap:.5em}
+.classic .play{background:var(--amber);color:#1f2f42}
+.horror .play{background:var(--pumpkin);color:#160c04}
+.play:hover{filter:brightness(1.06)}
+.play:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
+.play:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+.foot{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 26px;color:var(--muted);font-size:.9rem;margin:0;padding:0;list-style:none}
+.foot li::before{content:"■ ";color:var(--amber);font-size:.7em;vertical-align:.15em}
+.float{animation:float 2.6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-3px)}}
+.hop{animation:hop 1.8s ease-in-out infinite}
+@keyframes hop{0%,60%,100%{transform:translateY(0)}75%{transform:translateY(-6px)}}
+.blinky{animation:blink 2.4s steps(1) infinite}
+.game-frame{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:100;background:#000}
+@media (max-width:720px){.carts{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.float,.hop,.blinky,.press i{animation:none}}
+</style>
+</head>
+<body>
+<main class="launcher" id="launcher">
+  <header class="marquee">
+    <span class="eyebrow">Secondaire 5 · Mathématiques</span>
+    <h1><span class="les">Les Quêtes</span><span class="exp" aria-label="Exponentielles"><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.000);color:#f0a83a">E</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.075);color:#f0a83a">x</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.156);color:#f2b14d">p</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.242);color:#f4ba60">o</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.335);color:#cfe08a">n</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.436);color:#b6e07c">e</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.543);color:#9be36b">n</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.659);color:#8fd9a0">t</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.783);color:#83cfd0">i</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.917);color:#6cc7f5">e</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.061);color:#7fb8f0">l</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.216);color:#9aa6ee">l</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.382);color:#b394ea">e</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.560);color:#c987e6">s</span></span></h1>
+    <p class="sub">Révise les fonctions exponentielles et les logarithmes en jouant : plateformes, questions et combats de boss.</p>
+    <span class="press"><i>▶</i> CHOISIS TON JEU</span>
+  </header>
+
+  <section class="carts" aria-label="Jeux">
+    <article class="cart classic">
+      <svg class="scene" viewBox="0 0 160 90" shape-rendering="crispEdges" role="img" aria-label="Héros sous un bloc question, en plein jour">
+        <defs><linearGradient id="csky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fb8ee"/><stop offset="1" stop-color="#c4ecff"/></linearGradient></defs>
+        <rect width="160" height="90" fill="url(#csky)"/>
+        <circle cx="132" cy="18" r="12" fill="#fff3b0" opacity=".5"/><circle cx="132" cy="18" r="7.5" fill="#ffe066"/>
+        <g fill="#ffffff"><rect x="12" y="13" width="26" height="5"/><rect x="17" y="9" width="10" height="5"/><rect x="27" y="11" width="7" height="3"/><rect x="72" y="20" width="20" height="4"/><rect x="77" y="17" width="7" height="3"/></g>
+        <g fill="#cfe8f7"><rect x="14" y="17" width="22" height="2"/><rect x="74" y="23" width="17" height="1"/></g>
+        <path d="M0 60 L18 50 L38 57 L62 42 L88 55 L112 38 L138 52 L160 44 V90 H0Z" fill="#9cc3e4"/>
+        <path d="M0 68 Q30 58 60 64 T120 60 T160 62 V90 H0Z" fill="#6cc06a"/>
+        <g fill="#2e8f83"><rect x="100" y="70" width="6" height="4"/><rect x="106" y="68" width="6" height="6"/><rect x="112" y="66" width="6" height="8"/><rect x="118" y="63" width="6" height="11"/><rect x="124" y="58" width="6" height="16"/><rect x="130" y="63" width="6" height="11"/><rect x="136" y="66" width="6" height="8"/><rect x="142" y="68" width="6" height="6"/><rect x="148" y="70" width="6" height="4"/></g>
+        <g fill="#56b3a6"><rect x="100" y="70" width="6" height="1"/><rect x="106" y="68" width="6" height="1"/><rect x="112" y="66" width="6" height="1"/><rect x="118" y="63" width="6" height="1"/><rect x="124" y="58" width="6" height="1"/><rect x="130" y="63" width="6" height="1"/><rect x="136" y="66" width="6" height="1"/><rect x="142" y="68" width="6" height="1"/><rect x="148" y="70" width="6" height="1"/></g>
+        <text x="104" y="52" font-family="Atkinson Hyperlegible, sans-serif" font-style="italic" font-weight="700" font-size="6" fill="#1f2f42">y = 2<tspan dy="-2.4" font-size="4">x/2</tspan></text>
+        <rect y="74" width="160" height="16" fill="#8a5a3a"/><rect y="74" width="160" height="3" fill="#62c24f"/><rect y="77" width="160" height="1" fill="#3f8f37"/>
+        <g fill="#6e4529"><rect x="9" y="81" width="2" height="2"/><rect x="37" y="85" width="2" height="2"/><rect x="66" y="82" width="2" height="2"/><rect x="95" y="86" width="2" height="2"/><rect x="128" y="81" width="2" height="2"/></g>
+        <g class="float"><rect x="31" y="22" width="14" height="14" fill="#1f2f42"/><rect x="32" y="23" width="12" height="12" fill="#f0a83a"/><rect x="32" y="23" width="12" height="2" fill="#ffd27c"/>
+        <text x="38" y="33.5" font-family="Pixelify Sans, monospace" font-size="10" font-weight="700" text-anchor="middle" fill="#1f2f42">?</text></g>
+        <g transform="translate(26 44) scale(2)"><g class="hop">
+          <rect x="1" y="0" width="9" height="3" fill="#f0a83a"/><rect x="8" y="2" width="4" height="1" fill="#f0a83a"/><rect x="1" y="0" width="9" height="1" fill="#ffd27c"/>
+          <rect x="1" y="3" width="2" height="3" fill="#3a2a1e"/><rect x="3" y="3" width="7" height="4" fill="#f1c6a0"/><rect x="7" y="4" width="1" height="2" fill="#1f2f42"/>
+          <rect x="2" y="7" width="8" height="5" fill="#2e8f83"/><rect x="2" y="7" width="8" height="1" fill="#56b3a6"/><rect x="9" y="8" width="2" height="3" fill="#f1c6a0"/>
+          <rect x="2" y="12" width="3" height="3" fill="#1f2f42"/><rect x="7" y="12" width="3" height="3" fill="#1f2f42"/></g></g>
+        <g transform="translate(76 62)"><path d="M0 12 V7 A7 7 0 0 1 14 7 V12Z" fill="#d4483c"/><rect x="3" y="4" width="3" height="4" fill="#fff"/><rect x="8" y="4" width="3" height="4" fill="#fff"/><rect x="3" y="6" width="2" height="2" fill="#1f2f42"/><rect x="8" y="6" width="2" height="2" fill="#1f2f42"/><rect x="1" y="10" width="4" height="2" fill="#1f2f42"/><rect x="9" y="10" width="4" height="2" fill="#1f2f42"/></g>
+      </svg>
+      <div class="cart-body">
+        <h2>Quête Exponentielle</h2>
+        <p class="lead">Plateformes en plein jour et musique 8-bit sautillante.</p>
+        <ul class="worldlist">
+          <li><span class="n">Monde 1</span><span>La plaine des exposants</span></li>
+          <li><span class="n">Monde 2</span><span>La vallée des paramètres</span></li>
+          <li><span class="n">Monde 3</span><span>Le volcan des situations</span></li>
+          <li class="ext"><span class="n">Extension</span><span>La montagne des logarithmes</span></li>
+        </ul>
+        <span class="chip">Pour toute la classe</span>
+        <button class="play" data-game="classic"><span aria-hidden="true">▶</span> Jouer</button>
+      </div>
+    </article>
+
+    <article class="cart horror">
+      <svg class="scene" viewBox="0 0 160 90" role="img" aria-label="Fantôme et citrouille lumineuse dans un cimetière, la nuit">
+        <defs>
+          <linearGradient id="hsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07060d"/><stop offset="1" stop-color="#251b3b"/></linearGradient>
+          <radialGradient id="hmoon"><stop offset="0" stop-color="#dce1ff" stop-opacity=".35"/><stop offset="1" stop-color="#dce1ff" stop-opacity="0"/></radialGradient>
+          <radialGradient id="hpump"><stop offset="0" stop-color="#ff9a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient>
+          <radialGradient id="hlamp"><stop offset="0" stop-color="#ffc86e" stop-opacity=".4"/><stop offset="1" stop-color="#ffc86e" stop-opacity="0"/></radialGradient>
+          <radialGradient id="hvig" cx=".42" cy=".62" r=".78"><stop offset=".35" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".78"/></radialGradient>
+        </defs>
+        <rect width="160" height="90" fill="url(#hsky)"/>
+        <g fill="#8f86a8"><rect x="12" y="8" width="1" height="1"/><rect x="40" y="16" width="1" height="1"/><rect x="58" y="6" width="1" height="1"/><rect x="88" y="12" width="1" height="1"/><rect x="104" y="28" width="1" height="1"/><rect x="146" y="40" width="1" height="1"/><rect x="26" y="30" width="1" height="1"/></g>
+        <circle cx="124" cy="22" r="24" fill="url(#hmoon)"/><circle cx="124" cy="22" r="10" fill="#ece8d6"/>
+        <g fill="#cdc8b2"><circle cx="120.5" cy="20" r="2.2"/><circle cx="127.5" cy="25.5" r="1.6"/><circle cx="125.5" cy="16.5" r="1.2"/></g>
+        <g fill="#1f1830"><rect x="20" y="20" width="30" height="5"/><rect x="26" y="16" width="12" height="5"/><rect x="88" y="34" width="22" height="4"/></g>
+        <path d="M0 62 L14 50 L30 58 L50 44 L72 56 L96 42 L120 54 L140 46 L160 52 V90 H0Z" fill="#171024"/>
+        <g stroke="#0b0811" stroke-width="2.2" fill="none" stroke-linecap="square"><path d="M18 74 V36"/><path d="M18 52 L8 40 M18 46 L29 34 M18 40 L15 30 M12 44 L6 43"/></g>
+        <g fill="#110c1a"><rect x="40" y="64" width="9" height="10"/><circle cx="44.5" cy="64" r="4.5"/><rect x="118" y="58" width="3" height="16"/><rect x="114" y="62" width="11" height="3"/><rect x="134" y="66" width="13" height="8"/></g>
+        <rect y="74" width="160" height="16" fill="#221a24"/><rect y="74" width="160" height="2" fill="#4a5a3a"/><rect y="76" width="160" height="1" fill="#26301f"/>
+        <circle cx="34" cy="64" r="22" fill="url(#hlamp)"/>
+        <circle cx="96" cy="50" r="20" fill="url(#hpump)"/>
+        <g class="float"><rect x="95" y="38" width="2" height="4" fill="#4f6b2a"/><ellipse cx="96" cy="47" rx="8.5" ry="7" fill="#e8771e"/><path d="M92 41 Q90 47 92 53 M100 41 Q102 47 100 53" stroke="#b8560f" stroke-width="1" fill="none"/>
+          <text x="96" y="51" font-family="Pixelify Sans, monospace" font-size="9" font-weight="700" text-anchor="middle" fill="#ffe27a">?</text></g>
+        <g transform="translate(22 44) scale(2)">
+          <rect x="1" y="0" width="9" height="3" fill="#3a3150"/><rect x="4" y="-2" width="3" height="2" fill="#e8771e"/>
+          <rect x="1" y="3" width="2" height="3" fill="#2a1d16"/><rect x="3" y="3" width="7" height="4" fill="#e9c8b0"/><rect x="7" y="4" width="1" height="2" fill="#000"/>
+          <rect x="2" y="7" width="8" height="5" fill="#6b4fa8"/><rect x="2" y="7" width="8" height="1" fill="#8a6cc8"/><rect x="10" y="8" width="2" height="2" fill="#e9c8b0"/>
+          <rect x="11" y="9" width="3" height="4" fill="#ffd36b"/><rect x="11" y="8" width="3" height="1" fill="#2a2233"/>
+          <rect x="2" y="12" width="3" height="3" fill="#1b1624"/><rect x="7" y="12" width="3" height="3" fill="#1b1624"/></g>
+        <g transform="translate(60 40) scale(2.2)"><g class="float">
+          <circle cx="7" cy="7" r="11" fill="#9be36b" opacity=".1"/>
+          <path d="M0 14 V7 A7 7 0 0 1 14 7 V14 L11.5 12 L9.5 14 L7 13 L4.5 14 L2.5 12Z" fill="#eeebf8"/>
+          <rect x="4" y="5" width="2" height="3" fill="#0b0910"/><rect x="9" y="5" width="2" height="3" fill="#0b0910"/><rect x="6.5" y="9" width="2" height="2" fill="#0b0910"/></g></g>
+        <g fill="rgba(170,160,210,.13)"><ellipse cx="40" cy="76" rx="50" ry="4"/><ellipse cx="128" cy="78" rx="44" ry="5"/></g>
+        <rect width="160" height="90" fill="url(#hvig)"/>
+        <g class="blinky" fill="#e8e25a"><rect x="148" y="62" width="1.4" height="1.4"/><rect x="152" y="62" width="1.4" height="1.4"/></g>
+      </svg>
+      <div class="cart-body">
+        <h2>Le Manoir Exponentiel</h2>
+        <p class="lead">Les mêmes notions, la nuit, à la lueur d'une lanterne.</p>
+        <ul class="worldlist">
+          <li><span class="n">Monde 1</span><span>Le cimetière des exposants</span></li>
+          <li><span class="n">Monde 2</span><span>Le manoir des paramètres</span></li>
+          <li><span class="n">Monde 3</span><span>La crypte des situations</span></li>
+          <li class="ext"><span class="n">Extension</span><span>Le marais des logarithmes</span></li>
+        </ul>
+        <span class="chip">Sursauts sans violence · désactivables</span>
+        <button class="play" data-game="horror"><span aria-hidden="true">▶</span> Jouer</button>
+      </div>
+    </article>
+  </section>
+
+  <ul class="foot">
+    <li>Fonctionne sans Internet</li>
+    <li>Clavier ou écran tactile</li>
+    <li>Temps limite au choix</li>
+    <li>Questions différentes à chaque partie</li>
+  </ul>
+</main>
+
+<script>
+(() => {
+  const PAGES = { classic: 'quete-exponentielle.html', horror: 'manoir-exponentiel.html' };
+  document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => { location.href = PAGES[b.dataset.game] + '?menu'; }));
+})();
+</script>
+
+</body>
+</html>
