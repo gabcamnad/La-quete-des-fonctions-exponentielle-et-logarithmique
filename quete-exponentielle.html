@@ -1604,12 +1604,19 @@ function loadPeer(){
     document.head.appendChild(s); setTimeout(() => rej(new Error('timeout')), 15000);
   });
 }
-const peerOpts = () => Object.assign({ debug:0 }, window.QE_PEER_OPTS || {});
+const ICE = [
+  { urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }, { urls:'stun:stun2.l.google.com:19302' },
+  { urls:'stun:stun.cloudflare.com:3478' },
+  { urls:['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username:'peerjs', credential:'peerjsp' },
+];
+const BLOCKED_MSG = 'La partie existe, mais les deux appareils n\u2019arrivent pas à se connecter directement. Le réseau bloque probablement ce type de connexion (c\u2019est fréquent sur le Wi-Fi des écoles). Essayez un autre réseau, par exemple le partage de connexion d\u2019un téléphone, ou jouez à 2 sur le même écran.';
+const peerOpts = () => Object.assign({ debug:0, config:{ iceServers:ICE } }, window.QE_PEER_OPTS || {});
 const savedName = () => { try { return localStorage.getItem('qe-name') || ''; } catch (_) { return ''; } };
 function mpErr(e){
   const t = e && e.type;
   if (t === 'peer-unavailable') return 'Aucune partie trouvée avec ce code. Vérifie les lettres.';
   if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') return 'Connexion au serveur impossible. Vérifie la connexion Internet.';
+  if (t === 'webrtc' || t === 'negotiation-failed') return BLOCKED_MSG;
   if (t === 'browser-incompatible') return 'Ce navigateur ne permet pas le jeu en ligne. Essaie Chrome, Edge ou Firefox.';
   return 'La connexion a échoué. Réessaie dans un instant.';
 }
@@ -1746,15 +1753,28 @@ async function mpJoin(name, raw){
   mpCleanup();
   Object.assign(MP, { role:'client', code, name });
   const peer = MP.peer = new Peer(undefined, peerOpts());
-  peer.on('open', () => {
-    if (MP.peer !== peer) return;
+  let tries = 0;
+  const attempt = () => {
+    if (MP.peer !== peer || MP.joined) return;
+    tries++;
+    if (tries > 1) mpStatus('Connexion à la partie ' + code + '… nouvel essai');
+    if (MP.conn){ try { MP.conn.close(); } catch (_) {} }
     const conn = MP.conn = peer.connect(ROOM(code), { reliable:true, serialization:'json' });
     conn.on('open', () => conn.send({ t:'hello', name, edition:EDITION }));
     conn.on('data', d => mpClientData(d));
-    conn.on('close', () => { if (MP.conn === conn && MP.role === 'client') mpLost('La connexion avec l’hôte a été perdue.'); });
-    setTimeout(() => { if (MP.peer === peer && !MP.joined){ mpCleanup(); mpMenu('Aucune partie trouvée avec ce code. Vérifie les lettres.'); } }, 12000);
+    conn.on('error', () => {});
+    conn.on('close', () => { if (MP.conn === conn && MP.role === 'client' && MP.joined) mpLost('La connexion avec l’hôte a été perdue.'); });
+    setTimeout(() => {
+      if (MP.peer !== peer || MP.joined) return;
+      if (tries < 2) attempt(); else { mpCleanup(); mpMenu(BLOCKED_MSG); }
+    }, 9000);
+  };
+  peer.on('open', () => { if (MP.peer === peer) attempt(); });
+  peer.on('error', e => {
+    if (MP.peer !== peer) return;
+    if (e.type === 'peer-unavailable'){ if (!MP.joined){ mpCleanup(); mpMenu('Aucune partie trouvée avec ce code. Vérifie les lettres, et que l’hôte a toujours sa page ouverte sur le code.'); } return; }
+    mpCleanup(); raceStop(); mpMenu(mpErr(e));
   });
-  peer.on('error', e => { if (MP.peer !== peer) return; if (!MP.joined || e.type !== 'peer-unavailable'){ mpCleanup(); raceStop(); mpMenu(mpErr(e)); } });
 }
 function mpClientData(d){
   if (!d || typeof d !== 'object' || MP.role !== 'client') return;
