@@ -71,7 +71,44 @@ h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
 @keyframes hop{0%,60%,100%{transform:translateY(0)}75%{transform:translateY(-6px)}}
 .blinky{animation:blink 2.4s steps(1) infinite}
 .game-frame{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:100;background:#000}
+.btns{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+.play.alt{margin-top:0;font-size:1rem;padding:9px 14px;box-shadow:3px 3px 0 #000}
+.classic .play.alt{background:#fff;color:#1f2f42}
+.horror .play.alt{background:#211a2b;color:#ece5f3}
+.modal{position:fixed;inset:0;z-index:90;background:rgba(5,8,13,.72);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal > .panel{margin-block:auto}
+#duoRes{z-index:120}
+.panel{background:var(--cab-2);border:3px solid #000;box-shadow:0 0 0 2px var(--line),8px 8px 0 #05080d;border-radius:12px;padding:20px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-family:var(--display);margin:0;font-size:1.6rem;line-height:1.1}
+.panel p{margin:0}
+.wpick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.wpick button{font:inherit;text-align:left;padding:10px 12px;border:2px solid var(--line);border-radius:8px;background:var(--cab);color:var(--text);cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
+.wpick button b{font-family:var(--display);font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--amber)}
+.wpick button[aria-pressed="true"]{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber) inset}
+.wpick button:focus-visible,.pbtn:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.keys{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.keys > div{border:2px dashed var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.keys b{font-family:var(--display)}
+kbd{font-family:var(--display);background:var(--cab);border:2px solid var(--line);border-radius:4px;padding:0 5px;font-size:.85rem;color:var(--text)}
+.prow{display:flex;flex-wrap:wrap;gap:10px}
+.pbtn{font-family:var(--display);font-size:1.05rem;padding:10px 16px;border:3px solid #000;border-radius:8px;cursor:pointer;box-shadow:3px 3px 0 #000;background:var(--cab);color:var(--text)}
+.pbtn.go{background:var(--amber);color:#1f2f42}
+.pbtn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+.note{color:var(--muted);font-size:.88rem}
+.duo{position:fixed;inset:0;z-index:100;background:#000;display:flex;flex-direction:column}
+.duo-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding:6px max(12px,env(safe-area-inset-right,0px)) 6px max(12px,env(safe-area-inset-left,0px));padding-top:max(6px,env(safe-area-inset-top,0px));background:var(--cab);color:var(--muted);font-size:.85rem;border-bottom:2px solid var(--line)}
+.duo-bar .who{display:flex;align-items:center;gap:6px}
+.duo-bar .dot{width:10px;height:10px;border-radius:50%}
+.duo-bar button{font-family:var(--display);background:transparent;color:var(--text);border:2px solid var(--line);border-radius:6px;padding:3px 10px;cursor:pointer}
+.duo-bar .msg{color:var(--amber);font-family:var(--display);margin-left:auto}
+.duo-frames{flex:1;display:grid;grid-template-rows:1fr 1fr;gap:3px;min-height:0}
+.duo-frames iframe{width:100%;height:100%;border:0;display:block;background:#000}
+.res-table{width:100%;border-collapse:collapse}
+.res-table td{padding:8px 6px;border-bottom:1px solid var(--line)}
+.res-table td.t{text-align:right;font-variant-numeric:tabular-nums}
+.res-table tr.win td{font-weight:700;color:var(--amber)}
 @media (max-width:720px){.carts{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.wpick,.keys{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.float,.hop,.blinky,.press i{animation:none}}
 </style>
 </head>
@@ -118,7 +155,7 @@ h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
           <li class="ext"><span class="n">Extension</span><span>La montagne des logarithmes</span></li>
         </ul>
         <span class="chip">Pour toute la classe</span>
-        <button class="play" data-game="classic"><span aria-hidden="true">▶</span> Jouer</button>
+        <div class="btns"><button class="play" data-game="classic"><span aria-hidden="true">▶</span> Jouer</button><button class="play alt" data-duo="classic">2 joueurs · même écran</button></div>
       </div>
     </article>
 
@@ -168,7 +205,7 @@ h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
           <li class="ext"><span class="n">Extension</span><span>Le marais des logarithmes</span></li>
         </ul>
         <span class="chip">Sursauts sans violence · désactivables</span>
-        <button class="play" data-game="horror"><span aria-hidden="true">▶</span> Jouer</button>
+        <div class="btns"><button class="play" data-game="horror"><span aria-hidden="true">▶</span> Jouer</button><button class="play alt" data-duo="horror">2 joueurs · même écran</button></div>
       </div>
     </article>
   </section>
@@ -176,15 +213,153 @@ h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
   <ul class="foot">
     <li>Fonctionne sans Internet</li>
     <li>Clavier ou écran tactile</li>
-    <li>Temps limite au choix</li>
+    <li>Course à 2 sur le même écran</li>
+    <li>Course en ligne avec un code</li>
     <li>Questions différentes à chaque partie</li>
   </ul>
 </main>
 
+<div class="modal" id="duoSetup" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="duoTitle">
+    <h2 id="duoTitle">Course à 2 joueurs</h2>
+    <p>L'écran se partage en deux. Les deux joueurs reçoivent les mêmes questions. Le premier qui bat le boss gagne. Une bonne réponse donne un turbo de 6 secondes; perdre tous ses cœurs coûte 15 secondes.</p>
+    <div class="wpick" id="duoWorlds"></div>
+    <div class="keys">
+      <div><b><span style="color:#e8505b">■</span> Joueur 1 (en haut)</b><span><kbd>A</kbd> <kbd>D</kbd> bouger · <kbd>W</kbd> sauter</span><span><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> répondre</span></div>
+      <div><b><span style="color:#3a86ff">■</span> Joueur 2 (en bas)</b><span><kbd>←</kbd> <kbd>→</kbd> bouger · <kbd>↑</kbd> sauter</span><span><kbd>7</kbd> <kbd>8</kbd> <kbd>9</kbd> <kbd>0</kbd> répondre</span></div>
+    </div>
+    <p class="note">Il faut un clavier. On peut aussi cliquer sur les réponses avec la souris.</p>
+    <div class="prow"><button class="pbtn go" id="duoGo">Commencer</button><button class="pbtn" id="duoCancel">Annuler</button></div>
+  </div>
+</div>
+
+<div class="duo" id="duo" hidden>
+  <div class="duo-bar">
+    <button id="duoQuit">← Quitter</button>
+    <span class="who"><span class="dot" style="background:#e8505b"></span>J1 : <kbd>A</kbd><kbd>D</kbd><kbd>W</kbd> · <kbd>1</kbd>–<kbd>4</kbd></span>
+    <span class="who"><span class="dot" style="background:#3a86ff"></span>J2 : <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd> · <kbd>7</kbd>–<kbd>0</kbd></span>
+    <span class="msg" id="duoMsg" aria-live="polite"></span>
+  </div>
+  <div class="duo-frames" id="duoFrames"></div>
+</div>
+
+<div class="modal" id="duoRes" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <h2 id="resTitle"></h2>
+    <table class="res-table"><tbody id="resBody"></tbody></table>
+    <div class="prow"><button class="pbtn go" id="resAgain">Rejouer ce monde</button><button class="pbtn" id="resOther">Changer de monde</button><button class="pbtn" id="resQuit">Quitter</button></div>
+  </div>
+</div>
+
 <script>
 (() => {
+  const GAMES = null;
   const PAGES = { classic: 'quete-exponentielle.html', horror: 'manoir-exponentiel.html' };
-  document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => { location.href = PAGES[b.dataset.game] + '?menu'; }));
+  const NAMES = { classic: 'Quête Exponentielle', horror: 'Le Manoir Exponentiel' };
+  const WORLDS = {
+    classic: ['La plaine des exposants', 'La vallée des paramètres', 'Le volcan des situations', 'La montagne des logarithmes'],
+    horror: ['Le cimetière des exposants', 'Le manoir des paramètres', 'La crypte des situations', 'Le marais des logarithmes']
+  };
+  const $ = id => document.getElementById(id);
+  const launcher = $('launcher');
+  function makeFrame(k, flag){
+    const f = document.createElement('iframe');
+    f.title = NAMES[k]; f.setAttribute('allow', 'autoplay; fullscreen');
+    if (GAMES) f.srcdoc = GAMES[k].replace('<head>', '<head><script>window.' + flag + ' = true;<\/script>');
+    else f.src = PAGES[k] + (flag === 'QE_DUO' ? '?duo' : '?menu');
+    return f;
+  }
+  function play(k){
+    if (!GAMES){ location.href = PAGES[k] + '?menu'; return; }
+    const f = makeFrame(k, 'QE_LAUNCHER'); f.className = 'game-frame';
+    f.addEventListener('load', () => { try { f.contentWindow.focus(); } catch (_) {} });
+    document.body.appendChild(f); launcher.hidden = true;
+  }
+  document.querySelectorAll('[data-game]').forEach(b => b.addEventListener('click', () => play(b.dataset.game)));
+  addEventListener('message', e => {
+    if (!e.data || e.data.qe !== 'home') return;
+    document.querySelectorAll('.game-frame').forEach(x => x.remove());
+    launcher.hidden = false;
+    const b = document.querySelector('[data-game]'); if (b) b.focus();
+  });
+
+  /* ----- Course à 2 joueurs sur le même écran ----- */
+  const COLORS = ['#e8505b', '#3a86ff'];
+  const MAPS = [
+    { KeyA: 'ArrowLeft', KeyD: 'ArrowRight', KeyW: 'ArrowUp', Digit1: 'Digit1', Digit2: 'Digit2', Digit3: 'Digit3', Digit4: 'Digit4' },
+    { ArrowLeft: 'ArrowLeft', ArrowRight: 'ArrowRight', ArrowUp: 'ArrowUp', Digit7: 'Digit1', Digit8: 'Digit2', Digit9: 'Digit3', Digit0: 'Digit4', Numpad1: 'Digit1', Numpad2: 'Digit2', Numpad3: 'Digit3', Numpad4: 'Digit4' }
+  ];
+  let duo = null, pickK = 'classic', pickW = 0;
+  function openSetup(k){
+    pickK = k;
+    $('duoWorlds').innerHTML = WORLDS[k].map((t, i) => '<button data-w="' + i + '" aria-pressed="' + (i === pickW) + '"><b>' + (i === 3 ? 'Extension' : 'Monde ' + (i + 1)) + '</b><span>' + t + '</span></button>').join('');
+    $('duoTitle').textContent = 'Course à 2 joueurs · ' + NAMES[k];
+    $('duoSetup').hidden = false; $('duoGo').focus();
+  }
+  $('duoWorlds').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    pickW = +b.dataset.w; $('duoWorlds').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  });
+  document.querySelectorAll('[data-duo]').forEach(b => b.addEventListener('click', () => openSetup(b.dataset.duo)));
+  $('duoCancel').addEventListener('click', () => { $('duoSetup').hidden = true; });
+  $('duoGo').addEventListener('click', () => { $('duoSetup').hidden = true; startDuo(pickK, pickW); });
+
+  function api(i){ try { return duo.frames[i].contentWindow.qeRace; } catch (_) { return null; } }
+  function startDuo(k, w){
+    const box = $('duoFrames'); box.innerHTML = '';
+    duo = { k, w, frames: [makeFrame(k, 'QE_DUO'), makeFrame(k, 'QE_DUO')], ready: 0, res: [null, null] };
+    duo.frames.forEach((f, i) => {
+      f.title = NAMES[k] + ' · Joueur ' + (i + 1);
+      f.addEventListener('load', () => {
+        let r;
+        try { attachKeys(f.contentWindow); r = f.contentWindow.qeRace; } catch (_) { r = null; }
+        if (!r){ $('duoMsg').textContent = 'Le mode 2 joueurs fonctionne avec le lien GitHub ou le fichier hors ligne.'; return; }
+        r.on('update', s => { const o = api(1 - i); if (o) o.setGhosts([Object.assign({ name: 'J' + (i + 1), color: COLORS[i] }, s)]); });
+        r.on('finish', res => finish(i, res));
+        if (++duo.ready === 2) go();
+      });
+      box.appendChild(f);
+    });
+    launcher.hidden = true; $('duo').hidden = false; $('duoMsg').textContent = '';
+    window.focus();
+  }
+  function go(){
+    duo.res = [null, null]; $('duoMsg').textContent = ''; $('duoRes').hidden = true;
+    const seed = Math.floor(Math.random() * 4294967296);
+    [0, 1].forEach(i => { const r = api(i); if (r) r.start({ world: duo.w, seed, label: 'J' + (i + 1) }); });
+    window.focus();
+  }
+  const fmt = s => { const m = Math.floor(s / 60), r = (s - m * 60).toFixed(1); return m + ':' + r.padStart(4, '0').replace('.', ','); };
+  function finish(i, res){
+    if (!duo) return;
+    duo.res[i] = res;
+    const other = duo.res[1 - i];
+    if (!other){ $('duoMsg').textContent = 'Joueur ' + (i + 1) + ' a battu le boss en ' + fmt(res.time) + ' !'; return; }
+    const order = duo.res[0].time <= duo.res[1].time ? [0, 1] : [1, 0];
+    $('resTitle').textContent = 'Le joueur ' + (order[0] + 1) + ' gagne !';
+    $('resBody').innerHTML = order.map((j, n) => '<tr class="' + (n === 0 ? 'win' : '') + '"><td>' + (n === 0 ? '1<sup>er</sup>' : '2<sup>e</sup>') + '</td><td><span style="color:' + COLORS[j] + '">■</span> Joueur ' + (j + 1) + '</td><td class="t">' + fmt(duo.res[j].time) + '</td><td class="t">' + duo.res[j].ok + '/' + duo.res[j].tot + ' bonnes réponses</td></tr>').join('');
+    $('duoRes').hidden = false; $('resAgain').focus();
+  }
+  function quitDuo(){
+    duo = null; $('duoFrames').innerHTML = ''; $('duo').hidden = true; $('duoRes').hidden = true; launcher.hidden = false;
+    const b = document.querySelector('[data-duo]'); if (b) b.focus();
+  }
+  $('duoQuit').addEventListener('click', quitDuo);
+  $('resQuit').addEventListener('click', quitDuo);
+  $('resAgain').addEventListener('click', go);
+  $('resOther').addEventListener('click', () => { const k = duo.k; quitDuo(); openSetup(k); });
+  function onKey(e){
+    if (!duo || !e.isTrusted || !$('duoRes').hidden) return;
+    let i = -1, code;
+    if (e.code in MAPS[0]){ i = 0; code = MAPS[0][e.code]; } else if (e.code in MAPS[1]){ i = 1; code = MAPS[1][e.code]; }
+    if (i < 0) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (e.type === 'keydown' && e.repeat) return;
+    try { const w = duo.frames[i].contentWindow; w.dispatchEvent(new w.KeyboardEvent(e.type, { code, key: code, bubbles: true, cancelable: true })); } catch (_) {}
+  }
+  function attachKeys(win){ win.addEventListener('keydown', onKey, true); win.addEventListener('keyup', onKey, true); }
+  attachKeys(window);
+  addEventListener('keydown', e => { if (e.key === 'Escape'){ if (!$('duoSetup').hidden) $('duoSetup').hidden = true; } });
 })();
 </script>
 

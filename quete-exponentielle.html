@@ -183,6 +183,42 @@ sup{font-size:.7em;line-height:0}
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }
+
+/* ===== Mode course et multijoueur ===== */
+.chrono{font-family:var(--display);font-size:1.1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chrono.turbo{color:var(--amber)}
+.countdown{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:clamp(3rem,14vw,7rem);color:#fff;text-shadow:4px 4px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;pointer-events:none}
+.countdown.pop{animation:cdpop .9s ease-out}
+@keyframes cdpop{0%{transform:scale(1.8);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92);opacity:.85}}
+.race-board{position:absolute;left:8px;top:8px;background:rgba(8,12,20,.74);color:#fff;border-radius:6px;padding:6px 8px;font-family:var(--display);font-size:.76rem;display:grid;gap:3px;min-width:150px;max-width:48%;pointer-events:none}
+.race-board .rb{display:grid;grid-template-columns:1.1em 8px minmax(0,1fr) auto;gap:6px;align-items:center}
+.race-board .dot{width:8px;height:8px;border-radius:50%}
+.race-board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.race-board .me .nm{text-decoration:underline}
+.race-board .bar{width:54px;height:6px;background:rgba(255,255,255,.22);border-radius:3px;overflow:hidden}
+.race-board .bar i{display:block;height:100%;background:#fff}
+.race-board .tm{font-variant-numeric:tabular-nums}
+.mp-code{font-family:var(--display);font-weight:700;font-size:clamp(2.6rem,12vw,4rem);letter-spacing:.3em;text-align:center;padding:4px 0 4px .3em;border:3px dashed currentColor;border-radius:8px;user-select:all}
+.field{display:flex;flex-direction:column;gap:4px;font-family:var(--display);font-size:.9rem}
+.field input{font-family:var(--body);font-size:1.1rem;padding:8px 10px;border:2px solid currentColor;border-radius:6px;background:transparent;color:inherit;min-width:0;width:100%}
+.field input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.mp-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mp-box{border:2px dashed currentColor;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0}
+.mp-box .field{align-self:stretch}
+.mp-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+.mp-list li{display:flex;align-items:center;gap:6px;font-family:var(--display)}
+.mp-list i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.mp-err{color:var(--red);font-weight:700}
+.mp-results{width:100%;border-collapse:collapse;font-size:.98rem}
+.mp-results td{padding:7px 6px;border-bottom:1px solid rgba(127,127,127,.35)}
+.mp-results td.r{font-family:var(--display);width:2em}
+.mp-results td.t{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mp-results tr.win td{font-weight:700}
+.mp-results .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.duo .help,.duo .pad{display:none!important}
+.duo body{padding-block:6px}
+.duo .game{gap:6px}
+@media (max-width:620px){.mp-split{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
@@ -192,6 +228,7 @@ sup{font-size:.7em;line-height:0}
     <div class="hearts" id="hudHearts"></div>
     <div class="xp"><span>Niv. <b id="hudLvl">1</b></span><div class="xpbar" title="Expérience"><i id="hudXp"></i></div></div>
     <div class="score" title="Bonnes réponses">✓ <b id="hudOk">0</b>/<span id="hudTot">0</span></div>
+    <div class="chrono" id="hudTime" hidden aria-live="off">0:00,0</div>
     <div class="hud-btns">
       <button class="icon-btn" id="btnMusic" aria-pressed="true" aria-label="Musique activée" title="Musique">♫</button>
       <button class="icon-btn" id="btnSound" aria-pressed="true" aria-label="Effets sonores activés" title="Effets sonores">♪</button>
@@ -203,6 +240,8 @@ sup{font-size:.7em;line-height:0}
   <div class="stage" id="stage">
     <canvas id="cv" aria-label="Niveau de plateformes"></canvas>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="countdown" id="countdown" hidden aria-live="assertive"></div>
+    <div class="race-board" id="raceBoard" hidden></div>
   </div>
 
   <div class="pad" id="pad">
@@ -476,30 +515,209 @@ const W4 = [
       `On résout ${num(C)}(${num(f)})<sup><i>t</i></sup> = ${num(2*C)}. On divise par ${num(C)} : (${num(f)})<sup><i>t</i></sup> = 2. Donc <i>t</i> = log 2 ÷ log ${num(f)} ≈ ${num(r1(t))} ans. Avec des intérêts simples, la réponse serait ${num(r1(100/i))} ans.`); },
 ];
 
+/* ===== Inéquations et recherche de règles ===== */
+const OPS = ['<', '≤', '>', '≥'];
+const flipOp = o => ({ '<':'>', '≤':'≥', '>':'<', '≥':'≤' })[o];
+const opH = o => ({ '<':'&lt;', '≤':'≤', '>':'&gt;', '≥':'≥' })[o];
+const interval = (o, e) => o === '>' ? `]${num(e)}, +∞[` : o === '≥' ? `[${num(e)}, +∞[` : o === '<' ? `]−∞, ${num(e)}[` : `]−∞, ${num(e)}]`;
+const W2X = [
+  () => { const c = pick([2,3,0.5]), a = pick([1,2,3,-1,-2]), k = R(-5,5), h = pick([0,0,1,-1,2]);
+    const e = pick(c === 0.5 ? [-3,-2,-1,0,1] : c === 3 ? [-1,0,1,2] : [-1,0,1,2,3]), p = c ** e, V = a * p + k, o = pick(OPS);
+    const o2 = a < 0 ? flipOp(o) : o, o3 = c < 1 ? flipOp(o2) : o2, sol = e + h, cor = interval(o3, sol);
+    const pw = `(${num(c)})<sup>${expStr(1,h)}</sup>`, pre = a === 1 ? '' : a === -1 ? '−' : num(a) + ' × ';
+    let ex = k ? `On soustrait ${num(k)} des deux côtés : ${pre}${pw} ${opH(o)} ${num(V - k)}. ` : '';
+    if (a !== 1) ex += `On divise par ${num(a)}${a < 0 ? ', un nombre négatif, donc on <b>inverse le sens</b>' : ''} : ${pw} ${opH(o2)} ${num(p)}. `;
+    ex += `Comme ${num(p)} = (${num(c)})<sup>${num(e)}</sup>`;
+    ex += c < 1 ? `, et que la base est entre 0 et 1 (fonction décroissante), on <b>inverse le sens</b> : ` : `, et que la base est plus grande que 1, on garde le sens : `;
+    ex += `${expStr(1,h)} ${opH(o3)} ${num(e)}${h ? `, donc <i>x</i> ${opH(o3)} ${num(sol)}` : ''}. Réponse : ${cor}.`;
+    return mk('Inéquations exponentielles', `Si ${rule(a,c,1,h,k)}, pour quelles valeurs de <i>x</i> a-t-on <i>f</i>(<i>x</i>) ${opH(o)} ${num(V)} ?`, cor,
+      [...OPS.filter(x => x !== o3).map(x => interval(x, sol)), interval(o3, -sol), interval(o3, e)], ex); },
+  () => { const c = pick([2,3,0.5]), a = pick([1,2,-1,-3]), k = pick([-4,-2,1,3,5]), h = pick([0,1,-2]), up = Math.random() < .5;
+    const o = up ? pick(['>','≥']) : pick(['<','≤']), all = (a > 0) === up, cor = all ? 'ℝ' : '∅';
+    return mk('Inéquations exponentielles', `Si ${rule(a,c,1,h,k)}, pour quelles valeurs de <i>x</i> a-t-on <i>f</i>(<i>x</i>) ${opH(o)} ${num(k)} ?`, cor,
+      [all ? '∅' : 'ℝ', `]${num(k)}, +∞[`, `]−∞, ${num(k)}[`, `]${num(h)}, +∞[`, `]0, +∞[`],
+      `${num(k)}, c'est l'asymptote <i>y</i> = ${num(k)}. Comme <i>a</i> ${a > 0 ? '&gt; 0, la courbe est toujours <b>au-dessus</b>' : '&lt; 0, la courbe est toujours <b>en dessous</b>'} de l'asymptote, sans jamais la toucher. ${all ? 'L’inéquation est donc vraie pour tous les réels : ℝ.' : 'L’inéquation n’est donc jamais vraie : ∅.'}`); },
+  () => { const [a,c] = pick([[2,3],[3,2],[1,2],[4,0.5],[2,0.5],[5,2],[1,3],[-2,2],[-1,3]]), k = pick([-4,-3,-1,1,2,5].filter(v => v !== -a));
+    const y0 = a + k, y1 = a * c + k;
+    return mk('Trouver la règle', `Une fonction de la forme <i>f</i>(<i>x</i>) = <i>a</i>(<i>c</i>)<sup><i>x</i></sup> + <i>k</i> a pour asymptote <i>y</i> = ${num(k)} et passe par (0, ${num(y0)}) et (1, ${num(y1)}). Quelle est sa règle ?`,
+      rule(a,c,1,0,k), [rule(y0,c,1,0,k), rule(a,c,1,0,-k), rule(a,c === 0.5 ? 2 : c + 1,1,0,k), rule(a * c,c,1,0,k)],
+      `L'asymptote donne <i>k</i> = ${num(k)}. En <i>x</i> = 0 : <i>a</i> + <i>k</i> = ${num(y0)}, donc <i>a</i> = ${num(y0)} − (${num(k)}) = ${num(a)}. En <i>x</i> = 1 : ${num(a)}<i>c</i> + (${num(k)}) = ${num(y1)}, donc <i>c</i> = ${num(y1 - k)} ÷ ${num(a)} = ${num(c)}.`); },
+  () => { const [a,c] = pick([[3,2],[2,3],[5,2],[1,4],[4,0.5],[16,0.5],[2,5],[-3,2]]), y2 = a * c * c;
+    return mk('Trouver la règle', `Une fonction de la forme <i>f</i>(<i>x</i>) = <i>a</i>(<i>c</i>)<sup><i>x</i></sup> passe par (0, ${num(a)}) et (2, ${num(y2)}). Quelle est sa règle ?`,
+      rule(a,c,1,0,0), [rule(a,c * c,1,0,0), rule(a,c * c / 2,1,0,0), rule(y2,c,1,0,0), rule(a,c === 0.5 ? 2 : c + 1,1,0,0)],
+      `<i>f</i>(0) = <i>a</i>, donc <i>a</i> = ${num(a)}. Ensuite, <i>f</i>(2) = ${num(a)} × <i>c</i><sup>2</sup> = ${num(y2)}, donc <i>c</i><sup>2</sup> = ${num(c * c)} et <i>c</i> = ${num(c)}, car la base est positive. Attention : on prend la racine carrée, car on a avancé de 2 en <i>x</i>.`); },
+];
+const W3X = [
+  () => { const c = pick([2,3,5]), n = R(2, c === 2 ? 6 : c === 3 ? 4 : 3), o = pick(OPS), V = c ** n;
+    if (Math.random() < .6){ const p = pick([0,0,1,-1,2,-2]), sol = n + p, cor = interval(o, sol);
+      return mk('Inéquations exponentielles', `Résous : ${num(c)}<sup>${expStr(1,p)}</sup> ${opH(o)} ${num(V)}`, cor,
+        [...OPS.filter(x => x !== o).map(x => interval(x, sol)), interval(o, -sol), interval(o, n)],
+        `On écrit ${num(V)} avec la base ${c} : ${num(V)} = ${sup(c,n)}. La base ${c} est plus grande que 1 (fonction croissante), donc on garde le sens : ${expStr(1,p)} ${opH(o)} ${n}${p ? `, d'où <i>x</i> ${opH(o)} ${num(sol)}` : ''}. Réponse : ${cor}.`); }
+    const o2 = flipOp(o), sol = -n, cor = interval(o2, sol);
+    return mk('Inéquations exponentielles', `Résous : (${frac(1,c)})<sup><i>x</i></sup> ${opH(o)} ${num(V)}`, cor,
+      [...OPS.filter(x => x !== o2).map(x => interval(x, sol)), interval(o, n), interval(o2, n)],
+      `${num(V)} = ${sup(c,n)} et (${frac(1,c)})<sup><i>x</i></sup> = ${sup(c,'−<i>x</i>')}. On obtient −<i>x</i> ${opH(o)} ${n}. En divisant par −1, on <b>inverse le sens</b> : <i>x</i> ${opH(o2)} ${num(-n)}. Autre façon de voir : la base ${frac(1,c)} est entre 0 et 1, la fonction est décroissante, donc le sens s'inverse. Réponse : ${cor}.`); },
+  () => { const T = pick([2,3,5,8]), n = pick([2,3,4]);
+    if (Math.random() < .5){ const m = pick([80,160,320,640]), lim = m / 2 ** n;
+      return mk('Inéquations en situation', `Un isotope radioactif a une demi-vie de ${T} h. Il y en a ${m} g au départ. Pendant combien de temps en reste-t-il <b>au moins</b> ${num(lim)} g ?`,
+        `Pendant les ${n * T} premières heures (<i>t</i> ≤ ${n * T})`,
+        [`À partir de ${n * T} h (<i>t</i> ≥ ${n * T})`, `Pendant les ${(n + 1) * T} premières heures (<i>t</i> ≤ ${(n + 1) * T})`, `Pendant les ${n} premières heures (<i>t</i> ≤ ${n})`, `Pendant les ${T * 2 ** n} premières heures (<i>t</i> ≤ ${T * 2 ** n})`],
+        `<i>m</i>(<i>t</i>) = ${m}(0,5)<sup><i>t</i>/${T}</sup> ≥ ${num(lim)}. On divise par ${m} : (0,5)<sup><i>t</i>/${T}</sup> ≥ ${frac(1, 2 ** n)} = (0,5)<sup>${n}</sup>. La base 0,5 est entre 0 et 1, donc on <b>inverse le sens</b> : <i>t</i>/${T} ≤ ${n}, soit <i>t</i> ≤ ${n * T} h.`); }
+    const N = pick([50,100,200,500]), V = N * 2 ** n;
+    return mk('Inéquations en situation', `Une colonie de ${N} bactéries double toutes les ${T} h. À partir de quand compte-t-elle <b>plus de</b> ${num(V)} bactéries ?`,
+      `Après ${n * T} h (<i>t</i> &gt; ${n * T})`,
+      [`Avant ${n * T} h (<i>t</i> &lt; ${n * T})`, `Après ${(n + 1) * T} h (<i>t</i> &gt; ${(n + 1) * T})`, `Après ${n} h (<i>t</i> &gt; ${n})`, `Après ${T * 2 ** n} h (<i>t</i> &gt; ${T * 2 ** n})`],
+      `<i>N</i>(<i>t</i>) = ${N}(2)<sup><i>t</i>/${T}</sup> &gt; ${num(V)}. On divise par ${N} : (2)<sup><i>t</i>/${T}</sup> &gt; ${2 ** n} = 2<sup>${n}</sup>. La base 2 est plus grande que 1, donc on garde le sens : <i>t</i>/${T} &gt; ${n}, soit <i>t</i> &gt; ${n * T} h.`); },
+];
+const W4X = [
+  () => { const [c,n] = pick([[2,3],[3,2],[2,5],[5,2],[4,2],[10,2],[3,3],[2,4],[6,2]]), P = c ** n;
+    return mk('Trouver la règle', `Une fonction de la forme <i>f</i>(<i>x</i>) = log<sub><i>c</i></sub> <i>x</i> passe par le point (${num(P)}, ${n}). Quelle est sa règle ?`,
+      `${FX} = ${LB(c)} <i>x</i>`,
+      [`${FX} = log<sub>${num(P)}</sub> <i>x</i>`, `${FX} = ${LB(n)} <i>x</i>`, `${FX} = log<sub>${num(r2(P / n))}</sub> <i>x</i>`, `${FX} = ${n} ${LB(c)} <i>x</i>`],
+      `On remplace le point : log<sub><i>c</i></sub> ${num(P)} = ${n}, donc <i>c</i><sup>${n}</sup> = ${num(P)}. Comme ${sup(c,n)} = ${num(P)}, la base est <i>c</i> = ${c}.`); },
+  () => { const a = pick([1,2,3,-1,-2]), h = pick([-3,-2,-1,1,2,4]), k = pick([-3,-1,0,2,5]);
+    const inn = h > 0 ? `<i>x</i> − ${h}` : `<i>x</i> + ${-h}`, innW = h > 0 ? `<i>x</i> + ${h}` : `<i>x</i> − ${-h}`;
+    const L2 = (A, i, K) => `${FX} = ${A === 1 ? '' : A === -1 ? '−' : num(A) + ' '}log<sub>2</sub> (${i})${kStr(K)}`;
+    return mk('Trouver la règle', `Une fonction de la forme <i>f</i>(<i>x</i>) = <i>a</i> log<sub>2</sub> (<i>x</i> − <i>h</i>) + <i>k</i> a pour asymptote <i>x</i> = ${num(h)} et passe par (${num(h + 1)}, ${num(k)}) et (${num(h + 2)}, ${num(a + k)}). Quelle est sa règle ?`,
+      L2(a, inn, k), [L2(a, innW, k), (k !== 0 && k !== a) ? L2(k, inn, a) : L2(-a, inn, k), L2(a + k === 0 ? a + 1 : a + k, inn, k), L2(a, inn, -k), L2(a, inn, k + 1)],
+      `L'asymptote verticale donne <i>h</i> = ${num(h)}. En <i>x</i> = ${num(h + 1)}, on a log<sub>2</sub> 1 = 0, donc <i>f</i>(${num(h + 1)}) = <i>k</i> = ${num(k)}. En <i>x</i> = ${num(h + 2)}, on a log<sub>2</sub> 2 = 1, donc <i>a</i> + <i>k</i> = ${num(a + k)} et <i>a</i> = ${num(a)}.`); },
+];
+W2.push(...W2X); W3.push(...W3X); W4.push(...W4X);
+/* ===== Équations, inéquations, réciproques et problèmes logarithmiques ===== */
+const xEq = v => `<i>x</i> = ${v}`;
+const fx = (v, d) => { const t = num(Math.round(v * 10 ** d) / 10 ** d), [i, f = ''] = t.split(','); return d ? `${i},${f.padEnd(d, '0')}` : i; };
+const f1 = v => fx(v, 1), f2 = v => fx(v, 2);
+const hS = H => H === 0 ? '' : H > 0 ? ` + ${num(H)}` : ` − ${num(-H)}`;
+const minus = (v, K) => K === 0 ? v : K > 0 ? `${v} − ${num(K)}` : `${v} + ${num(-K)}`;
+const plusW = (v, K) => K === 0 ? v : K > 0 ? `${v} + ${num(K)}` : `${v} − ${num(-K)}`;
+const W4Y = [
+  () => { const c = pick([2,3,5,10]), n = c >= 5 ? R(1,2) : R(2, c === 2 ? 5 : 3), V = c ** n;
+    if (Math.random() < .5){ const p = pick([-4,-3,-1,1,2,5]), x = V + p, inn = minus('<i>x</i>', p);
+      return mk('Équations logarithmiques', `Résous : ${LB(c)} (${inn}) = ${n}`, xEq(num(x)),
+        [xEq(num(V - p)), xEq(num(c * n + p)), xEq(num(n + p)), xEq(num(V)), xEq(num(n ** c + p)), xEq(num(x + 1)), xEq(num(x - 1))],
+        `On passe à la forme exponentielle : ${inn} = ${sup(c,n)} = ${num(V)}, donc <i>x</i> = ${num(x)}. Vérification : ${num(x)}${p > 0 ? ' − ' + p : ' + ' + (-p)} = ${num(V)} &gt; 0, la solution est valide.`); }
+    const a = pick([2,3,4,5]), x = R(1,9), b = V - a * x, inn = `${a}<i>x</i>${kStr(b)}`;
+    return mk('Équations logarithmiques', `Résous : ${LB(c)} (${inn}) = ${n}`, xEq(num(x)),
+      [xEq(frac(V + b, a)), xEq(frac(c * n - b, a)), xEq(frac(V, a)), xEq(num(x + 1)), xEq(num(V - b)), xEq(num(x - 1)), xEq(num(-x))],
+      `Forme exponentielle : ${inn} = ${sup(c,n)} = ${num(V)}. Donc ${a}<i>x</i> = ${num(V - b)} et <i>x</i> = ${num(x)}. Vérification : ${a} × ${num(x)}${kStr(b)} = ${num(V)} &gt; 0.`); },
+  () => { const [c,n,x0,d] = pick([[2,3,4,2],[2,4,8,6],[2,5,8,4],[3,3,9,6],[10,2,20,15],[2,3,8,7],[3,2,9,8],[2,4,16,15],[6,2,12,9]]), V = c ** n, x1 = d - x0, L = LB(c);
+    return mk('Équations logarithmiques', `Résous : ${L} <i>x</i> + ${L} (<i>x</i> − ${d}) = ${n}`, xEq(num(x0)),
+      [`${xEq(num(x0))} ou ${xEq(num(x1))}`, xEq(num(x1)), xEq(frac(V + d, 2)), 'Aucune solution', xEq(num(V + d))],
+      `Loi du produit : ${L} (<i>x</i>(<i>x</i> − ${d})) = ${n}, donc <i>x</i>(<i>x</i> − ${d}) = ${num(V)}, soit <i>x</i><sup>2</sup> − ${d}<i>x</i> − ${num(V)} = 0. Les solutions de cette équation sont ${num(x0)} et ${num(x1)}. On <b>rejette</b> ${num(x1)}, car ${L} (${num(x1)}) n'existe pas : l'argument d'un logarithme doit être positif. Réponse : <i>x</i> = ${num(x0)}.`); },
+  () => { const c = pick([2,3,10,0.5]), h = pick([0,0,1,-1,2,-3]), o = pick(OPS);
+    const n = c === 0.5 ? pick([-3,-2,-1,1]) : c === 10 ? R(1,2) : c === 3 ? R(1,3) : R(1,4);
+    const P = c ** n, s = P + h, oo = c < 1 ? flipOp(o) : o, low = oo === '<' || oo === '≤';
+    const L = c === 0.5 ? 'log<sub>0,5</sub>' : LB(c), inn = minus('<i>x</i>', h), arg = h === 0 ? '<i>x</i>' : `(${inn})`;
+    const cor = low ? `]${num(h)}, ${num(s)}${oo === '<' ? '[' : ']'}` : interval(oo, s);
+    const wr = low ? [interval(oo, s), `]${num(h)}, ${num(s)}${oo === '<' ? ']' : '['}`, interval(flipOp(oo), s), `]${num(h)}, ${num(r2(c * n + h))}${oo === '<' ? '[' : ']'}`]
+                   : [interval(flipOp(oo), s), `]${num(h)}, ${num(s)}[`, interval(oo === '>' ? '≥' : '>', s), interval(oo, r2(c * n + h))];
+    return mk('Inéquations logarithmiques', `Résous : ${L} ${arg} ${opH(o)} ${num(n)}`, cor, wr,
+      `<b>Domaine</b> : ${inn} &gt; 0, donc <i>x</i> &gt; ${num(h)}. Forme exponentielle : ${inn} ${opH(oo)} ${c === 0.5 ? '(0,5)' : num(c)}<sup>${num(n)}</sup> = ${num(P)}${c < 1 ? ' (la base 0,5 est entre 0 et 1, donc on <b>inverse le sens</b>)' : ''}, d'où <i>x</i> ${opH(oo)} ${num(s)}. ${low ? `On combine avec le domaine : ${cor}.` : `Ces valeurs respectent déjà le domaine. Réponse : ${cor}.`}`); },
+  () => { const c = pick([2,3,5,10]), h = pick([0,1,-2,3]), k = pick([-4,-1,2,5]), INV = '<i>f</i><sup>−1</sup>(<i>x</i>)';
+    if (Math.random() < .55){ const a = pick([1,1,2,3,-1,-2]);
+      const top = minus('<i>x</i>', k), topW = plusW('<i>x</i>', k);
+      const arg = (t, A) => A === 1 ? `(${t})` : `(${tf(t, num(A))})`;
+      const F = (t, A, H) => `${INV} = ${LB(c)} ${arg(t, A)}${hS(H)}`;
+      const Y = minus('<i>y</i>', k), iso = a === 1 ? Y : tf(Y, num(a));
+      return mk('Réciproque : exponentielle → logarithmique', `Quelle est la réciproque de ${rule(a,c,1,h,k)} ?`, F(top, a, h),
+        [F(topW, a, h), F(top, a, k), F(topW, a, -h), F(top, a, -h), a === 1 ? F(top, 2, h) : `${INV} = ${LB(c)} (${num(a)}(${top}))${hS(h)}`],
+        `On écrit <i>y</i> = ${rule(a,c,1,h,k).split(' = ')[1]} et on isole la puissance : (${num(c)})<sup>${expStr(1,h)}</sup> = ${iso}. Forme logarithmique : ${expStr(1,h)} = ${LB(c)} (${iso})${h ? `, donc <i>x</i> = ${LB(c)} (${iso})${hS(h)}` : ''}. On échange <i>x</i> et <i>y</i> : ${F(top, a, h)}.`); }
+    const a = pick([1,1,2,-1]), top = minus('<i>x</i>', k), topW = plusW('<i>x</i>', k);
+    const E = (t, A) => A === 1 ? t : A === -1 ? `−(${t})` : `(${t})/${num(A)}`;
+    const G = (t, A, H) => `${INV} = ${num(c)}<sup>${E(t, A)}</sup>${hS(H)}`;
+    const pre = a === 1 ? '' : a === -1 ? '−' : num(a) + ' ', inn = minus('<i>x</i>', h), arg = h === 0 ? '<i>x</i>' : `(${inn})`;
+    const Y = minus('<i>y</i>', k), iso = a === 1 ? Y : a === -1 ? `−(${Y})` : tf(Y, num(a));
+    return mk('Réciproque : logarithmique → exponentielle', `Quelle est la réciproque de ${FX} = ${pre}${LB(c)} ${arg}${kStr(k)} ?`, G(top, a, h),
+      [G(topW, a, h), G(top, a, k), G(top, a, -h), G(topW, a, -h), a === 1 ? `${INV} = ${LB(c)} (${top})${hS(h)}` : `${INV} = ${num(a)}(${num(c)})<sup>${top}</sup>${hS(h)}`],
+      `On écrit <i>y</i> = ${pre}${LB(c)} ${arg}${kStr(k)} et on isole le logarithme : ${LB(c)} ${arg} = ${iso}. Forme exponentielle : ${inn} = ${num(c)}<sup>${iso}</sup>${h ? `, donc <i>x</i> = ${num(c)}<sup>${iso}</sup>${hS(h)}` : ''}. On échange <i>x</i> et <i>y</i> : ${G(top, a, h)}.`); },
+  () => { const t = R(0,2);
+    if (t === 0){ const P0 = pick([2000,5000,12000,25000]), r = pick([2,3,4,6]), m = pick([1.5,2,3]), f = 1 + r/100, T = Math.log(m) / Math.log(f);
+      return mk('Problèmes logarithmiques', `Une ville de ${num(P0)} habitants voit sa population augmenter de ${r} % par année. Dans combien d'années comptera-t-elle ${num(P0 * m)} habitants ? Arrondis au dixième.`,
+        `${f1(T)} ans`, [`${f1((m - 1) * 100 / r)} ans`, `${f1(Math.log(f) / Math.log(m) * 100)} ans`, `${f1(T + 1)} ans`, `${f1(T / 2)} ans`],
+        `${num(P0)}(${num(f)})<sup><i>t</i></sup> = ${num(P0 * m)}. On divise par ${num(P0)} : (${num(f)})<sup><i>t</i></sup> = ${num(m)}. Forme logarithmique : <i>t</i> = log<sub>${num(f)}</sub> ${num(m)} = log ${num(m)} ÷ log ${num(f)} ≈ ${f1(T)} ans.`); }
+    if (t === 1){ const V0 = pick([24000,30000,36000]), p = pick([12,15,20,25]), q = pick([.5,.4,.25]), f = 1 - p/100, T = Math.log(q) / Math.log(f);
+      return mk('Problèmes logarithmiques', `Une voiture achetée ${num(V0)} $ perd ${p} % de sa valeur chaque année. À partir de quand vaudra-t-elle moins de ${num(V0 * q)} $ ? Arrondis au dixième.`,
+        `Après environ ${f1(T)} ans`, [`Après environ ${f1((1 - q) * 100 / p)} ans`, `Avant ${f1(T)} ans`, `Après environ ${f1(Math.log(f) / Math.log(q) * 10)} ans`, `Après environ ${f1(T + 1)} ans`],
+        `${num(V0)}(${num(f)})<sup><i>t</i></sup> &lt; ${num(V0 * q)}, donc (${num(f)})<sup><i>t</i></sup> &lt; ${num(q)}. On applique log : <i>t</i> × log ${num(f)} &lt; log ${num(q)}. Comme log ${num(f)} est <b>négatif</b>, on inverse le sens en divisant : <i>t</i> &gt; log ${num(q)} ÷ log ${num(f)} ≈ ${f1(T)} ans.`); }
+    const [iso, T] = pick([['l’iode 131', 8], ['le phosphore 32', 14], ['le radon 222', 3.8], ['le cobalt 60', 5.3]]), pct = pick([10,20,30,5]), tt = T * Math.log(pct / 100) / Math.log(.5);
+    const unit = T === 5.3 ? 'ans' : 'jours';
+    return mk('Problèmes logarithmiques', `La demi-vie de ${iso} est de ${num(T)} ${unit}. Après combien de temps ne restera-t-il que ${pct} % de l'échantillon ? Arrondis au dixième.`,
+      `${f1(tt)} ${unit}`, [`${f1(T * (100 - pct) / 50)} ${unit}`, `${f1(T * Math.log(.5) / Math.log(pct / 100))} ${unit}`, `${f1(tt / 2)} ${unit}`, `${f1(T * pct / 10)} ${unit}`],
+      `<i>Q</i>(<i>t</i>) = <i>Q</i><sub>0</sub>(0,5)<sup><i>t</i>/${num(T)}</sup>. On veut (0,5)<sup><i>t</i>/${num(T)}</sup> = ${num(pct / 100)}. Forme logarithmique : <i>t</i>/${num(T)} = log ${num(pct / 100)} ÷ log 0,5, donc <i>t</i> = ${num(T)} × log ${num(pct / 100)} ÷ log 0,5 ≈ ${f1(tt)} ${unit}.`); },
+  () => { const t = R(0,2);
+    if (t === 0){ const A = R(2,4), d = R(1,3), B = A + d;
+      return mk('Problèmes logarithmiques', `Le pH se calcule par pH = −log [H<sup>+</sup>]. Une solution A a un pH de ${A} et une solution B, un pH de ${B}. Combien de fois la concentration [H<sup>+</sup>] de A est-elle plus grande que celle de B ?`,
+        `${num(10 ** d)} fois`, [`${d} fois`, `${num(10 * d)} fois`, `${num(2 ** d)} fois`, `${num(10 ** (d + 1))} fois`],
+        `[H<sup>+</sup>] = 10<sup>−pH</sup>. Pour A : 10<sup>−${A}</sup>; pour B : 10<sup>−${B}</sup>. Le rapport est 10<sup>−${A}</sup> ÷ 10<sup>−${B}</sup> = 10<sup>${d}</sup> = ${num(10 ** d)}. Chaque unité de pH correspond à un facteur 10.`); }
+    if (t === 1){ const m = pick([2,3.2,5,6.3,8]), e = R(3,9), ph = e - Math.log10(m);
+      return mk('Problèmes logarithmiques', `Quel est le pH d'une solution dont la concentration est [H<sup>+</sup>] = ${num(m)} × 10<sup>−${e}</sup> mol/L ? Arrondis au centième. (pH = −log [H<sup>+</sup>])`,
+        f2(ph), [f2(e + Math.log10(m)), num(e), f2(-ph), f2(ph + 1)],
+        `pH = −log (${num(m)} × 10<sup>−${e}</sup>) = −(log ${num(m)} + log 10<sup>−${e}</sup>) = −(${f2(Math.log10(m))} − ${e}) ≈ ${f2(ph)}. Loi du produit, puis log 10<sup>−${e}</sup> = −${e}.`); }
+    const m2 = R(3,6), d = R(1,3), m1 = m2 + d;
+    return mk('Problèmes logarithmiques', `La magnitude d'un séisme est <i>M</i> = log (<i>A</i> ÷ <i>A</i><sub>0</sub>), où <i>A</i> est l'amplitude des ondes. Combien de fois l'amplitude d'un séisme de magnitude ${m1} est-elle plus grande que celle d'un séisme de magnitude ${m2} ?`,
+      `${num(10 ** d)} fois`, [`${d} fois`, `${num(10 * d)} fois`, `${f2(m1 / m2)} fois`, `${num(10 ** (d + 1))} fois`],
+      `<i>A</i> = <i>A</i><sub>0</sub> × 10<sup><i>M</i></sup>. Le rapport des amplitudes est 10<sup>${m1}</sup> ÷ 10<sup>${m2}</sup> = 10<sup>${d}</sup> = ${num(10 ** d)}. Une magnitude de plus, c'est une amplitude 10 fois plus grande.`); },
+];
+W4.push(...W4Y);
+/* ===== Forme canonique : a(c)^x + k et a log_c (x − h) + k ===== */
+const W2Z = [
+  () => { const c = pick([2,3]), b = pick(c === 3 ? [2,-1,-2] : [2,3,-1,-2]), a = pick([1,2,3,-1,5]), k = pick([-6,-1,0,2,7]);
+    const h = pick([-2,-1,1,2].filter(v => Math.abs(b * v) <= (c === 2 ? 3 : 2))), e = -b * h, C = c ** Math.abs(b);
+    const base = b > 0 ? num(C) : ({2:'0,5', 4:'0,25', 8:'0,125'})[C] || frac(1, C);
+    const A = (a0, E) => E >= 0 ? num(a0 * c ** E) : frac(a0, c ** -E);
+    const F = (s, B) => `${FX} = ${s === '1' ? '' : s === '−1' ? '−' : s}(${B})<sup><i>x</i></sup>${kStr(k)}`;
+    const bx = b === 1 ? '<i>x</i>' : b === -1 ? '−<i>x</i>' : `${num(b)}<i>x</i>`, pre = a === 1 ? '' : a === -1 ? '−' : num(a);
+    const expo = Math.random() < .5 ? `${bx}${kStr(e)}` : `${b === -1 ? '−' : num(b)}(${minus('<i>x</i>', h)})`, cor = F(A(a, e), base);
+    return mk('Forme canonique', `Écris ${FX} = ${pre}(${num(c)})<sup>${expo}</sup>${kStr(k)} sous la forme canonique <i>f</i>(<i>x</i>) = <i>a</i>(<i>c</i>)<sup><i>x</i></sup> + <i>k</i>.`, cor,
+      [F(A(a, e), num(c)), F(num(a), base), F(A(a, -e), base), F(A(a, -h), base), F(A(a, e), b > 0 ? (({2:'0,5', 4:'0,25', 8:'0,125'})[C] || frac(1, C)) : num(C)), F(A(a, e + 1), base)],
+      `On sépare l'exposant : (${num(c)})<sup>${bx}${kStr(e)}</sup> = (${num(c)})<sup>${bx}</sup> × (${num(c)})<sup>${num(e)}</sup>. D'abord, (${num(c)})<sup>${bx}</sup> = (${num(c)}<sup>${num(b)}</sup>)<sup><i>x</i></sup> = (${base})<sup><i>x</i></sup> : c'est la nouvelle base. Ensuite, (${num(c)})<sup>${num(e)}</sup> = ${A(1, e)}, donc <i>a</i> = ${num(a)} × ${A(1, e)} = ${A(a, e)}. Le paramètre <i>k</i> ne change pas. Réponse : ${cor}.`); },
+  () => { const [c, m] = pick([[2,1],[2,2],[2,3],[3,1],[3,2],[5,1],[10,1],[2,-1],[3,-1]]), a = pick([1,2,3,5]), k = pick([-5,-2,0,3,4]);
+    const cm = m > 0 ? num(c ** m) : frac(1, c), A = m > 0 ? num(a * c ** m) : frac(a, c), pre = a === 1 ? '' : num(a);
+    const G = s => `${FX} = ${s}(${num(c)})<sup><i>x</i></sup>${kStr(k)}`;
+    return mk('Forme canonique', `Écris ${FX} = ${pre}(${num(c)})<sup>${minus('<i>x</i>', -m)}</sup>${kStr(k)} sous la forme canonique <i>f</i>(<i>x</i>) = <i>a</i>(<i>c</i>)<sup><i>x</i></sup> + <i>k</i>.`, G(A),
+      [G(num(a)), `${FX} = ${pre}(${num(c)})<sup><i>x</i></sup>${kStr(k + m)}`, G(m > 0 ? num(a * c ** (m + 1)) : num(a * c)), G(num(a + m)), G(num(a * Math.abs(m) * c + 1))],
+      `Loi des exposants : (${num(c)})<sup>${minus('<i>x</i>', -m)}</sup> = (${num(c)})<sup><i>x</i></sup> × (${num(c)})<sup>${num(m)}</sup> = ${cm} × (${num(c)})<sup><i>x</i></sup>. On multiplie par ${a === 1 ? '1' : num(a)} : <i>a</i> = ${A}. C'est la même courbe : ici, la translation horizontale revient à changer la valeur de <i>a</i>.`); },
+];
+const W4Z = [
+  () => { const [c, m] = pick([[2,1],[2,2],[2,3],[3,1],[3,2],[10,1],[5,1]]), b = c ** m, h = pick([-4,-2,-1,1,3,5]), a = pick([1,1,2,-1]), k = pick([-3,0,1,4]);
+    const pre = a === 1 ? '' : a === -1 ? '−' : num(a) + ' ', ex = `${num(b)}<i>x</i>${kStr(-b * h)}`, inn = minus('<i>x</i>', h);
+    const G = (i, K) => `${FX} = ${pre}${LB(c)} (${i})${kStr(K)}`, K = k + a * m;
+    return mk('Forme canonique', `Écris ${FX} = ${pre}${LB(c)} (${ex})${kStr(k)} sous la forme canonique <i>f</i>(<i>x</i>) = <i>a</i> log<sub><i>c</i></sub> (<i>x</i> − <i>h</i>) + <i>k</i>.`, G(inn, K),
+      [G(inn, a === 1 ? k + b : k + m), G(inn, k - a * m), G(minus('<i>x</i>', b * h), K), G(minus('<i>x</i>', -h), K), G(inn, k + a * b)],
+      `On met ${num(b)} en évidence : ${ex} = ${num(b)}(${inn}). Loi du produit : ${LB(c)} (${num(b)}(${inn})) = ${LB(c)} ${num(b)} + ${LB(c)} (${inn}) = ${m} + ${LB(c)} (${inn}), car ${sup(c, m)} = ${num(b)}. ${a !== 1 ? `On multiplie par ${num(a)} : ${num(a)} × ${m} = ${num(a * m)}. ` : ''}Le nouveau <i>k</i> vaut ${num(k)}${a * m >= 0 ? ' + ' : ' − '}${num(Math.abs(a * m))} = ${num(K)}. Réponse : ${G(inn, K)}.`); },
+  () => { const [c, m] = pick([[2,2],[2,3],[3,2],[10,2],[10,1],[2,4],[5,1]]), h = pick([0,1,-2,3]), k = pick([-4,-1,0,2]), M = c ** m;
+    const inner = minus('<i>x</i>', h), arg = h === 0 ? '<i>x</i>' : `(${inner})`, given = h === 0 ? `${num(M)}<i>x</i>` : `${num(M)}(${inner})`;
+    const G = K => `${FX} = ${LB(c)} ${arg}${kStr(K)}`;
+    return mk('Forme canonique', `Écris ${FX} = ${LB(c)} (${given})${kStr(k)} sous la forme canonique <i>f</i>(<i>x</i>) = <i>a</i> log<sub><i>c</i></sub> (<i>x</i> − <i>h</i>) + <i>k</i>.`, G(k + m),
+      [G(k + M), G(k - m), `${FX} = ${num(m)} ${LB(c)} ${arg}${kStr(k)}`, `${FX} = ${num(M)} ${LB(c)} ${arg}${kStr(k)}`],
+      `Loi du produit : ${LB(c)} (${num(M)} × ${arg}) = ${LB(c)} ${num(M)} + ${LB(c)} ${arg}. Comme ${sup(c, m)} = ${num(M)}, ${LB(c)} ${num(M)} = ${m}. On obtient ${G(k + m)}. Un facteur dans l'argument devient une translation verticale de ${m}.`); },
+];
+W2.push(...W2Z); W4.push(...W4Z);
+
 const WORLDS = [
   { name:'Monde 1', title:'La plaine des exposants', topics:'Lois des exposants, exposants négatifs et fractionnaires, croissance ou décroissance', gens:W1,
     boss:{ name:'Le Roi des Puissances', hp:3, color:PLUM },
     theme:{ skyTop:'#4fb8ee', skyBot:'#c4ecff', sun:'#ffe066', sunGlow:'rgba(255,240,170,.45)', sunY:42,
       cloud:'#ffffff', cloudShade:'#cfe8f7', far:'#9cc3e4', farY:198, farAmp:96, mid:'#6cc06a', midY:208, midAmp:56, near:'#4fa24e', nearY:214, nearAmp:26,
       grass:'#62c24f', grassDark:'#3f8f37', dirt:'#8a5a3a', dirtDot:'#6e4529', label:'#1f2f42', outline:'#ffffff' } },
-  { name:'Monde 2', title:'La vallée des paramètres', topics:'Asymptote, codomaine, ordonnée à l’origine, transformations, trouver la règle', gens:W2,
+  { name:'Monde 2', title:'La vallée des paramètres', topics:'Asymptote, codomaine, ordonnée à l’origine, transformations, trouver la règle, inéquations, forme canonique', gens:W2,
     boss:{ name:'La Gardienne de l’Asymptote', hp:4, color:TEAL, f:true },
     theme:{ skyTop:'#3d2f80', skyBot:'#f7a06a', sun:'#ffcf6b', sunGlow:'rgba(255,170,110,.45)', sunY:150,
       cloud:'#ffd2bd', cloudShade:'#e39a86', far:'#7a58a3', farY:198, farAmp:100, mid:'#4c8f7c', midY:208, midAmp:58, near:'#356e60', nearY:214, nearAmp:28,
       grass:'#56b98f', grassDark:'#2f7a60', dirt:'#6a4a5e', dirtDot:'#523847', label:'#fff3e6', outline:'#2a1f4a' } },
-  { name:'Monde 3', title:'Le volcan des situations', topics:'Équations, intérêts composés, dépréciation, demi-vie, doublement', gens:W3,
+  { name:'Monde 3', title:'Le volcan des situations', topics:'Équations, inéquations, intérêts composés, dépréciation, demi-vie, doublement', gens:W3,
     boss:{ name:'Le Dragon de la Demi-Vie', hp:5, color:RED },
     theme:{ skyTop:'#140b1a', skyBot:'#5e1f1c', stars:'#ffd9b8', volcano:true,
       cloud:'#4a3340', cloudShade:'#2f1f29', far:'#2d1822', farY:198, farAmp:84, mid:'#40201f', midY:208, midAmp:50, near:'#2b1514', nearY:214, nearAmp:24,
       grass:'#ef6a2c', grassDark:'#a63b17', dirt:'#3a2a2e', dirtDot:'#2a1d20', label:'#ffd9b8', outline:'#140b1a' } },
-  { name:'Monde 4', title:'La montagne des logarithmes', topics:'Évaluer un logarithme, lois des logarithmes, changement de base, fonction logarithmique', gens:W4, ext:true,
+  { name:'Monde 4', title:'La montagne des logarithmes', topics:'Évaluer un logarithme, lois des logarithmes, équations et inéquations logarithmiques, réciproques, forme canonique, trouver la règle, problèmes', gens:W4, ext:true,
     boss:{ name:'Le Sorcier des Logarithmes', hp:5, color:'#3a6fd1' },
     theme:{ skyTop:'#0f1f45', skyBot:'#6a8fcf', stars:'#e9f1ff',
       cloud:'#dbe8f7', cloudShade:'#a9bfdc', far:'#3b5590', farY:198, farAmp:110, mid:'#d6e6f5', midY:208, midAmp:56, near:'#a9c6e3', nearY:214, nearAmp:26,
       grass:'#f2f8ff', grassDark:'#9fb9d6', dirt:'#5f6e8c', dirtDot:'#4c5874', label:'#ffffff', outline:'#0f1f45' } },
 ];
 let lastGen = -1;
-function genQ(w){
+function genQRaw(w){
   const gens = WORLDS[w].gens; let i;
   do { i = Math.floor(Math.random() * gens.length); } while (i === lastGen && gens.length > 1);
   lastGen = i; return gens[i]();
@@ -585,18 +803,19 @@ const KMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', 
 const AMAP = { Digit1:0, Digit2:1, Digit3:2, Digit4:3, Numpad1:0, Numpad2:1, Numpad3:2, Numpad4:3, KeyA:0, KeyB:1, KeyC:2, KeyD:3 };
 let activeAnswer = null;
 addEventListener('keydown', e => {
+  if (RACE.remote && e.isTrusted) return;
   unlockAudio();
   if (state === 'question' || state === 'boss'){
     if (activeAnswer && e.code in AMAP){ e.preventDefault(); activeAnswer(AMAP[e.code]); }
     return;
   }
-  if (e.code === 'Escape' || e.code === 'KeyP'){ if (state === 'play') pauseGame(); else if (state === 'paused') resumeGame(); return; }
+  if (!RACE.on && (e.code === 'Escape' || e.code === 'KeyP')){ if (state === 'play') pauseGame(); else if (state === 'paused') resumeGame(); return; }
   const k = KMAP[e.code];
   if (k && state === 'play'){ e.preventDefault(); if (k === 'jump' && !keys.jump) keys.jumpPressed = true; keys[k] = true; }
 });
-addEventListener('keyup', e => { const k = KMAP[e.code]; if (k) keys[k] = false; });
-addEventListener('blur', () => { clearKeys(); if (state === 'play') pauseGame(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') pauseGame(); });
+addEventListener('keyup', e => { if (RACE.remote && e.isTrusted) return; const k = KMAP[e.code]; if (k) keys[k] = false; });
+addEventListener('blur', () => { if (RACE.remote) return; clearKeys(); if (state === 'play' && !RACE.on) pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !RACE.on) pauseGame(); });
 
 const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window);
 document.documentElement.classList.toggle('touch', !!isTouch);
@@ -798,7 +1017,8 @@ function step(){
   if (L && !Rt){ P.vx -= ACC; P.face = -1; }
   else if (Rt && !L){ P.vx += ACC; P.face = 1; }
   else { P.vx *= P.onGround ? .74 : .94; if (Math.abs(P.vx) < .05) P.vx = 0; }
-  P.vx = Math.max(-MAXV, Math.min(MAXV, P.vx));
+  const mv = MAXV * (RACE.turbo > 0 ? 1.4 : 1); if (RACE.turbo > 0) RACE.turbo--;
+  P.vx = Math.max(-mv, Math.min(mv, P.vx));
   if (keys.jumpPressed){ P.jumpBuf = 7; keys.jumpPressed = false; }
   if (P.jumpBuf > 0) P.jumpBuf--;
   if (P.onGround) P.coyote = 6; else if (P.coyote > 0) P.coyote--;
@@ -840,7 +1060,7 @@ const cv = $('#cv'), ctx = cv.getContext('2d'), stage = $('#stage');
 let scale = 1, VW = 400;
 function resize(){
   const cw = stage.clientWidth || 360;
-  const reserve = isTouch ? 250 : 180;
+  const reserve = (window.QE_DUO || /[?&]duo\b/.test(location.search)) ? 60 : isTouch ? 250 : 180;
   const maxH = Math.max(200, Math.min(540, window.innerHeight - reserve));
   const ch = Math.round(Math.min(cw * (cw < 620 ? .78 : .56), maxH));
   cv.style.height = ch + 'px';
@@ -1034,6 +1254,7 @@ function render(){
   }
   for (const e of enemies) if (!e.dead && e.x > cx - 20 && e.x < cx + VW + 20) drawEnemy(e);
   drawPlayer();
+  drawGhosts();
   ctx.fillStyle = BRICK; for (const p of parts) ctx.fillRect(p.x, p.y, 4, 4);
   ctx.font = '700 9px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = th.outline;
   for (const f of floats){ ctx.globalAlpha = Math.min(1, f.life / 20); ctx.strokeText(f.text, f.x + 6, f.y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x + 6, f.y); }
@@ -1088,7 +1309,7 @@ function openQuestion(){
   state = 'question'; clearKeys();
   const ov = $('#qov'); ov.hidden = false; ov.scrollTop = 0;
   renderQuestion($('#qcard'), genQ(world), ok => {
-    if (ok){ sfx('ok'); const g = gainHeart(); addXP(30, P.x, P.y - 10); return g ? '+30 XP et +1 cœur' : '+30 XP'; }
+    if (ok){ sfx('ok'); const g = gainHeart(); addXP(30, P.x, P.y - 10); if (RACE.on) RACE.turbo = 360; return (g ? '+30 XP et +1 cœur' : '+30 XP') + (RACE.on ? ' · TURBO pendant 6 s !' : ''); }
     sfx('bad'); hurt(1, true); return hp > 0 ? 'Tu perds 1 cœur. Lis l’explication :' : 'Tu n’as plus de cœurs…';
   }, () => {
     $('#qov').hidden = true; activeAnswer = null;
@@ -1169,6 +1390,7 @@ function nextBossQ(){
 }
 function bossDefeated(){
   $('#bov').hidden = true; activeAnswer = null; sfx('win');
+  if (RACE.on){ raceFinish(); return; }
   const W = WORLDS[world];
   if (world < WORLDS.length - 1){
     state = 'menu';
@@ -1193,7 +1415,10 @@ const MEMO = `<div class="memo">
   <ul><li>Asymptote : <i>y</i> = <i>k</i></li>
   <li><i>c</i> &gt; 1 : croissance; 0 &lt; <i>c</i> &lt; 1 : décroissance. Un <i>a</i> ou un <i>b</i> négatif inverse le sens.</li>
   <li>Codomaine : ]<i>k</i>, +∞[ si <i>a</i> &gt; 0; ]−∞, <i>k</i>[ si <i>a</i> &lt; 0</li>
-  <li>Ordonnée à l'origine : calcule <i>f</i>(0)</li></ul>
+  <li>Forme canonique <i>a</i>(<i>c</i>)<sup><i>x</i></sup> + <i>k</i> : (<i>c</i>)<sup><i>bx</i> + <i>m</i></sup> = (<i>c</i><sup><i>b</i></sup>)<sup><i>x</i></sup> × <i>c</i><sup><i>m</i></sup>. Par exemple, 3(2)<sup>2<i>x</i> + 1</sup> = 6(4)<sup><i>x</i></sup>.</li>
+  <li>Forme canonique <i>a</i> log<sub><i>c</i></sub> (<i>x</i> − <i>h</i>) + <i>k</i> : log<sub>2</sub> (8<i>x</i> − 16) = log<sub>2</sub> 8 + log<sub>2</sub> (<i>x</i> − 2) = log<sub>2</sub> (<i>x</i> − 2) + 3</li>
+  <li>Ordonnée à l'origine : calcule <i>f</i>(0)</li>
+  <li>Inéquation : on isole la puissance, puis on compare les exposants. On <b>inverse le sens</b> si on divise par un nombre négatif ou si la base est entre 0 et 1.</li></ul>
   <h3>Situations</h3>
   <ul><li>Augmentation de <i>i</i> % : facteur 1 + <i>i</i>; diminution : facteur 1 − <i>i</i></li>
   <li>Demi-vie <i>T</i> : <i>m</i>(<i>t</i>) = <i>m</i><sub>0</sub>(0,5)<sup><i>t</i>/<i>T</i></sup></li>
@@ -1204,7 +1429,10 @@ const MEMO = `<div class="memo">
   <li>log<sub><i>c</i></sub> (<i>MN</i>) = log<sub><i>c</i></sub> <i>M</i> + log<sub><i>c</i></sub> <i>N</i> et log<sub><i>c</i></sub> (<i>M</i> ÷ <i>N</i>) = log<sub><i>c</i></sub> <i>M</i> − log<sub><i>c</i></sub> <i>N</i></li>
   <li>log<sub><i>c</i></sub> <i>M</i><sup><i>n</i></sup> = <i>n</i> log<sub><i>c</i></sub> <i>M</i></li>
   <li>Changement de base : log<sub><i>c</i></sub> <i>x</i> = log <i>x</i> ÷ log <i>c</i></li>
-  <li>Fonction log<sub><i>c</i></sub> (<i>x</i> − <i>h</i>) : asymptote verticale <i>x</i> = <i>h</i>, domaine ]<i>h</i>, +∞[</li></ul></div>`;
+  <li>Fonction log<sub><i>c</i></sub> (<i>x</i> − <i>h</i>) : asymptote verticale <i>x</i> = <i>h</i>, domaine ]<i>h</i>, +∞[</li>
+  <li>Équation logarithmique : on vérifie que chaque argument reste positif; on rejette les autres solutions</li>
+  <li>Inéquation logarithmique : on combine la solution avec le domaine</li>
+  <li>Réciproque de <i>a</i>(<i>c</i>)<sup><i>x</i> − <i>h</i></sup> + <i>k</i> : log<sub><i>c</i></sub> ((<i>x</i> − <i>k</i>) ÷ <i>a</i>) + <i>h</i></li></ul></div>`;
 function brandHTML(){
   const word = 'Exponentielle'; let s = '';
   for (let i = 0; i < word.length; i++) s += `<span style="font-size:calc(clamp(1rem, 4.4vw, 1.75rem) * ${Math.pow(1.065, i).toFixed(3)})">${word[i]}</span>`;
@@ -1225,15 +1453,17 @@ function showTitle(){
     </div>
     ${timeSettingHTML()}
     <div class="worlds">${WORLDS.map((W, i) => `<button class="wcard" data-act="world" data-w="${i}"><span class="n">${W.ext ? W.name + ' · Extension' : W.name}</span><b>${W.title}</b><small>${W.topics}</small></button>`).join('')}</div>
+    <div class="row"><button class="btn" data-act="online">Course en ligne (multijoueur)</button></div>
     <p class="muted" style="font-size:.88rem">${isTouch ? 'Sur téléphone : utilise les boutons sous l’écran de jeu.' : 'Clavier : ← → pour bouger, Espace ou ↑ pour sauter, 1 à 4 pour répondre, Échap pour la pause.'}</p>${(window.QE_LAUNCHER || QE_MENU) ? '<div class="row"><button class="btn" data-act="home">← Changer de jeu</button></div>' : ''}`);
 }
 function pauseGame(){
-  if (state !== 'play') return; state = 'paused'; clearKeys();
+  if (state !== 'play' || RACE.on) return; state = 'paused'; clearKeys();
   showCard(`<div class="q-topic">Pause</div>${timeSettingHTML()}<h2>Aide-mémoire</h2>${MEMO}
     <div class="row"><button class="btn primary" data-act="resume">Reprendre</button><button class="btn" data-act="title">Menu principal</button></div>`);
 }
 function resumeGame(){ hideCard(); clearKeys(); state = 'play'; }
 function gameOver(inBoss){
+  if (RACE.on){ raceKO(inBoss); return; }
   state = 'over'; clearKeys(); $('#qov').hidden = true; activeAnswer = null;
   showCard(`<div class="q-topic" style="color:var(--red)">Plus de cœurs</div><h2>Tu as été vaincu…</h2>
     <p>Tes points d'XP et ton niveau sont conservés. Relis l'aide-mémoire avant de repartir.</p>
@@ -1257,6 +1487,7 @@ mcard.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   unlockAudio();
   const act = b.dataset.act;
+  if (act === 'online' || act.startsWith('mp-')){ mpAct(act, b); return; }
   if (act === 'world'){ hideCard(); maxHp = START_HP; hp = maxHp; loadWorld(+b.dataset.w); clearKeys(); state = 'play'; toast(`${WORLDS[world].name} · ${WORLDS[world].title}`); }
   else if (act === 'time'){ timeLimit = +b.dataset.t; try { localStorage.setItem('qe-time', timeLimit); } catch(_){}
     b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
@@ -1273,6 +1504,294 @@ const QE_MENU = (() => { try { return new URLSearchParams(location.search).has('
 function goHome(){ if (window.QE_LAUNCHER) parent.postMessage({ qe:'home' }, '*'); else location.href = 'index.html'; }
 if (window.QE_LAUNCHER || QE_MENU){ const h = $('#btnHome'); h.hidden = false; h.onclick = goHome; }
 
+/* ================== Mode course ================== */
+const QE_DUO = !!window.QE_DUO || /[?&]duo\b/.test(location.search);
+if (QE_DUO) document.documentElement.classList.add('duo');
+const RACE = { on:false, remote:QE_DUO, seed:0, qi:0, t0:0, penalty:0, done:false, finish:0, turbo:0, ghosts:[], onUpdate:null, onFinish:null, lastSend:0, label:'' };
+const GHOST_COLORS = ['#e8505b', '#3a86ff', '#f5b400', '#8338ec', '#06c48f', '#fb5607', '#ff4fa3', '#7c8a99'];
+function genQ(w){
+  if (!RACE.on) return genQRaw(w);
+  const orig = Math.random; Math.random = mulberry32((RACE.seed + RACE.qi++ * 7919) >>> 0);
+  try { return genQRaw(w); } finally { Math.random = orig; }
+}
+const raceTime = () => RACE.done ? RACE.finish : (RACE.t0 ? (performance.now() - RACE.t0) / 1000 : 0) + RACE.penalty;
+function fmtTime(s){ const m = Math.floor(s / 60), r = (s - m * 60).toFixed(1); return `${m}:${r.padStart(4, '0').replace('.', ',')}`; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+function raceStart(o){
+  RACE.on = true; RACE.seed = (o.seed >>> 0) || 1; RACE.qi = 0; RACE.penalty = 0; RACE.done = false; RACE.turbo = 0; RACE.t0 = 0; RACE.ghosts = [];
+  if (o.label) RACE.label = o.label;
+  lastGen = -1; stats = { ok:0, tot:0, topics:{} };
+  hideCard(); $('#qov').hidden = true; $('#bov').hidden = true; activeAnswer = null; stopTimer();
+  maxHp = START_HP; hp = maxHp; loadWorld(o.world); clearKeys(); unlockAudio();
+  $('#hudTime').hidden = false; $('#btnPause').hidden = true; $('#btnHome').hidden = true;
+  state = 'countdown'; raceTick();
+  const cd = $('#countdown'); let n = 3;
+  const pop = t => { cd.textContent = t; cd.hidden = false; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); };
+  const tick = () => {
+    if (!RACE.on || state !== 'countdown'){ cd.hidden = true; return; }
+    if (n > 0){ pop(n); sfx('bump'); n--; setTimeout(tick, 1000); }
+    else { pop('GO !'); sfx('ok'); state = 'play'; RACE.t0 = performance.now(); setTimeout(() => { cd.hidden = true; }, 700); }
+  };
+  tick();
+}
+function raceStop(){
+  RACE.on = false; RACE.done = false; RACE.ghosts = []; RACE.onUpdate = RACE.onFinish = null;
+  $('#hudTime').hidden = true; $('#btnPause').hidden = false; $('#raceBoard').hidden = true; $('#countdown').hidden = true;
+  $('#qov').hidden = true; $('#bov').hidden = true; activeAnswer = null; stopTimer();
+  if (window.QE_LAUNCHER || QE_MENU) $('#btnHome').hidden = false;
+}
+function raceKO(inBoss){
+  RACE.penalty += 15; hp = maxHp; updateHUD(); toast('Plus de cœurs : +15 s de pénalité'); sfx('hurt');
+  if (inBoss){ $('#bov').hidden = false; state = 'boss'; nextBossQ(); }
+  else { $('#qov').hidden = true; activeAnswer = null; state = 'play'; if (P.y > ROWS * TS) respawn(); P.inv = 90; }
+}
+function raceFinish(){
+  RACE.finish = raceTime(); RACE.done = true; state = 'finished'; clearKeys(); raceTick();
+  showCard(`<div class="q-topic">Arrivée${RACE.label ? ' · ' + esc(RACE.label) : ''}</div><h2>Terminé en ${fmtTime(RACE.finish)} !</h2>
+    <p>Bonnes réponses : <b>${stats.ok} / ${stats.tot}</b>${RACE.penalty ? ` · pénalités : ${RACE.penalty} s` : ''}</p>
+    <p class="muted">${QE_DUO ? 'En attente de l’autre joueur…' : MP.role ? 'En attente des autres joueurs…' : ''}</p>
+    ${MP.role === 'host' ? '<div class="row"><button class="btn" data-act="mp-end">Terminer la course maintenant</button></div>' : ''}`);
+  sendUpdate();
+  if (RACE.onFinish) RACE.onFinish({ time:RACE.finish, ok:stats.ok, tot:stats.tot, penalty:RACE.penalty });
+}
+function raceStatus(){
+  return { x:Math.round(P.x), y:Math.round(P.y), f:P.face, w:world, prog: RACE.done ? 1 : Math.max(0, Math.min(.99, P.x / LV.doorX)),
+    phase: RACE.done ? 'done' : state === 'boss' ? 'boss' : state === 'countdown' ? 'wait' : 'play', time: Math.round(raceTime() * 10) / 10, ok:stats.ok, tot:stats.tot };
+}
+function sendUpdate(){ RACE.lastSend = performance.now(); if (RACE.onUpdate) RACE.onUpdate(raceStatus()); }
+function raceTick(){
+  if (!RACE.on) return;
+  const el = $('#hudTime');
+  el.textContent = (RACE.label ? RACE.label + ' · ' : '') + fmtTime(raceTime());
+  el.classList.toggle('turbo', RACE.turbo > 0);
+  if (performance.now() - RACE.lastSend > 100) sendUpdate();
+}
+function drawGhosts(){
+  if (!RACE.on || !RACE.ghosts.length) return;
+  ctx.save(); ctx.font = '700 7px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+  for (const g of RACE.ghosts){
+    if (g.w !== world || g.phase === 'done' || g.x == null) continue;
+    const x = g.x, y = g.y;
+    ctx.globalAlpha = .55; ctx.fillStyle = g.color;
+    ctx.fillRect(x + 1, y, 10, 3); ctx.fillRect(x + 3, y + 3, 7, 4); ctx.fillRect(x + 2, y + 7, 8, 5); ctx.fillRect(x + 2, y + 12, 3, 3); ctx.fillRect(x + 7, y + 12, 3, 3);
+    ctx.globalAlpha = .95; ctx.lineWidth = 2.5; ctx.strokeStyle = '#000'; ctx.strokeText(g.name, x + 6, y - 4); ctx.fillStyle = '#fff'; ctx.fillText(g.name, x + 6, y - 4);
+  }
+  ctx.restore();
+}
+function duoWait(){
+  state = 'menu';
+  showCard(`<div class="q-topic">Mode 2 joueurs</div><h2>Prêt !</h2><p class="muted">La course commence dans un instant.</p>`);
+}
+window.qeRace = {
+  start: o => raceStart(o),
+  stop: () => raceStop(),
+  setGhosts: list => { RACE.ghosts = list || []; },
+  on: (evt, f) => { if (evt === 'update') RACE.onUpdate = f; else if (evt === 'finish') RACE.onFinish = f; },
+};
+if (window.QE_TEST) Object.assign(window.qeRace, { _finish: () => raceFinish(), _status: () => raceStatus(), _state: () => state, _q: () => genQ(world).q });
+
+/* ================== Course en ligne (PeerJS) ================== */
+const MP = { role:null, peer:null, conns:[], conn:null, code:'', name:'', players:{}, world:0, joined:false, ended:false, pump:null };
+const PEER_URL = window.QE_PEER_URL || 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
+const EDITION = /Manoir/.test(document.title) ? 'horror' : 'classic';
+const EDITION_NAME = { classic:'Quête Exponentielle', horror:'Le Manoir Exponentiel' };
+const ROOM = code => 'quetes-exp-' + code.toLowerCase();
+function loadPeer(){
+  return new Promise((res, rej) => {
+    if (window.Peer) return res();
+    const s = document.createElement('script'); s.src = PEER_URL;
+    s.onload = () => window.Peer ? res() : rej(new Error('peer')); s.onerror = () => rej(new Error('load'));
+    document.head.appendChild(s); setTimeout(() => rej(new Error('timeout')), 15000);
+  });
+}
+const peerOpts = () => Object.assign({ debug:0 }, window.QE_PEER_OPTS || {});
+const savedName = () => { try { return localStorage.getItem('qe-name') || ''; } catch (_) { return ''; } };
+function mpErr(e){
+  const t = e && e.type;
+  if (t === 'peer-unavailable') return 'Aucune partie trouvée avec ce code. Vérifie les lettres.';
+  if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') return 'Connexion au serveur impossible. Vérifie la connexion Internet.';
+  if (t === 'browser-incompatible') return 'Ce navigateur ne permet pas le jeu en ligne. Essaie Chrome, Edge ou Firefox.';
+  return 'La connexion a échoué. Réessaie dans un instant.';
+}
+function mpCleanup(){
+  if (MP.pump){ clearInterval(MP.pump); MP.pump = null; }
+  const peer = MP.peer; MP.role = null; MP.peer = null; MP.conn = null; MP.conns = []; MP.players = {}; MP.joined = false; MP.ended = false;
+  try { if (peer) peer.destroy(); } catch (_) {}
+}
+function mpMenu(msg){
+  state = 'menu';
+  showCard(`<div class="q-topic">Multijoueur</div><h2>Course en ligne</h2>
+    <p>Chaque joueur utilise son propre appareil, avec le même jeu (${EDITION_NAME[EDITION]}). Tout le monde reçoit les mêmes questions. Le premier qui bat le boss gagne. Il faut une connexion Internet.</p>
+    ${msg ? `<p class="mp-err" role="alert">${msg}</p>` : ''}
+    <label class="field"><span>Ton nom</span><input id="mpName" maxlength="12" autocomplete="off" value="${esc(savedName())}" placeholder="Ex. : Léa"></label>
+    <div class="mp-split">
+      <div class="mp-box"><b>Créer une partie</b><p class="muted">Tu reçois un code à donner aux autres joueurs.</p><button class="btn primary" data-act="mp-host">Créer</button></div>
+      <div class="mp-box"><b>Rejoindre une partie</b><label class="field"><span>Code</span><input id="mpCode" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:.2em"></label><button class="btn" data-act="mp-join">Rejoindre</button></div>
+    </div>
+    <p class="muted" style="font-size:.88rem">Pendant la course : une bonne réponse donne un turbo de 6 secondes. Si tu perds tous tes cœurs, tu repars avec 15 secondes de pénalité.</p>
+    <div class="row"><button class="btn" data-act="mp-back">← Retour</button></div>`);
+}
+function mpStatus(msg){ state = 'menu'; showCard(`<div class="q-topic">Course en ligne</div><h2>${msg}</h2><div class="row"><button class="btn" data-act="mp-quit">Annuler</button></div>`); }
+function mpLost(msg){ const role = MP.role; mpCleanup(); raceStop(); state = 'menu';
+  showCard(`<div class="q-topic">Course en ligne</div><h2>Partie interrompue</h2><p>${msg}</p><div class="row"><button class="btn primary" data-act="online">Course en ligne</button><button class="btn" data-act="mp-back">Menu</button></div>`); }
+function readName(){
+  const v = (($('#mpName') || {}).value || '').trim().slice(0, 12);
+  if (v){ try { localStorage.setItem('qe-name', v); } catch (_) {} }
+  return v;
+}
+function playerList(){ return Object.entries(MP.players).map(([id, p]) => ({ id, ...p })); }
+function lobbyHTML(isHost){
+  const list = playerList().map(p => `<li><i style="background:${p.color}"></i>${esc(p.name)}</li>`).join('');
+  const W = WORLDS[MP.world];
+  return `<div class="q-topic">Course en ligne · ${isHost ? 'tu es l’hôte' : 'connecté'}</div><h2>Code de la partie</h2>
+    <div class="mp-code">${MP.code}</div>
+    ${isHost ? `<p class="muted">Les autres joueurs ouvrent ${EDITION_NAME[EDITION]}, choisissent « Course en ligne » et tapent ce code.</p>
+      <div class="setting"><span>Monde</span><div class="seg" role="group" aria-label="Monde de la course">${WORLDS.map((w, i) => `<button data-act="mp-world" data-w="${i}" aria-pressed="${i === MP.world}">${w.ext ? 'Extension' : w.name}</button>`).join('')}</div></div>`
+      : `<p>Monde : <b>${W.name} · ${W.title}</b></p>`}
+    <p style="margin:0"><b>Joueurs (${playerList().length}/8)</b></p><ul class="mp-list">${list}</ul>
+    <div class="row">${isHost ? '<button class="btn primary" data-act="mp-start">Lancer la course</button>' : '<span class="muted">En attente du lancement par l’hôte…</span>'}<button class="btn" data-act="mp-quit">Quitter</button></div>`;
+}
+function mpShowLobby(){ state = 'menu'; showCard(lobbyHTML(MP.role === 'host')); }
+function mpBroadcast(msg){ for (const c of MP.conns){ try { if (c.open) c.send(msg); } catch (_) {} } }
+function lobbyMsg(){ return { t:'lobby', code:MP.code, world:MP.world, edition:EDITION, players:MP.players }; }
+function mpLobbyRefresh(){
+  if (MP.role !== 'host') return;
+  mpBroadcast(lobbyMsg());
+  if (!RACE.on && state === 'menu' && mcard.querySelector('.mp-code')) mpShowLobby();
+}
+async function mpHost(name){
+  mpStatus('Création de la partie…');
+  try { await loadPeer(); } catch (_) { return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.'); }
+  mpCleanup();
+  const code = Array.from({ length:4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('');
+  Object.assign(MP, { role:'host', code, name, world, players:{ me:{ name, color:GHOST_COLORS[0] } } });
+  const peer = MP.peer = new Peer(ROOM(code), peerOpts());
+  peer.on('open', () => { if (MP.peer === peer){ mpShowLobby(); MP.pump = setInterval(mpPump, 150); } });
+  peer.on('connection', conn => {
+    conn.on('data', d => mpHostData(conn, d));
+    conn.on('close', () => { MP.conns = MP.conns.filter(c => c !== conn); if (MP.players[conn.peer]){ delete MP.players[conn.peer]; mpLobbyRefresh(); } });
+  });
+  peer.on('error', e => {
+    if (MP.peer !== peer) return;
+    if (e.type === 'unavailable-id') mpHost(name);
+    else if (e.type !== 'peer-unavailable' && !RACE.on) { mpCleanup(); mpMenu(mpErr(e)); }
+  });
+}
+function mpHostData(conn, d){
+  if (!d || typeof d !== 'object') return;
+  if (d.t === 'hello'){
+    if (RACE.on){ conn.send({ t:'busy' }); return; }
+    if (playerList().length >= 8){ conn.send({ t:'full' }); return; }
+    if (!MP.conns.includes(conn)) MP.conns.push(conn);
+    const used = playerList().map(p => p.color), color = GHOST_COLORS.find(c => !used.includes(c)) || GHOST_COLORS[7];
+    MP.players[conn.peer] = { name:String(d.name || 'Joueur').slice(0, 12), color };
+    conn.send({ t:'welcome', id:conn.peer, edition:EDITION });
+    mpLobbyRefresh();
+  } else if (d.t === 'pos' && MP.players[conn.peer] && d.s){
+    const s = d.s, p = MP.players[conn.peer];
+    for (const k of ['x', 'y', 'f', 'w', 'prog', 'phase', 'time', 'ok', 'tot']) if (k in s) p[k] = s[k];
+  }
+}
+function mpPump(){
+  if (MP.role !== 'host' || !RACE.on) return;
+  mpBroadcast({ t:'state', players:MP.players });
+  mpView(MP.players, 'me');
+  const all = playerList();
+  if (!MP.ended && all.length && all.every(p => p.phase === 'done')) mpEnd();
+}
+function mpEnd(){
+  if (MP.role !== 'host' || MP.ended) return;
+  MP.ended = true; mpBroadcast({ t:'results', players:MP.players }); mpResults(MP.players, 'me');
+}
+function mpView(players, myId){
+  RACE.ghosts = Object.entries(players).filter(([id]) => id !== myId).map(([, p]) => ({ name:p.name, color:p.color, x:p.x, y:p.y, w:p.w, phase:p.phase }));
+  const arr = Object.entries(players).map(([id, p]) => ({ id, ...p })).sort(rankSort);
+  const b = $('#raceBoard'); b.hidden = false;
+  b.innerHTML = arr.map((p, i) => `<div class="rb${p.id === myId ? ' me' : ''}"><span>${i + 1}</span><span class="dot" style="background:${p.color}"></span><span class="nm">${esc(p.name)}</span>${p.phase === 'done' ? `<span class="tm">${fmtTime(p.time || 0)}</span>` : p.phase === 'boss' ? '<span>BOSS</span>' : `<span class="bar"><i style="width:${Math.round((p.prog || 0) * 100)}%"></i></span>`}</div>`).join('');
+}
+function rankSort(a, b){
+  const da = a.phase === 'done', db = b.phase === 'done';
+  if (da !== db) return da ? -1 : 1;
+  if (da) return (a.time || 0) - (b.time || 0);
+  const ba = a.phase === 'boss', bb = b.phase === 'boss';
+  if (ba !== bb) return ba ? -1 : 1;
+  return (b.prog || 0) - (a.prog || 0);
+}
+function mpResults(players, myId){
+  state = 'menu'; $('#qov').hidden = true; $('#bov').hidden = true; activeAnswer = null; stopTimer();
+  const arr = Object.entries(players).map(([id, p]) => ({ id, ...p })).sort(rankSort);
+  const medal = ['1<sup>er</sup>', '2<sup>e</sup>', '3<sup>e</sup>'];
+  const rows = arr.map((p, i) => `<tr class="${i === 0 && p.phase === 'done' ? 'win' : ''}"><td class="r">${medal[i] || (i + 1) + '<sup>e</sup>'}</td><td><span class="dot" style="background:${p.color}"></span>${esc(p.name)}${p.id === myId ? ' (toi)' : ''}</td><td class="t">${p.phase === 'done' ? fmtTime(p.time || 0) : `Pas terminé (${Math.round((p.prog || 0) * 100)} %)`}</td><td class="t">${p.ok || 0}/${p.tot || 0}</td></tr>`).join('');
+  const win = arr[0] && arr[0].phase === 'done' ? arr[0] : null;
+  showCard(`<div class="q-topic">Course en ligne · résultats</div><h2>${win ? (win.id === myId ? 'Tu as gagné !' : esc(win.name) + ' gagne !') : 'Course terminée'}</h2>
+    <div class="tablewrap"><table class="mp-results"><tbody>${rows}</tbody></table></div>
+    <p class="muted" style="font-size:.88rem">Temps (pénalités comprises) et bonnes réponses.</p>
+    <div class="row">${MP.role === 'host' ? '<button class="btn primary" data-act="mp-again">Nouvelle course</button>' : '<span class="muted">L’hôte peut lancer une nouvelle course.</span>'}<button class="btn" data-act="mp-quit">Quitter</button></div>`);
+}
+function mpStartRace(){
+  if (MP.role !== 'host') return;
+  const seed = (Math.random() * 4294967296) >>> 0;
+  MP.ended = false;
+  for (const p of Object.values(MP.players)){ Object.assign(p, { prog:0, phase:'wait', time:0, ok:0, tot:0, x:null, y:null, w:MP.world }); }
+  mpBroadcast({ t:'start', world:MP.world, seed });
+  raceStart({ world:MP.world, seed, label:'' });
+  RACE.onUpdate = s => Object.assign(MP.players.me, s);
+  mpView(MP.players, 'me');
+}
+async function mpJoin(name, raw){
+  const code = String(raw || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length !== 4) return mpMenu('Le code de la partie contient 4 lettres.');
+  mpStatus('Connexion à la partie ' + code + '…');
+  try { await loadPeer(); } catch (_) { return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.'); }
+  mpCleanup();
+  Object.assign(MP, { role:'client', code, name });
+  const peer = MP.peer = new Peer(undefined, peerOpts());
+  peer.on('open', () => {
+    if (MP.peer !== peer) return;
+    const conn = MP.conn = peer.connect(ROOM(code), { reliable:true, serialization:'json' });
+    conn.on('open', () => conn.send({ t:'hello', name, edition:EDITION }));
+    conn.on('data', d => mpClientData(d));
+    conn.on('close', () => { if (MP.conn === conn && MP.role === 'client') mpLost('La connexion avec l’hôte a été perdue.'); });
+    setTimeout(() => { if (MP.peer === peer && !MP.joined){ mpCleanup(); mpMenu('Aucune partie trouvée avec ce code. Vérifie les lettres.'); } }, 12000);
+  });
+  peer.on('error', e => { if (MP.peer !== peer) return; if (!MP.joined || e.type !== 'peer-unavailable'){ mpCleanup(); raceStop(); mpMenu(mpErr(e)); } });
+}
+function mpClientData(d){
+  if (!d || typeof d !== 'object' || MP.role !== 'client') return;
+  if (d.t === 'welcome'){
+    if (d.edition !== EDITION){ mpCleanup(); return mpMenu(`Cette partie a été créée dans « ${EDITION_NAME[d.edition] || 'l’autre jeu'} ». Ouvre ce jeu pour la rejoindre.`); }
+    MP.joined = true; MP.myId = d.id;
+  } else if (d.t === 'lobby'){
+    MP.players = d.players || {}; MP.world = d.world || 0;
+    if (RACE.on) raceStop();
+    if (MP.joined) mpShowLobby();
+  } else if (d.t === 'start'){
+    raceStart({ world:d.world, seed:d.seed, label:'' });
+    RACE.onUpdate = s => { try { if (MP.conn && MP.conn.open) MP.conn.send({ t:'pos', s }); } catch (_) {} };
+  } else if (d.t === 'state'){
+    if (RACE.on){ MP.players = d.players || {}; mpView(MP.players, MP.myId); }
+  } else if (d.t === 'results'){
+    mpResults(d.players || {}, MP.myId);
+  } else if (d.t === 'bye'){ mpLost('L’hôte a quitté la partie.'); }
+  else if (d.t === 'full'){ mpCleanup(); mpMenu('Cette partie est complète (8 joueurs).'); }
+  else if (d.t === 'busy'){ mpCleanup(); mpMenu('Une course est déjà en cours dans cette partie. Réessaie à la fin de la course.'); }
+}
+function mpAct(act, b){
+  if (act === 'online') return mpMenu();
+  if (act === 'mp-back'){ mpCleanup(); raceStop(); return showTitle(); }
+  if (act === 'mp-quit'){ if (MP.role === 'host') mpBroadcast({ t:'bye' }); mpCleanup(); raceStop(); return mpMenu(); }
+  if (act === 'mp-host'){ const n = readName(); return n ? mpHost(n) : mpMenu('Écris ton nom avant de continuer.'); }
+  if (act === 'mp-join'){ const n = readName(), c = ($('#mpCode') || {}).value; return n ? mpJoin(n, c) : mpMenu('Écris ton nom avant de continuer.'); }
+  if (act === 'mp-world'){ MP.world = +b.dataset.w; return mpLobbyRefresh(); }
+  if (act === 'mp-start') return mpStartRace();
+  if (act === 'mp-end') return mpEnd();
+  if (act === 'mp-again'){ raceStop(); MP.ended = false; for (const p of Object.values(MP.players)) p.phase = 'wait'; mpShowLobby(); return mpLobbyRefresh(); }
+}
+mcard.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+  e.preventDefault(); mpAct(e.target.id === 'mpCode' ? 'mp-join' : 'mp-host');
+});
+
 /* ================== Boucle ================== */
 let lastT = 0, acc = 0;
 function loop(t){
@@ -1281,9 +1800,10 @@ function loop(t){
   if (state === 'play'){ acc += dt; let n = 0; while (acc >= 1/60 && n < 6){ step(); acc -= 1/60; n++; if (state !== 'play') break; } }
   else acc = 0;
   if (LV){ const target = Math.max(0, Math.min(LV.W*TS - VW, P.x + P.w/2 - VW * .4)); camX += (target - camX) * .15; if (state === 'title') camX = 0; }
-  wantMusic = (state === 'play' || state === 'question') ? 'w' + world : state === 'boss' ? 'boss' : state === 'title' ? 'w0' : null;
+  wantMusic = (state === 'play' || state === 'question' || state === 'countdown') ? 'w' + world : state === 'boss' ? 'boss' : state === 'title' ? 'w0' : null;
   duck = state === 'question' || state === 'title';
   render();
+  raceTick();
   if (state === 'boss' || !$('#bov').hidden){ if (bossShake > 0) bossShake--; if (bossFlash > 0) bossFlash--; drawBoss(t); }
 }
 
@@ -1293,7 +1813,7 @@ function start(data){
   data = data || {};
   if (data.stats){ ({ world, xp, lvl } = data); stats = data.stats; }
   maxHp = START_HP; hp = maxHp;
-  resize(); loadWorld(world || 0); showTitle();
+  resize(); loadWorld(world || 0); if (QE_DUO) duoWait(); else showTitle();
   requestAnimationFrame(loop);
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
