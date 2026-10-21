@@ -1444,7 +1444,7 @@ function timeSettingHTML(){
 function showTitle(){
   state = 'title'; $('#qov').hidden = true; $('#bov').hidden = true;
   showCard(`${brandHTML()}
-    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5</div>
+    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5 · <b style="color:var(--teal)">Version du 21 octobre</b></div>
     <p>Frappe les blocs <b>?</b> par en dessous pour obtenir une question. Tu commences chaque monde avec 3 cœurs; chaque niveau gagné t'en donne un de plus jusqu'à la fin du monde. Chaque bonne réponse donne de l'XP et un cœur de plus, même au-delà de 3; une erreur coûte un cœur, avec l'explication. Au bout de chaque monde, un boss t'attend.</p>
     <div class="legend">
       <span class="chip qb">?</span><span>Bloc question : saute dessous</span>
@@ -1590,40 +1590,192 @@ window.qeRace = {
 };
 if (window.QE_TEST) Object.assign(window.qeRace, { _finish: () => raceFinish(), _status: () => raceStatus(), _state: () => state, _q: () => genQ(world).q });
 
-/* ================== Course en ligne (PeerJS) ================== */
-const MP = { role:null, peer:null, conns:[], conn:null, code:'', name:'', players:{}, world:0, joined:false, ended:false, pump:null };
-const PEER_URL = window.QE_PEER_URL || 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';
-const EDITION = /Manoir/.test(document.title) ? 'horror' : 'classic';
-const EDITION_NAME = { classic:'Quête Exponentielle', horror:'Le Manoir Exponentiel' };
-const ROOM = code => 'quetes-exp-' + code.toLowerCase();
-function loadPeer(){
-  return new Promise((res, rej) => {
-    if (window.Peer) return res();
-    const s = document.createElement('script'); s.src = PEER_URL;
-    s.onload = () => window.Peer ? res() : rej(new Error('peer')); s.onerror = () => rej(new Error('load'));
-    document.head.appendChild(s); setTimeout(() => rej(new Error('timeout')), 15000);
+/* ================== Réseau robuste : relais Internet (MQTT) + connexion directe (WebRTC) ================== */
+// Chaque joueur essaie les deux chemins en même temps et garde le premier qui fonctionne.
+// Relais : les messages passent par des serveurs publics (WebSocket sécurisé) ; fonctionne presque partout.
+// Direct : plus rapide, mais souvent bloqué par les réseaux d'école.
+const NETCFG = Object.assign({
+  brokers: ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'],
+  peer: null, noPeer: false,
+  ice: [
+    { urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }, { urls:'stun:global.stun.twilio.com:3478' },
+    { urls:'turn:openrelay.metered.ca:80', username:'openrelayproject', credential:'openrelayproject' },
+    { urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject' },
+    { urls:'turn:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject' }
+  ]
+}, window.QE_NET || {});
+const NETLIBS = { peer: window.QE_PEER_URL || 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', mqtt: window.QE_MQTT_URL || 'https://cdn.jsdelivr.net/npm/mqtt@4.3.7/dist/mqtt.min.js' };
+function loadScript(src, ok){
+  return new Promise(res => {
+    if (ok()) return res(true);
+    const s = document.createElement('script'); s.src = src;
+    s.onload = () => res(ok()); s.onerror = () => res(false);
+    document.head.appendChild(s); setTimeout(() => res(ok()), 15000);
   });
 }
-const ICE = [
-  { urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }, { urls:'stun:stun2.l.google.com:19302' },
-  { urls:'stun:stun.cloudflare.com:3478' },
-  { urls:['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username:'peerjs', credential:'peerjsp' },
-];
-const BLOCKED_MSG = 'La partie existe, mais les deux appareils n\u2019arrivent pas à se connecter directement. Le réseau bloque probablement ce type de connexion (c\u2019est fréquent sur le Wi-Fi des écoles). Essayez un autre réseau, par exemple le partage de connexion d\u2019un téléphone, ou jouez à 2 sur le même écran.';
-const peerOpts = () => Object.assign({ debug:0, config:{ iceServers:ICE } }, window.QE_PEER_OPTS || {});
-const savedName = () => { try { return localStorage.getItem('qe-name') || ''; } catch (_) { return ''; } };
-function mpErr(e){
-  const t = e && e.type;
-  if (t === 'peer-unavailable') return 'Aucune partie trouvée avec ce code. Vérifie les lettres.';
-  if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') return 'Connexion au serveur impossible. Vérifie la connexion Internet.';
-  if (t === 'webrtc' || t === 'negotiation-failed') return BLOCKED_MSG;
-  if (t === 'browser-incompatible') return 'Ce navigateur ne permet pas le jeu en ligne. Essaie Chrome, Edge ou Firefox.';
-  return 'La connexion a échoué. Réessaie dans un instant.';
+function loadNetLibs(){
+  return Promise.all([
+    NETCFG.noPeer ? false : loadScript(NETLIBS.peer, () => typeof Peer !== 'undefined'),
+    NETCFG.brokers.length ? loadScript(NETLIBS.mqtt, () => typeof mqtt !== 'undefined') : false
+  ]);
 }
+function makeNet(){
+  const TOPIC = 'quetes-exp-qc/', PFX = 'quetes-exp-';
+  const st = { peer:null, clients:[], timers:[], closed:false, link:null, guests:{} };
+  const hasPeer = () => typeof Peer !== 'undefined' && !NETCFG.noPeer;
+  const hasMqtt = () => typeof mqtt !== 'undefined' && NETCFG.brokers.length > 0;
+  const peerOpts = () => Object.assign({ config:{ iceServers:NETCFG.ice }, debug:0 }, NETCFG.peer || {});
+  const later = (fn, ms) => { const t = setTimeout(fn, ms); st.timers.push(t); return t; };
+  const rid = () => Math.random().toString(36).slice(2, 10);
+  function makeLink(kind, sendFn, closeFn){
+    const L = { kind, h:{}, alive:true, lastIn:Date.now(),
+      on(e, f){ (L.h[e] = L.h[e] || []).push(f); return L; },
+      emit(e, a){ (L.h[e] || []).slice().forEach(f => { try { f(a); } catch (err) { console.error(err); } }); },
+      send(o){ if (L.alive){ try { sendFn(o); } catch (_) {} } },
+      close(){ if (!L.alive) return; L.alive = false; try { closeFn(); } catch (_) {} L.emit('close'); }
+    };
+    return L;
+  }
+  function mqttConnect(url, onReady, onFail){
+    let done = false;
+    const c = mqtt.connect(url, { clientId:'qe_' + rid(), clean:true, connectTimeout:6000, reconnectPeriod:0, keepalive:20 });
+    c.on('connect', () => { if (!done){ done = true; onReady(c); } });
+    const fail = () => { if (!done){ done = true; try { c.end(true); } catch (_) {} onFail(); } };
+    c.on('error', fail); c.on('close', fail); later(fail, 7000);
+    return c;
+  }
+  // Lien relais : on publie sur outTopic ; les messages reçus arrivent par L._msg
+  function relayLink(c, outTopic, extra){
+    const pub = o => c.publish(outTopic, JSON.stringify(Object.assign(o, extra)));
+    let hb = null;
+    const L = makeLink('relais', o => pub({ k:'d', d:o }), () => { clearInterval(hb); try { pub({ k:'bye' }); } catch (_) {} });
+    L._client = c;
+    hb = setInterval(() => {
+      if (!L.alive){ clearInterval(hb); return; }
+      try { pub({ k:'hb' }); } catch (_) {}
+      if (Date.now() - L.lastIn > 9000){ clearInterval(hb); L.alive = false; L.emit('close'); }
+    }, 2000);
+    c.on('close', () => { if (L.alive){ clearInterval(hb); L.alive = false; L.emit('close'); } });
+    L._msg = m => { L.lastIn = Date.now(); if (m.k === 'd') L.emit('data', m.d); else if (m.k === 'bye' && L.alive){ clearInterval(hb); L.alive = false; L.emit('close'); } };
+    return L;
+  }
+  function directLink(conn){
+    const L = makeLink('direct', o => conn.send(o), () => conn.close());
+    conn.on('data', d => { L.lastIn = Date.now(); L.emit('data', d); });
+    const gone = () => { if (L.alive){ L.alive = false; L.emit('close'); } };
+    conn.on('close', gone); conn.on('error', gone);
+    return L;
+  }
+  const API = {
+    available(){ return hasPeer() || hasMqtt(); },
+    // Héberger : onCode(code) dès qu'au moins un chemin est prêt ; onGuest(lien) pour chaque joueur qui arrive
+    host(onCode, onGuest, onFail){
+      st.closed = false; st.guests = {};
+      const code = Array.from({ length:4 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ'[Math.floor(Math.random() * 23)]).join('');
+      let ready = 0, failed = 0, total = 0;
+      const okOne = () => { if (++ready === 1 && !st.closed) onCode(code); };
+      const failOne = () => { if (++failed === total && !ready && !st.closed) onFail('Impossible de joindre les serveurs de jeu. Vérifie la connexion Internet (ou essaie le partage de connexion d’un cellulaire).'); };
+      // Un joueur peut arriver par les deux chemins : on regroupe ses liens et on répond par le plus récent.
+      const attach = (gid, L) => {
+        if (st.closed){ L.close(); return; }
+        let g = st.guests[gid];
+        if (!g){
+          g = st.guests[gid] = makeLink('joueur', o => { const best = [...g.set].filter(l => l.alive).sort((a, b) => b.lastIn - a.lastIn)[0]; if (best) best.send(o); }, () => { [...g.set].forEach(l => l.close()); });
+          g.set = new Set(); g.gid = gid; onGuest(g);
+        }
+        g.set.add(L); g.kind = L.kind;
+        L.on('data', d => { g.kind = L.kind; g.emit('data', d); });
+        L.on('close', () => { g.set.delete(L); if (!g.set.size && g.alive){ g.alive = false; delete st.guests[gid]; g.emit('close'); } });
+      };
+      if (hasMqtt()) NETCFG.brokers.forEach(url => { total++;
+        mqttConnect(url, c => {
+          st.clients.push(c); const relays = {};
+          c.subscribe(TOPIC + code + '/h', { qos:0 }, err => err ? failOne() : okOne());
+          c.on('message', (t, buf) => {
+            let m; try { m = JSON.parse(buf.toString()); } catch (_) { return; }
+            const gid = m && m.from; if (!gid) return;
+            const out = TOPIC + code + '/g/' + gid;
+            if (m.k === 'join'){
+              if (relays[gid] && relays[gid].alive){ c.publish(out, JSON.stringify({ k:'ok' })); return; }
+              relays[gid] = relayLink(c, out, {}); c.publish(out, JSON.stringify({ k:'ok' }));
+              attach(gid, relays[gid]);
+            } else if (relays[gid]) relays[gid]._msg(m);
+          });
+        }, failOne); });
+      if (hasPeer()){ total++;
+        try {
+          const p = new Peer(PFX + code.toLowerCase(), peerOpts()); st.peer = p;
+          p.on('open', okOne);
+          p.on('error', () => { if (!ready) failOne(); });
+          p.on('connection', conn => { conn.on('open', () => attach((conn.metadata && conn.metadata.id) || conn.peer, directLink(conn))); });
+        } catch (_) { failOne(); }
+      }
+      if (!total) onFail('Le mode en ligne demande une connexion Internet.');
+    },
+    // Rejoindre : onLink(lien) au premier chemin qui fonctionne
+    join(code, onLink, onStatus, onFail){
+      st.closed = false; st.link = null;
+      const id = rid(), inbox = TOPIC + code + '/g/' + id, hostBox = TOPIC + code + '/h';
+      let pending = 0;
+      const giveUp = () => { if (--pending <= 0 && !st.link && !st.closed) onFail(`Aucune partie trouvée avec le code ${code}. Vérifie le code, et que la partie est bien créée sur l’autre appareil.`); };
+      const adopt = L => {
+        if (st.link || st.closed){ L.close(); return; }
+        st.link = L;
+        if (L.kind === 'relais'){ try { if (st.peer) st.peer.destroy(); } catch (_) {} st.peer = null; st.clients.filter(c => c !== L._client).forEach(c => { try { c.publish(hostBox, JSON.stringify({ k:'bye', from:id })); c.end(); } catch (_) {} }); }
+        else { st.clients.forEach(c => { try { c.publish(hostBox, JSON.stringify({ k:'bye', from:id })); c.end(); } catch (_) {} }); st.clients = []; }
+        onLink(L);
+      };
+      if (hasMqtt()) NETCFG.brokers.forEach(url => { pending++;
+        mqttConnect(url, c => {
+          st.clients.push(c); let L = null, tries = 0;
+          c.subscribe(inbox, { qos:0 });
+          c.on('message', (t, buf) => {
+            let m; try { m = JSON.parse(buf.toString()); } catch (_) { return; }
+            if (m.k === 'ok' && !L){
+              if (st.link){ c.publish(hostBox, JSON.stringify({ k:'bye', from:id })); return; }
+              L = relayLink(c, hostBox, { from:id }); adopt(L);
+            } else if (L) L._msg(m);
+          });
+          const knock = () => {
+            if (st.link || st.closed || L) return;
+            if (tries++ > 10){ try { c.end(true); } catch (_) {} giveUp(); return; }
+            c.publish(hostBox, JSON.stringify({ k:'join', from:id })); later(knock, 1200);
+          };
+          knock();
+        }, giveUp); });
+      if (hasPeer()){ pending++;
+        try {
+          const p = new Peer(undefined, peerOpts()); st.peer = p;
+          p.on('open', () => { const conn = p.connect(PFX + code.toLowerCase(), { reliable:true, serialization:'json', metadata:{ id } }); conn.on('open', () => adopt(directLink(conn))); });
+          p.on('error', e => { if (e && e.type === 'peer-unavailable') giveUp(); });
+        } catch (_) { giveUp(); }
+      }
+      if (!pending) onFail('Le mode en ligne demande une connexion Internet.');
+      later(() => { if (!st.link && !st.closed) onStatus('La connexion prend du temps… Si rien ne se passe, vérifie le code, ou essaie le partage de connexion d’un cellulaire.'); }, 14000);
+    },
+    close(){
+      st.closed = true; st.timers.forEach(t => clearTimeout(t)); st.timers = [];
+      try { if (st.link) st.link.close(); } catch (_) {}
+      Object.values(st.guests).forEach(g => { try { g.close(); } catch (_) {} }); st.guests = {};
+      try { if (st.peer) st.peer.destroy(); } catch (_) {}
+      const cs = st.clients; st.clients = []; st.peer = null; st.link = null;
+      setTimeout(() => cs.forEach(c => { try { c.end(true); } catch (_) {} }), 300);
+    }
+  };
+  return API;
+}
+
+/* ================== Course en ligne (salle, course, résultats) ================== */
+const MP = { role:null, net:null, links:{}, conn:null, code:'', name:'', players:{}, world:0, joined:false, ended:false, pump:null, myId:'me' };
+const EDITION = /Manoir/.test(document.title) ? 'horror' : 'classic';
+const EDITION_NAME = { classic:'Quête Exponentielle', horror:'Le Manoir Exponentiel' };
+const savedName = () => { try { return localStorage.getItem('qe-name') || ''; } catch (_) { return ''; } };
+const kindLabel = k => k === 'direct' ? 'connexion directe' : 'relais Internet';
 function mpCleanup(){
   if (MP.pump){ clearInterval(MP.pump); MP.pump = null; }
-  const peer = MP.peer; MP.role = null; MP.peer = null; MP.conn = null; MP.conns = []; MP.players = {}; MP.joined = false; MP.ended = false;
-  try { if (peer) peer.destroy(); } catch (_) {}
+  const net = MP.net;
+  Object.assign(MP, { role:null, net:null, links:{}, conn:null, code:'', players:{}, joined:false, ended:false, myId:'me' });
+  try { if (net) net.close(); } catch (_) {}
 }
 function mpMenu(msg){
   state = 'menu';
@@ -1638,8 +1790,8 @@ function mpMenu(msg){
     <p class="muted" style="font-size:.88rem">Pendant la course : une bonne réponse donne un turbo de 6 secondes. Si tu perds tous tes cœurs, tu repars avec 15 secondes de pénalité.</p>
     <div class="row"><button class="btn" data-act="mp-back">← Retour</button></div>`);
 }
-function mpStatus(msg){ state = 'menu'; showCard(`<div class="q-topic">Course en ligne</div><h2>${msg}</h2><div class="row"><button class="btn" data-act="mp-quit">Annuler</button></div>`); }
-function mpLost(msg){ const role = MP.role; mpCleanup(); raceStop(); state = 'menu';
+function mpStatus(msg, sub){ state = 'menu'; showCard(`<div class="q-topic">Course en ligne</div><h2>${msg}</h2>${sub ? `<p class="muted">${sub}</p>` : ''}<div class="row"><button class="btn" data-act="mp-quit">Annuler</button></div>`); }
+function mpLost(msg){ mpCleanup(); raceStop(); state = 'menu';
   showCard(`<div class="q-topic">Course en ligne</div><h2>Partie interrompue</h2><p>${msg}</p><div class="row"><button class="btn primary" data-act="online">Course en ligne</button><button class="btn" data-act="mp-back">Menu</button></div>`); }
 function readName(){
   const v = (($('#mpName') || {}).value || '').trim().slice(0, 12);
@@ -1649,8 +1801,8 @@ function readName(){
 function playerList(){ return Object.entries(MP.players).map(([id, p]) => ({ id, ...p })); }
 function lobbyHTML(isHost){
   const list = playerList().map(p => `<li><i style="background:${p.color}"></i>${esc(p.name)}</li>`).join('');
-  const W = WORLDS[MP.world];
-  return `<div class="q-topic">Course en ligne · ${isHost ? 'tu es l’hôte' : 'connecté'}</div><h2>Code de la partie</h2>
+  const W = WORLDS[MP.world] || WORLDS[0];
+  return `<div class="q-topic">Course en ligne · ${isHost ? 'tu es l’hôte' : 'connecté (' + kindLabel(MP.conn && MP.conn.kind) + ')'}</div><h2>Code de la partie</h2>
     <div class="mp-code">${MP.code}</div>
     ${isHost ? `<p class="muted">Les autres joueurs ouvrent ${EDITION_NAME[EDITION]}, choisissent « Course en ligne » et tapent ce code.</p>
       <div class="setting"><span>Monde</span><div class="seg" role="group" aria-label="Monde de la course">${WORLDS.map((w, i) => `<button data-act="mp-world" data-w="${i}" aria-pressed="${i === MP.world}">${w.ext ? 'Extension' : w.name}</button>`).join('')}</div></div>`
@@ -1659,7 +1811,7 @@ function lobbyHTML(isHost){
     <div class="row">${isHost ? '<button class="btn primary" data-act="mp-start">Lancer la course</button>' : '<span class="muted">En attente du lancement par l’hôte…</span>'}<button class="btn" data-act="mp-quit">Quitter</button></div>`;
 }
 function mpShowLobby(){ state = 'menu'; showCard(lobbyHTML(MP.role === 'host')); }
-function mpBroadcast(msg){ for (const c of MP.conns){ try { if (c.open) c.send(msg); } catch (_) {} } }
+function mpBroadcast(msg){ Object.values(MP.links).forEach(g => g.send(msg)); }
 function lobbyMsg(){ return { t:'lobby', code:MP.code, world:MP.world, edition:EDITION, players:MP.players }; }
 function mpLobbyRefresh(){
   if (MP.role !== 'host') return;
@@ -1668,35 +1820,38 @@ function mpLobbyRefresh(){
 }
 async function mpHost(name){
   mpStatus('Création de la partie…');
-  try { await loadPeer(); } catch (_) { return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.'); }
+  await loadNetLibs();
   mpCleanup();
-  const code = Array.from({ length:4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('');
-  Object.assign(MP, { role:'host', code, name, world, players:{ me:{ name, color:GHOST_COLORS[0] } } });
-  const peer = MP.peer = new Peer(ROOM(code), peerOpts());
-  peer.on('open', () => { if (MP.peer === peer){ mpShowLobby(); MP.pump = setInterval(mpPump, 150); } });
-  peer.on('connection', conn => {
-    conn.on('data', d => mpHostData(conn, d));
-    conn.on('close', () => { MP.conns = MP.conns.filter(c => c !== conn); if (MP.players[conn.peer]){ delete MP.players[conn.peer]; mpLobbyRefresh(); } });
-  });
-  peer.on('error', e => {
-    if (MP.peer !== peer) return;
-    if (e.type === 'unavailable-id') mpHost(name);
-    else if (e.type !== 'peer-unavailable' && !RACE.on) { mpCleanup(); mpMenu(mpErr(e)); }
-  });
+  const net = makeNet();
+  if (!net.available()) return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.');
+  Object.assign(MP, { role:'host', net, name, world, links:{}, players:{ me:{ name, color:GHOST_COLORS[0] } }, myId:'me' });
+  net.host(
+    code => { if (MP.net !== net) return; MP.code = code; mpShowLobby(); if (!MP.pump) MP.pump = setInterval(mpPump, 200); },
+    g => {
+      if (MP.net !== net){ g.close(); return; }
+      MP.links[g.gid] = g;
+      g.on('data', d => mpHostData(g, d));
+      g.on('close', () => { if (MP.links[g.gid] === g) delete MP.links[g.gid]; if (MP.players[g.gid]){ delete MP.players[g.gid]; mpLobbyRefresh(); } });
+    },
+    msg => { if (MP.net === net){ mpCleanup(); mpMenu(msg); } }
+  );
 }
-function mpHostData(conn, d){
+function mpHostData(g, d){
   if (!d || typeof d !== 'object') return;
+  const gid = g.gid;
   if (d.t === 'hello'){
-    if (RACE.on){ conn.send({ t:'busy' }); return; }
-    if (playerList().length >= 8){ conn.send({ t:'full' }); return; }
-    if (!MP.conns.includes(conn)) MP.conns.push(conn);
+    if (MP.players[gid]){ g.send({ t:'welcome', id:gid, edition:EDITION }); g.send(lobbyMsg()); return; }
+    if (RACE.on){ g.send({ t:'busy' }); return; }
+    if (playerList().length >= 8){ g.send({ t:'full' }); return; }
     const used = playerList().map(p => p.color), color = GHOST_COLORS.find(c => !used.includes(c)) || GHOST_COLORS[7];
-    MP.players[conn.peer] = { name:String(d.name || 'Joueur').slice(0, 12), color };
-    conn.send({ t:'welcome', id:conn.peer, edition:EDITION });
+    MP.players[gid] = { name:String(d.name || 'Joueur').slice(0, 12), color };
+    g.send({ t:'welcome', id:gid, edition:EDITION });
     mpLobbyRefresh();
-  } else if (d.t === 'pos' && MP.players[conn.peer] && d.s){
-    const s = d.s, p = MP.players[conn.peer];
+  } else if (d.t === 'pos' && MP.players[gid] && d.s){
+    const s = d.s, p = MP.players[gid];
     for (const k of ['x', 'y', 'f', 'w', 'prog', 'phase', 'time', 'ok', 'tot']) if (k in s) p[k] = s[k];
+  } else if (d.t === 'bye'){
+    if (MP.players[gid]){ delete MP.players[gid]; mpLobbyRefresh(); }
   }
 }
 function mpPump(){
@@ -1739,7 +1894,7 @@ function mpStartRace(){
   if (MP.role !== 'host') return;
   const seed = (Math.random() * 4294967296) >>> 0;
   MP.ended = false;
-  for (const p of Object.values(MP.players)){ Object.assign(p, { prog:0, phase:'wait', time:0, ok:0, tot:0, x:null, y:null, w:MP.world }); }
+  for (const p of Object.values(MP.players)) Object.assign(p, { prog:0, phase:'wait', time:0, ok:0, tot:0, x:null, y:null, w:MP.world });
   mpBroadcast({ t:'start', world:MP.world, seed });
   raceStart({ world:MP.world, seed, label:'' });
   RACE.onUpdate = s => Object.assign(MP.players.me, s);
@@ -1749,32 +1904,23 @@ async function mpJoin(name, raw){
   const code = String(raw || '').toUpperCase().replace(/[^A-Z]/g, '');
   if (code.length !== 4) return mpMenu('Le code de la partie contient 4 lettres.');
   mpStatus('Connexion à la partie ' + code + '…');
-  try { await loadPeer(); } catch (_) { return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.'); }
+  await loadNetLibs();
   mpCleanup();
-  Object.assign(MP, { role:'client', code, name });
-  const peer = MP.peer = new Peer(undefined, peerOpts());
-  let tries = 0;
-  const attempt = () => {
-    if (MP.peer !== peer || MP.joined) return;
-    tries++;
-    if (tries > 1) mpStatus('Connexion à la partie ' + code + '… nouvel essai');
-    if (MP.conn){ try { MP.conn.close(); } catch (_) {} }
-    const conn = MP.conn = peer.connect(ROOM(code), { reliable:true, serialization:'json' });
-    conn.on('open', () => conn.send({ t:'hello', name, edition:EDITION }));
-    conn.on('data', d => mpClientData(d));
-    conn.on('error', () => {});
-    conn.on('close', () => { if (MP.conn === conn && MP.role === 'client' && MP.joined) mpLost('La connexion avec l’hôte a été perdue.'); });
-    setTimeout(() => {
-      if (MP.peer !== peer || MP.joined) return;
-      if (tries < 2) attempt(); else { mpCleanup(); mpMenu(BLOCKED_MSG); }
-    }, 9000);
-  };
-  peer.on('open', () => { if (MP.peer === peer) attempt(); });
-  peer.on('error', e => {
-    if (MP.peer !== peer) return;
-    if (e.type === 'peer-unavailable'){ if (!MP.joined){ mpCleanup(); mpMenu('Aucune partie trouvée avec ce code. Vérifie les lettres, et que l’hôte a toujours sa page ouverte sur le code.'); } return; }
-    mpCleanup(); raceStop(); mpMenu(mpErr(e));
-  });
+  const net = makeNet();
+  if (!net.available()) return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.');
+  Object.assign(MP, { role:'client', net, code, name });
+  net.join(code,
+    L => {
+      if (MP.net !== net) return;
+      MP.conn = L;
+      L.on('data', d => mpClientData(d));
+      L.on('close', () => { if (MP.conn === L && MP.role === 'client') mpLost('La connexion avec l’hôte a été perdue.'); });
+      L.send({ t:'hello', name, edition:EDITION });
+      mpStatus('Connecté (' + kindLabel(L.kind) + ') !', 'Entrée dans la salle…');
+    },
+    msg => { if (MP.net === net && !MP.conn) mpStatus('Connexion à la partie ' + code + '…', msg); },
+    msg => { if (MP.net === net && !MP.conn){ mpCleanup(); mpMenu(msg); } }
+  );
 }
 function mpClientData(d){
   if (!d || typeof d !== 'object' || MP.role !== 'client') return;
@@ -1787,7 +1933,7 @@ function mpClientData(d){
     if (MP.joined) mpShowLobby();
   } else if (d.t === 'start'){
     raceStart({ world:d.world, seed:d.seed, label:'' });
-    RACE.onUpdate = s => { try { if (MP.conn && MP.conn.open) MP.conn.send({ t:'pos', s }); } catch (_) {} };
+    RACE.onUpdate = s => { if (MP.conn) MP.conn.send({ t:'pos', s }); };
   } else if (d.t === 'state'){
     if (RACE.on){ MP.players = d.players || {}; mpView(MP.players, MP.myId); }
   } else if (d.t === 'results'){
@@ -1799,7 +1945,11 @@ function mpClientData(d){
 function mpAct(act, b){
   if (act === 'online') return mpMenu();
   if (act === 'mp-back'){ mpCleanup(); raceStop(); return showTitle(); }
-  if (act === 'mp-quit'){ if (MP.role === 'host') mpBroadcast({ t:'bye' }); mpCleanup(); raceStop(); return mpMenu(); }
+  if (act === 'mp-quit'){
+    if (MP.role === 'host') mpBroadcast({ t:'bye' }); else if (MP.conn) MP.conn.send({ t:'bye' });
+    const done = () => { mpCleanup(); raceStop(); mpMenu(); };
+    return MP.role ? setTimeout(done, 150) : done();
+  }
   if (act === 'mp-host'){ const n = readName(); return n ? mpHost(n) : mpMenu('Écris ton nom avant de continuer.'); }
   if (act === 'mp-join'){ const n = readName(), c = ($('#mpCode') || {}).value; return n ? mpJoin(n, c) : mpMenu('Écris ton nom avant de continuer.'); }
   if (act === 'mp-world'){ MP.world = +b.dataset.w; return mpLobbyRefresh(); }
@@ -1811,6 +1961,7 @@ mcard.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
   e.preventDefault(); mpAct(e.target.id === 'mpCode' ? 'mp-join' : 'mp-host');
 });
+addEventListener('pagehide', () => { try { if (MP.role === 'host') mpBroadcast({ t:'bye' }); else if (MP.conn) MP.conn.send({ t:'bye' }); } catch (_) {} });
 
 /* ================== Boucle ================== */
 let lastT = 0, acc = 0;

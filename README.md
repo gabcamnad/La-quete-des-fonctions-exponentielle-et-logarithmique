@@ -44,7 +44,7 @@ On peut aussi cliquer sur les réponses. Ce mode fonctionne avec le lien GitHub 
 3. Les autres tapent le code et cliquent sur **Rejoindre** (8 joueurs au maximum, dans le même jeu).
 4. L'hôte clique sur **Lancer la course**. Chacun voit les autres avancer en direct (silhouettes et classement).
 
-Il faut une connexion Internet. Les appareils se trouvent grâce au serveur public gratuit de PeerJS, puis communiquent directement entre eux. Certains réseaux scolaires bloquent ce type de connexion directe : si la connexion échoue malgré un bon code, essaie un autre réseau (par exemple un partage de connexion).
+Il faut une connexion Internet. Chaque appareil essaie deux chemins en même temps et garde le premier qui fonctionne : un **relais Internet** (serveurs MQTT publics et gratuits, par connexion web sécurisée, qui passent sur la plupart des réseaux d'école) et une **connexion directe** entre les appareils (PeerJS). Une fois connecté, le jeu affiche « relais Internet » ou « connexion directe ».
 
 ## Fichiers
 
@@ -71,4 +71,4 @@ Partage ce lien dans Classroom avec **Ajouter → Lien**.
 - Clavier : ← → pour bouger, Espace ou ↑ pour sauter, 1 à 4 pour répondre, Échap pour la pause
 - Téléphone et tablette : boutons à l'écran
 - Réglages sur l'écran d'accueil de chaque jeu : temps limite par question, musique, effets sonores, sursauts (version horreur)
-- Le multijoueur utilise la librairie [PeerJS](https://peerjs.com/) (licence MIT), chargée seulement quand on ouvre la course en ligne
+- Le multijoueur utilise les librairies [MQTT.js](https://github.com/mqttjs/MQTT.js) et [PeerJS](https://peerjs.com/) (licence MIT), chargées seulement quand on ouvre la course en ligne
