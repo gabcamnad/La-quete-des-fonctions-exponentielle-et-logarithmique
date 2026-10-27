@@ -34,6 +34,7 @@ Les questions sont générées au hasard à chaque partie. Chaque réponse est s
 - Toutes les 25 pièces gagnées dans un monde : +1 cœur
 - Jeux exponentiels : 18 skins partagés entre la Quête et le Manoir (dont une tortue et des skins d'Halloween)
 - Jeux de trigonométrie : pièces partagées entre les deux versions, 10 skins par version
+- Chaque skin (sauf le premier) donne un **pouvoir**, actif aussi en course : double saut, vitesse, super saut, planeur, aimant à pièces, pièces ×2, bouclier, gel des ennemis, cœur bonus, seconde chance, sortilège (un mauvais choix disparaît), +50 % d'XP, etc. Le pouvoir est indiqué dans la boutique et dans le menu pause.
 - Tout est gardé sur l'appareil; en course, les adversaires voient ton skin
 
 ## Multijoueur : courses
