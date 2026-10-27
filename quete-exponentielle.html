@@ -219,6 +219,22 @@ sup{font-size:.7em;line-height:0}
 .duo body{padding-block:6px}
 .duo .game{gap:6px}
 @media (max-width:620px){.mp-split{grid-template-columns:minmax(0,1fr)}}
+
+/* ===== Pièces et boutique ===== */
+.coins{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.coin-ic{display:inline-block;width:12px;height:12px;border-radius:50%;background:#f5c518;box-shadow:inset -2px -2px 0 #c99a00,0 0 0 1px #8a5d00;flex:none}
+.coin-ic.big{width:20px;height:20px;box-shadow:inset -3px -3px 0 #c99a00,0 0 0 2px #8a5d00}
+.chip.co{background:#f5c518;border-radius:50%}
+.wallet{font-family:var(--display);font-size:1.3rem;display:flex;align-items:center;gap:10px;margin:0}
+.shop-msg{font-family:var(--display);color:var(--teal);margin:0}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.sk-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 8px;border:2px solid rgba(127,127,127,.45);border-radius:8px;background:rgba(127,127,127,.1);min-width:0;text-align:center}
+.sk-item.on{border-color:var(--amber);box-shadow:inset 0 0 0 2px var(--amber)}
+.sk-item canvas{width:72px;height:84px;image-rendering:pixelated}
+.sk-item b{font-family:var(--display);font-size:.95rem;line-height:1.1}
+.sk-item .price{font-family:var(--display);font-size:.82rem;display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap}
+.sk-item .btn{font-size:.85rem;padding:6px 8px;width:100%;margin-top:auto}
+.sk-item .btn:disabled{opacity:.55;cursor:default}
 </style>
 </head>
 <body>
@@ -227,6 +243,7 @@ sup{font-size:.7em;line-height:0}
     <div class="hud-world"><b id="hudWorld">Monde 1</b><small id="hudWorldTitle">La plaine des exposants</small></div>
     <div class="hearts" id="hudHearts"></div>
     <div class="xp"><span>Niv. <b id="hudLvl">1</b></span><div class="xpbar" title="Expérience"><i id="hudXp"></i></div></div>
+    <div class="coins" title="Pièces"><i class="coin-ic"></i><b id="hudCoins">0</b></div>
     <div class="score" title="Bonnes réponses">✓ <b id="hudOk">0</b>/<span id="hudTot">0</span></div>
     <div class="chrono" id="hudTime" hidden aria-live="off">0:00,0</div>
     <div class="hud-btns">
@@ -747,15 +764,17 @@ function genLevel(w){
   const W = 150 + w * 25, g = [];
   for (let r = 0; r < ROWS; r++) g.push(new Uint8Array(W));
   for (let x = 0; x < W; x++){ g[13][x] = 1; g[14][x] = 1; }
-  const en = [], labels = [];
+  const en = [], labels = [], coins = [];
+  const coin = (c, r) => { if (g[r] && c > 0 && c < W && !g[r][c]) coins.push({ x:c*TS+4, y:r*TS+3, w:8, h:10, t:false }); };
+  for (let c = 6; c <= 8; c++) coin(c, 12);
   const mkE = c => en.push({ x:c*TS+1, y:12*TS+4, w:14, h:12, vx:-0.45, vy:0, dead:false, squish:0, onGround:false });
   let x = 14, last = -1;
   while (x < W - 26){
     let f; do { f = ri(0,5); } while (f === last);
     last = f;
-    if (f === 0){ const gw = ri(2,3); for (let i = 0; i < gw; i++){ g[13][x+i] = 0; g[14][x+i] = 0; } x += gw + ri(3,5); }
+    if (f === 0){ const gw = ri(2,3); for (let i = 0; i < gw; i++){ g[13][x+i] = 0; g[14][x+i] = 0; } for (let i = -1; i <= gw; i++) coin(x+i, i < 0 || i === gw ? 10 : 9); x += gw + ri(3,5); }
     else if (f === 1){ const n = ri(1,3) + (rnd() < .4 ? 2 : 0);
-      for (let i = 0; i < n; i++) g[9][x+i] = (i % 2 === 0) ? 3 : 2;
+      for (let i = 0; i < n; i++){ g[9][x+i] = (i % 2 === 0) ? 3 : 2; coin(x+i, 11); }
       if (rnd() < .7) mkE(x + n + 2);
       x += n + ri(5,7); }
     else if (f === 2){ const n = 5;
@@ -763,23 +782,26 @@ function genLevel(w){
         const h1 = Math.round(2 ** (i/2)), h2 = Math.round(2 ** ((n-1-i)/2));
         for (let r = 0; r < h1; r++) g[12-r][x+i] = 5;
         for (let r = 0; r < h2; r++) g[12-r][x+n+i] = 5;
+        coin(x+i, 12-h1); coin(x+n+i, 12-h2);
       }
       g[5][x+4] = 3;
       labels.push({ x:x*TS - 20, y:7.3*TS, base:'2', exp:'x/2' });
       labels.push({ x:(x+8)*TS - 6, y:7.3*TS, base:'(0,5)', exp:'x/2' });
       x += 2*n + ri(3,5); }
     else if (f === 3){ const len = ri(3,5);
-      for (let i = 0; i < len; i++) g[10][x+i] = 6;
+      for (let i = 0; i < len; i++){ g[10][x+i] = 6; coin(x+i, 9); }
       g[6][x + Math.floor(len/2)] = 3;
       if (rnd() < .6) mkE(x + len - 1);
       x += len + ri(4,6); }
-    else if (f === 4){ mkE(x + 2); if (rnd() < .6) mkE(x + 5); x += ri(8,10); }
+    else if (f === 4){ mkE(x + 2); if (rnd() < .6) mkE(x + 5); coin(x+3, 10); coin(x+4, 10); x += ri(8,10); }
     else { const h = ri(2,3);
       for (let r = 0; r < h; r++){ g[12-r][x] = 1; g[12-r][x+1] = 1; }
+      coin(x, 12-h); coin(x+1, 12-h);
       if (rnd() < .5) mkE(x + 4);
       x += 2 + ri(4,6); }
   }
-  return { g, W, enemies:en, labels, flagC:W-15, castleC:W-11, doorX:(W-8)*TS };
+  for (let c = W-21; c <= W-18; c++) coin(c, 12);
+  return { g, W, enemies:en, labels, coins, flagC:W-15, castleC:W-11, doorX:(W-8)*TS };
 }
 
 let LV = null, enemies = [], floats = [], parts = [], bumps = [], pendingQ = 0, frame = 0, camX = 0;
@@ -788,7 +810,7 @@ function tile(c, r){ if (r < 0 || r >= ROWS) return 0; if (c < 0 || c >= LV.W) r
 function solid(c, r){ if (r < 0 || r >= ROWS) return false; if (c < 0 || c >= LV.W) return true; return LV.g[r][c] > 0; }
 
 function loadWorld(w){
-  world = w; LV = genLevel(w);
+  world = w; LV = genLevel(w); runCoins = 0; coinStreak = 0;
   enemies = LV.enemies.map(e => ({ ...e }));
   Object.assign(P, { x:2*TS, y:11*TS, vx:0, vy:0, face:1, inv:0, onGround:false, coyote:0, jumpBuf:0 });
   camX = 0; floats = []; parts = []; bumps = []; pendingQ = 0;
@@ -837,7 +859,7 @@ addEventListener('pointerdown', unlockAudio);
 const TONES = {
   jump:[[440,.09,'square',760]], stomp:[[260,.09,'square',90]], bump:[[150,.06,'square']],
   ok:[[660,.08,'square'],[990,.14,'square']], bad:[[220,.22,'sawtooth',110]], hurt:[[320,.16,'sawtooth',90]],
-  lvl:[[523,.08,'square'],[659,.08,'square'],[784,.08,'square'],[1046,.18,'square']], hit:[[180,.14,'square',50]], tick:[[1200,.03,'square']], win:[[392,.1,'square'],[523,.1,'square'],[659,.1,'square'],[784,.25,'square']],
+  lvl:[[523,.08,'square'],[659,.08,'square'],[784,.08,'square'],[1046,.18,'square']], hit:[[180,.14,'square',50]], tick:[[1200,.03,'square']], coin:[[988,.05,'square'],[1319,.1,'square']], win:[[392,.1,'square'],[523,.1,'square'],[659,.1,'square'],[784,.25,'square']],
 };
 function sfx(type){
   if (!soundOn || !AC || AC.state !== 'running') return;
@@ -957,7 +979,7 @@ function updateHUD(){
   $('#bossHearts').innerHTML = h;
   $('#hudLvl').textContent = lvl;
   $('#hudXp').style.width = Math.min(100, xp / need() * 100) + '%';
-  $('#hudOk').textContent = stats.ok; $('#hudTot').textContent = stats.tot;
+  $('#hudOk').textContent = stats.ok; $('#hudCoins').textContent = getWallet(); $('#hudTot').textContent = stats.tot;
 }
 let toastT = 0;
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
@@ -998,7 +1020,7 @@ function moveY(o){
 function bumpTile(c, r){
   const t = tile(c, r);
   if (t === 3){ LV.g[r][c] = 4; bumps.push({ c, r, t:10 }); pendingQ = 14; sfx('bump'); addFloat('?', c*TS + 5, r*TS - 4, AMBER); }
-  else if (t === 2){ LV.g[r][c] = 0; sfx('bump');
+  else if (t === 2){ LV.g[r][c] = 0; sfx('bump'); addCoins(1, c*TS + 2, r*TS - 4);
     for (let i = 0; i < 4; i++) parts.push({ x:c*TS + 8, y:r*TS + 8, vx:(i%2 ? 1.4 : -1.4), vy:-3 - (i>1 ? 1.5 : 0), life:50 }); }
   else sfx('bump');
 }
@@ -1047,6 +1069,7 @@ function step(){
       else if (P.inv === 0){ hurt(1); if (state !== 'play') return; P.vy = -3.2; P.vx = (P.x < e.x ? -1 : 1) * 2.4; addFloat('−1 ♥', P.x, P.y - 6, RED); }
     }
   }
+  collectCoins();
   for (const b of bumps) b.t--; bumps = bumps.filter(b => b.t > 0);
   for (const p of parts){ p.x += p.vx; p.y += p.vy; p.vy += .3; p.life--; } parts = parts.filter(p => p.life > 0);
   for (const f of floats){ f.y -= .5; f.life--; } floats = floats.filter(f => f.life > 0);
@@ -1213,16 +1236,7 @@ function drawCastle(){
 }
 function drawPlayer(){
   if (P.inv > 0 && Math.floor(P.inv / 4) % 2 === 0) return;
-  const x = P.x, y = P.y, f = P.face;
-  const px = (dx, dy, w, h, col) => { ctx.fillStyle = col; ctx.fillRect(f > 0 ? x + dx : x + P.w - dx - w, y + dy, w, h); };
-  const walking = P.onGround && Math.abs(P.vx) > .3, ph = Math.floor(frame / 6) % 2;
-  px(1, 0, 9, 3, AMBER); px(8, 2, 4, 1, AMBER); px(1, 0, 9, 1, '#ffd27c');
-  px(1, 3, 2, 3, HAIR); px(3, 3, 7, 4, SKIN); px(7, 4, 1, 2, INK);
-  px(2, 7, 8, 5, TEAL); px(2, 7, 8, 1, '#56b3a6');
-  px(walking && ph ? 8 : 9, 8, 2, 3, SKIN);
-  if (!P.onGround){ px(1, 12, 3, 2, INK); px(7, 12, 4, 3, INK); }
-  else if (walking){ if (ph){ px(2, 12, 3, 3, INK); px(7, 12, 3, 2, INK); } else { px(2, 12, 3, 2, INK); px(7, 12, 3, 3, INK); } }
-  else { px(2, 12, 3, 3, INK); px(7, 12, 3, 3, INK); }
+  drawPlayerHero();
 }
 function drawEnemy(e){
   const x = e.x, y = e.y;
@@ -1252,6 +1266,7 @@ function render(){
     let oy = 0; for (const b of bumps) if (b.c === c && b.r === r) oy = -Math.sin((10 - b.t) / 10 * Math.PI) * 5;
     drawTile(t, c*TS, r*TS + oy, c, r);
   }
+  drawCoins();
   for (const e of enemies) if (!e.dead && e.x > cx - 20 && e.x < cx + VW + 20) drawEnemy(e);
   drawPlayer();
   drawGhosts();
@@ -1309,7 +1324,7 @@ function openQuestion(){
   state = 'question'; clearKeys();
   const ov = $('#qov'); ov.hidden = false; ov.scrollTop = 0;
   renderQuestion($('#qcard'), genQ(world), ok => {
-    if (ok){ sfx('ok'); const g = gainHeart(); addXP(30, P.x, P.y - 10); if (RACE.on) RACE.turbo = 360; return (g ? '+30 XP et +1 cœur' : '+30 XP') + (RACE.on ? ' · TURBO pendant 6 s !' : ''); }
+    if (ok){ sfx('ok'); const g = gainHeart(); addXP(30, P.x, P.y - 10); addCoins(5, P.x, P.y - 22); if (RACE.on) RACE.turbo = 360; return (g ? '+30 XP, +1 cœur' : '+30 XP') + ' et +5 pièces' + (RACE.on ? ' · TURBO pendant 6 s !' : ''); }
     sfx('bad'); hurt(1, true); return hp > 0 ? 'Tu perds 1 cœur. Lis l’explication :' : 'Tu n’as plus de cœurs…';
   }, () => {
     $('#qov').hidden = true; activeAnswer = null;
@@ -1375,9 +1390,9 @@ function startBoss(){
 function nextBossQ(){
   const B = WORLDS[world].boss;
   renderQuestion($('#bossQ'), genQ(world), ok => {
-    if (ok){ bossHp--; bossShake = 24; bossFlash = 10; sfx('hit'); bossBar(); const g = gainHeart(); addXP(30);
+    if (ok){ bossHp--; bossShake = 24; bossFlash = 10; sfx('hit'); bossBar(); const g = gainHeart(); addXP(30); addCoins(5);
       if (bossHp <= 0){ bossDead = true; $('#bossLog').textContent = `${B.name} est vaincu${B.f ? 'e' : ''} !`; return 'Coup final !'; }
-      $('#bossLog').textContent = `Ton attaque exponentielle touche ! Il reste ${bossHp} PV.`; return g ? '+30 XP et +1 cœur' : '+30 XP';
+      $('#bossLog').textContent = `Ton attaque exponentielle touche ! Il reste ${bossHp} PV.`; return (g ? '+30 XP, +1 cœur' : '+30 XP') + ' et +5 pièces';
     }
     sfx('hurt'); hurt(1, true); const a = $('#arena'); a.classList.remove('hit'); void a.offsetWidth; a.classList.add('hit');
     $('#bossLog').textContent = `${B.name} contre-attaque !`;
@@ -1395,7 +1410,7 @@ function bossDefeated(){
   if (world < WORLDS.length - 1){
     state = 'menu';
     showCard(`<div class="q-topic">${W.name} réussi</div><h2>${W.boss.name} est vaincu${W.boss.f ? 'e' : ''} !</h2>
-      <p>Bonnes réponses dans ce monde : <b>${worldStats.ok} / ${worldStats.tot}</b>. Tu es au niveau ${lvl}.</p>
+      <p>Bonnes réponses dans ce monde : <b>${worldStats.ok} / ${worldStats.tot}</b>. Tu es au niveau ${lvl}. Pièces gagnées : <b>${runCoins}</b>.</p>
       <p class="muted">Prochaine destination : <b>${WORLDS[world+1].title}</b>. ${WORLDS[world+1].topics}.</p>
       <div class="row"><button class="btn primary" data-act="world" data-w="${world+1}">Aller au ${WORLDS[world+1].name}</button>${world === 2 ? '<button class="btn" data-act="victory">Terminer ici (bilan)</button>' : ''}<button class="btn" data-act="pause-memo">Aide-mémoire</button></div>`);
   } else showVictory();
@@ -1444,22 +1459,23 @@ function timeSettingHTML(){
 function showTitle(){
   state = 'title'; $('#qov').hidden = true; $('#bov').hidden = true;
   showCard(`${brandHTML()}
-    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5 · <b style="color:var(--teal)">Version du 21 octobre</b></div>
+    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5 · <b style="color:var(--teal)">Version du 26 octobre</b></div>
     <p>Frappe les blocs <b>?</b> par en dessous pour obtenir une question. Tu commences chaque monde avec 3 cœurs; chaque niveau gagné t'en donne un de plus jusqu'à la fin du monde. Chaque bonne réponse donne de l'XP et un cœur de plus, même au-delà de 3; une erreur coûte un cœur, avec l'explication. Au bout de chaque monde, un boss t'attend.</p>
     <div class="legend">
       <span class="chip qb">?</span><span>Bloc question : saute dessous</span>
       <span class="chip en"></span><span>Décroissant : écrase-le en sautant dessus (+10 XP)</span>
+      <span class="chip co"></span><span>Pièce : +1 · toutes les 25 pièces, +1 cœur · dépense-les à la boutique</span>
       <span class="chip cv"></span><span>Colline exponentielle : grimpe la courbe <i>y</i> = 2<sup><i>x</i>/2</sup></span>
     </div>
     ${timeSettingHTML()}
     <div class="worlds">${WORLDS.map((W, i) => `<button class="wcard" data-act="world" data-w="${i}"><span class="n">${W.ext ? W.name + ' · Extension' : W.name}</span><b>${W.title}</b><small>${W.topics}</small></button>`).join('')}</div>
-    <div class="row"><button class="btn" data-act="online">Course en ligne (multijoueur)</button></div>
+    <div class="row"><button class="btn" data-act="shop"><i class="coin-ic" style="vertical-align:-1px"></i> Boutique de skins · ${getWallet()}</button><button class="btn" data-act="online">Course en ligne (multijoueur)</button></div>
     <p class="muted" style="font-size:.88rem">${isTouch ? 'Sur téléphone : utilise les boutons sous l’écran de jeu.' : 'Clavier : ← → pour bouger, Espace ou ↑ pour sauter, 1 à 4 pour répondre, Échap pour la pause.'}</p>${(window.QE_LAUNCHER || QE_MENU) ? '<div class="row"><button class="btn" data-act="home">← Changer de jeu</button></div>' : ''}`);
 }
 function pauseGame(){
   if (state !== 'play' || RACE.on) return; state = 'paused'; clearKeys();
   showCard(`<div class="q-topic">Pause</div>${timeSettingHTML()}<h2>Aide-mémoire</h2>${MEMO}
-    <div class="row"><button class="btn primary" data-act="resume">Reprendre</button><button class="btn" data-act="title">Menu principal</button></div>`);
+    <div class="row"><button class="btn primary" data-act="resume">Reprendre</button><button class="btn" data-act="shop-pause">Boutique</button><button class="btn" data-act="title">Menu principal</button></div>`);
 }
 function resumeGame(){ hideCard(); clearKeys(); state = 'play'; }
 function gameOver(inBoss){
@@ -1488,6 +1504,7 @@ mcard.addEventListener('click', e => {
   unlockAudio();
   const act = b.dataset.act;
   if (act === 'online' || act.startsWith('mp-')){ mpAct(act, b); return; }
+  if (act.startsWith('shop')){ shopAct(act, b); return; }
   if (act === 'world'){ hideCard(); maxHp = START_HP; hp = maxHp; loadWorld(+b.dataset.w); clearKeys(); state = 'play'; toast(`${WORLDS[world].name} · ${WORLDS[world].title}`); }
   else if (act === 'time'){ timeLimit = +b.dataset.t; try { localStorage.setItem('qe-time', timeLimit); } catch(_){}
     b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
@@ -1503,6 +1520,146 @@ $('#btnPause').onclick = () => { if (state === 'play') pauseGame(); else if (sta
 const QE_MENU = (() => { try { return new URLSearchParams(location.search).has('menu'); } catch (_) { return false; } })();
 function goHome(){ if (window.QE_LAUNCHER) parent.postMessage({ qe:'home' }, '*'); else location.href = 'index.html'; }
 if (window.QE_LAUNCHER || QE_MENU){ const h = $('#btnHome'); h.hidden = false; h.onclick = goHome; }
+
+/* ================== Pièces, récompenses et boutique de skins ================== */
+const IS_HORROR = /Manoir/.test(document.title);
+const BASE_PAL = IS_HORROR
+  ? { cap:'#3a3150', capHi:'#e8771e', hair:'#2a1d16', skin:'#e9c8b0', eye:'#000000', shirt:'#6b4fa8', shirtHi:'#8a6cc8', legs:'#1b1624' }
+  : { cap:'#f0a83a', capHi:'#ffd27c', hair:'#3a2a1e', skin:'#f1c6a0', eye:'#1f2f42', shirt:'#2e8f83', shirtHi:'#56b3a6', legs:'#1f2f42' };
+const SKINS = [
+  { id:'base', name:'Classique', price:0, pal:{} },
+  { id:'pompier', name:'Pompier', price:30, pal:{ cap:'#d62828', capHi:'#ffd166', shirt:'#d62828', shirtHi:'#f77f00', legs:'#2b2d42' } },
+  { id:'labo', name:'Scientifique', price:40, pal:{ cap:'#f4f7fb', capHi:'#cfe8ff', shirt:'#f4f7fb', shirtHi:'#ffffff', legs:'#3d5a80', deco:'glasses' } },
+  { id:'givre', name:'Givré', price:50, pal:{ cap:'#7fd3ff', capHi:'#e0f7ff', hair:'#dff4ff', shirt:'#3a86ff', shirtHi:'#7fd3ff', legs:'#1d3557' } },
+  { id:'ninja', name:'Ninja', price:60, pal:{ cap:'#1b1b1f', capHi:'#e63946', hair:'#1b1b1f', shirt:'#26262c', shirtHi:'#3a3a44', legs:'#111114', deco:'mask' } },
+  { id:'citrouille', name:'Citrouille', price:70, pal:{ cap:'#e8771e', capHi:'#4f6b2a', shirt:'#e8771e', shirtHi:'#ffb347', legs:'#3d2b1f' } },
+  { id:'tortue', name:'Tortue', price:45, pal:{ hat:'none', hair:'#6fbf5a', skin:'#8fd16f', eye:'#1b1b1f', shirt:'#f0d97a', shirtHi:'#fff0a8', legs:'#5aa346', deco:'shell' } },
+  { id:'chat', name:'Chat noir', price:55, pal:{ hat:'ears', hair:'#1b1b1f', skin:'#2a2a33', eye:'#ffd34d', shirt:'#1b1b1f', shirtHi:'#33333d', legs:'#111114', deco:'cat' } },
+  { id:'fantome', name:'Fantôme', price:65, pal:{ hat:'none', deco:'ghost' } },
+  { id:'momie', name:'Momie', price:80, pal:{ hat:'none', hair:'#e9e2cc', skin:'#e9e2cc', eye:'#1b1b1f', shirt:'#e9e2cc', shirtHi:'#f6f1e2', legs:'#d6ccb0', deco:'mummy' } },
+  { id:'squelette', name:'Squelette', price:85, pal:{ hat:'none', hair:'#f4f4f4', skin:'#f4f4f4', eye:'#111114', shirt:'#1b1b1f', shirtHi:'#2a2a33', legs:'#1b1b1f', deco:'skeleton' } },
+  { id:'sorciere', name:'Sorcière', price:100, pal:{ hat:'witch', cap:'#2b1d3a', capHi:'#9be36b', hair:'#e8771e', shirt:'#5b2a86', shirtHi:'#7d44b0', legs:'#1b1624', deco:'witch' } },
+  { id:'vampire', name:'Vampire', price:110, pal:{ hat:'none', hair:'#111114', skin:'#e6e6f0', eye:'#c8102e', shirt:'#1b1b1f', shirtHi:'#c8102e', legs:'#111114', deco:'vampire' } },
+  { id:'monstre', name:'Monstre de Frankenstein', price:130, pal:{ hat:'flat', hair:'#1b1b1f', skin:'#8fc47a', eye:'#1b1b1f', shirt:'#3d4a3d', shirtHi:'#56664f', legs:'#2a2a2a', deco:'bolts' } },
+  { id:'robot', name:'Robot', price:90, pal:{ cap:'#9aa5b1', capHi:'#d9e2ec', hair:'#7b8794', skin:'#c5ccd3', eye:'#00c8e0', shirt:'#616e7c', shirtHi:'#9aa5b1', legs:'#3e4c59', deco:'antenna' } },
+  { id:'astro', name:'Astronaute', price:120, pal:{ cap:'#f1f5f9', capHi:'#cbd5e1', hair:'#e2e8f0', shirt:'#f1f5f9', shirtHi:'#ffffff', legs:'#94a3b8', deco:'visor' } },
+  { id:'arc', name:'Arc-en-ciel', price:160, pal:{ deco:'rainbow' } },
+  { id:'or', name:'Doré', price:250, pal:{ cap:'#d4a017', capHi:'#fff3b0', hair:'#8a6d00', shirt:'#e6b800', shirtHi:'#fff3b0', legs:'#8a6d00', deco:'sparkle' } },
+];
+SKINS.sort((a, b) => a.price - b.price);
+const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
+const palFor = id => Object.assign({}, BASE_PAL, skinById(id).pal);
+let WALLET_MEM = 0, OWNED_MEM = ['base'], SKIN_MEM = 'base';
+function getWallet(){ try { const v = localStorage.getItem('qe-coins'); return v === null ? WALLET_MEM : Math.max(0, parseInt(v, 10) || 0); } catch (_) { return WALLET_MEM; } }
+function setWallet(v){ WALLET_MEM = v; try { localStorage.setItem('qe-coins', String(v)); } catch (_) {} }
+function getOwned(){ try { const v = JSON.parse(localStorage.getItem('qe-skins') || 'null'); return Array.isArray(v) ? v : OWNED_MEM; } catch (_) { return OWNED_MEM; } }
+function setOwned(a){ OWNED_MEM = a; try { localStorage.setItem('qe-skins', JSON.stringify(a)); } catch (_) {} }
+function mySkin(){ let v = SKIN_MEM; try { v = localStorage.getItem('qe-skin') || SKIN_MEM; } catch (_) {} return getOwned().includes(v) || v === 'base' ? v : 'base'; }
+function setSkin(id){ SKIN_MEM = id; try { localStorage.setItem('qe-skin', id); } catch (_) {} }
+
+// Dessine le héros (12 × 15 px) avec une palette ; utilisé dans le jeu, pour les fantômes et dans la boutique
+function drawHero(c, x, y, f, pal, st){
+  const px = (dx, dy, w, h, col) => { c.fillStyle = col; c.fillRect(f > 0 ? x + dx : x + 12 - dx - w, y + dy, w, h); };
+  const t = st.t || 0, rb = pal.deco === 'rainbow';
+  const sh = rb ? `hsl(${(t * 5) % 360} 80% 55%)` : pal.shirt, shHi = rb ? `hsl(${(t * 5 + 50) % 360} 90% 72%)` : pal.shirtHi;
+  const cap = rb ? `hsl(${(t * 5 + 180) % 360} 80% 55%)` : pal.cap;
+  if (pal.hat === 'none'){ px(2, 0, 8, 3, pal.hair); px(1, 1, 1, 2, pal.hair); }
+  else if (pal.hat === 'ears'){ px(2, 0, 8, 3, pal.hair); px(2, -2, 2, 2, pal.hair); px(8, -2, 2, 2, pal.hair); px(3, -1, 1, 1, '#ff8fb3'); px(8, -1, 1, 1, '#ff8fb3'); }
+  else if (pal.hat === 'flat'){ px(1, -1, 10, 4, pal.hair); px(1, -1, 10, 1, '#333338'); }
+  else if (pal.hat === 'witch'){ px(1, 3, 2, 5, pal.hair); px(0, 1, 12, 1, cap); px(2, 0, 8, 1, cap); px(3, -2, 6, 2, cap); px(4, -4, 4, 2, cap); px(5, -6, 2, 2, cap); px(3, -1, 6, 1, pal.capHi); }
+  else if (st.horror){ px(1, 0, 9, 3, cap); px(4, -2, 3, 2, pal.capHi); }
+  else { px(1, 0, 9, 3, cap); px(8, 2, 4, 1, cap); px(1, 0, 9, 1, pal.capHi); }
+  px(1, 3, 2, 3, pal.hair); px(3, 3, 7, 4, pal.skin); px(7, 4, 1, 2, pal.eye);
+  px(2, 7, 8, 5, sh); px(2, 7, 8, 1, shHi);
+  if (st.horror){ px(st.walking && st.ph ? 9 : 10, 8, 2, 2, pal.skin); px(11, 9, 3, 4, '#ffd36b'); px(11, 8, 3, 1, '#2a2233'); px(12, 7, 1, 1, '#2a2233'); }
+  else px(st.walking && st.ph ? 8 : 9, 8, 2, 3, pal.skin);
+  const L = pal.legs;
+  if (st.air){ px(1, 12, 3, 2, L); px(7, 12, 4, 3, L); }
+  else if (st.walking){ if (st.ph){ px(2, 12, 3, 3, L); px(7, 12, 3, 2, L); } else { px(2, 12, 3, 2, L); px(7, 12, 3, 3, L); } }
+  else { px(2, 12, 3, 3, L); px(7, 12, 3, 3, L); }
+  if (pal.deco === 'glasses'){ px(5, 4, 4, 1, '#1b1b1f'); px(5, 5, 1, 1, '#1b1b1f'); px(8, 5, 1, 1, '#1b1b1f'); }
+  else if (pal.deco === 'mask') px(3, 5, 7, 2, '#111114');
+  else if (pal.deco === 'antenna'){ px(5, -3, 1, 3, '#9aa5b1'); px(4, -4, 3, 1, '#ff4d4d'); }
+  else if (pal.deco === 'visor'){ px(4, 3, 6, 3, '#5bc0eb'); px(5, 3, 2, 1, '#d6f3ff'); }
+  else if (pal.deco === 'shell'){ px(-1, 6, 5, 7, '#3f7a2c'); px(0, 5, 3, 1, '#3f7a2c'); px(0, 7, 2, 2, '#8bbf4a'); px(2, 9, 2, 2, '#8bbf4a'); px(0, 11, 2, 1, '#8bbf4a'); }
+  else if (pal.deco === 'cat'){ px(9, 6, 3, 1, '#9a9aa8'); px(-1, 9, 3, 1, '#1b1b1f'); px(-2, 6, 1, 4, '#1b1b1f'); }
+  else if (pal.deco === 'ghost'){ const g = '#f4f4fb', wv = Math.floor(t / 12) % 2; px(2, -1, 8, 1, g); px(1, 0, 10, 13, g); for (let i = 0; i < 3; i++) px(1 + i * 4 + wv, 13, 2, 1, g);
+    px(4, 4, 2, 2, '#1b1b2a'); px(8, 4, 2, 2, '#1b1b2a'); px(6, 8, 2, 2, '#1b1b2a'); if (st.horror){ px(11, 9, 3, 4, '#ffd36b'); px(11, 8, 3, 1, '#2a2233'); } }
+  else if (pal.deco === 'mummy'){ const b = '#bdb294'; px(2, 1, 8, 1, b); px(3, 3, 7, 1, b); px(3, 5, 4, 1, b); px(2, 8, 8, 1, b); px(2, 10, 8, 1, b); px(2, 13, 3, 1, b); px(7, 13, 3, 1, b); }
+  else if (pal.deco === 'skeleton'){ px(6, 4, 2, 2, '#111114'); px(9, 5, 1, 1, '#111114'); px(6, 6, 4, 1, '#bdbdbd'); px(3, 8, 6, 1, '#f4f4f4'); px(3, 10, 6, 1, '#f4f4f4'); px(5, 8, 1, 4, '#f4f4f4'); px(3, 12, 1, 3, '#f4f4f4'); px(8, 12, 1, 3, '#f4f4f4'); }
+  else if (pal.deco === 'witch') px(9, 5, 2, 1, pal.skin);
+  else if (pal.deco === 'vampire'){ px(5, 3, 2, 1, pal.hair); px(6, 6, 3, 1, '#5a0614'); px(6, 6, 1, 1, '#ffffff'); px(8, 6, 1, 1, '#ffffff'); px(-1, 7, 3, 7, '#8a0a1c'); px(1, 6, 2, 2, '#1b1b1f'); }
+  else if (pal.deco === 'bolts'){ px(4, 3, 4, 1, '#3a5a2a'); px(5, 2, 1, 1, '#3a5a2a'); px(1, 6, 2, 1, '#9aa5b1'); px(10, 6, 2, 1, '#9aa5b1'); }
+  else if (pal.deco === 'sparkle' && Math.floor(t / 10) % 3 === 0){ const s = Math.floor(t / 30) % 4; px([1, 9, 4, 10][s], [1, 6, 9, 11][s], 1, 1, '#ffffff'); }
+}
+
+let runCoins = 0, coinStreak = 0;
+function addCoins(n, fx, fy){
+  setWallet(getWallet() + n); runCoins += n; coinStreak += n;
+  sfx('coin');
+  if (fx != null) addFloat('+' + n + ' ◉', fx, fy, '#c99a00');
+  while (coinStreak >= 25){ coinStreak -= 25; gainHeart(); setTimeout(() => sfx('lvl'), 120); toast('25 pièces ramassées : +1 cœur !'); }
+  updateHUD();
+}
+function collectCoins(){
+  if (!LV || !LV.coins) return;
+  for (const k of LV.coins) if (!k.t && overlap(P, k)){ k.t = true; addCoins(1, k.x - 2, k.y - 4); }
+}
+function drawCoins(){
+  if (!LV || !LV.coins) return;
+  const cx = camX;
+  for (const k of LV.coins){
+    if (k.t || k.x < cx - 16 || k.x > cx + VW + 16) continue;
+    const ph = Math.floor((frame / 7 + k.x * .03) % 4), w = [8, 6, 2, 6][ph], x = k.x + (8 - w) / 2, y = k.y + Math.sin(frame / 14 + k.x * .1);
+    if (IS_HORROR){ ctx.fillStyle = 'rgba(255,190,70,.22)'; ctx.beginPath(); ctx.arc(k.x + 4, y + 5, 9, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#8a5d00'; ctx.fillRect(x, y, w, 10);
+    if (w > 2){ ctx.fillStyle = '#f5c518'; ctx.fillRect(x + 1, y + 1, w - 2, 8); }
+    if (w > 5){ ctx.fillStyle = '#fff3b0'; ctx.fillRect(x + 2, y + 2, 1, 4); }
+  }
+}
+function drawPlayerHero(){
+  drawHero(ctx, P.x, P.y, P.face, palFor(mySkin()), { walking: P.onGround && Math.abs(P.vx) > .3, ph: Math.floor(frame / 6) % 2, air: !P.onGround, t: frame, horror: IS_HORROR });
+}
+
+let SHOP_FROM = 'title';
+if (window.QE_TEST) window.qeShop = { wallet: () => getWallet(), coins: () => LV && LV.coins, add: n => addCoins(n), hp: () => [hp, maxHp], skin: () => mySkin() };
+function shopHTML(msg){
+  const w = getWallet(), owned = getOwned(), cur = mySkin();
+  const items = SKINS.map(s => {
+    const has = s.price === 0 || owned.includes(s.id), on = s.id === cur, miss = s.price - w;
+    const btn = on ? '<button class="btn" disabled>Équipé</button>'
+      : has ? `<button class="btn primary" data-act="shop-equip" data-skin="${s.id}">Équiper</button>`
+      : miss > 0 ? `<button class="btn" disabled>Il manque ${miss}</button>`
+      : `<button class="btn primary" data-act="shop-buy" data-skin="${s.id}">Acheter</button>`;
+    return `<div class="sk-item${on ? ' on' : ''}"><canvas width="72" height="84" data-skin="${s.id}" aria-hidden="true"></canvas><b>${s.name}</b><span class="price">${s.price ? `<i class="coin-ic"></i>${s.price}` : 'Gratuit'}${has && s.price ? ' · acheté' : ''}</span>${btn}</div>`;
+  }).join('');
+  return `<div class="q-topic">Boutique</div><h2>Skins</h2>
+    <p class="wallet"><i class="coin-ic big"></i><span>${w} pièce${w > 1 ? 's' : ''}</span></p>
+    ${msg ? `<p class="shop-msg" role="status">${msg}</p>` : ''}
+    <p class="muted" style="font-size:.9rem">Gagne des pièces en les ramassant dans les niveaux (+1), en cassant des briques (+1) et en répondant juste aux questions (+5). Toutes les 25 pièces gagnées dans un monde : +1 cœur. Tes pièces et tes skins restent sur cet appareil, dans les deux jeux.</p>
+    <div class="shop">${items}</div>
+    <div class="row"><button class="btn" data-act="shop-back">← Retour</button></div>`;
+}
+function shopRender(msg){
+  const top = mov.scrollTop;
+  state = 'menu'; mcard.innerHTML = shopHTML(msg); mov.hidden = false; mov.scrollTop = top;
+  mcard.querySelectorAll('canvas[data-skin]').forEach(cv2 => {
+    const c = cv2.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, cv2.width, cv2.height);
+    c.save(); c.scale(4, 4); drawHero(c, 3, 5, 1, palFor(cv2.dataset.skin), { t: 0, horror: IS_HORROR }); c.restore();
+  });
+}
+function shopAct(act, b){
+  if (act === 'shop' || act === 'shop-pause'){ SHOP_FROM = act === 'shop' ? 'title' : 'pause'; mov.scrollTop = 0; return shopRender(); }
+  if (act === 'shop-back'){ if (SHOP_FROM === 'pause'){ state = 'play'; pauseGame(); } else showTitle(); return; }
+  const s = skinById(b.dataset.skin);
+  if (act === 'shop-equip'){ setSkin(s.id); sfx('ok'); return shopRender(`Skin « ${s.name} » équipé !`); }
+  if (act === 'shop-buy'){
+    const w = getWallet();
+    if (w < s.price) return shopRender(`Il te manque ${s.price - w} pièces.`);
+    setWallet(w - s.price); setOwned([...new Set([...getOwned(), s.id])]); setSkin(s.id); sfx('lvl'); updateHUD();
+    return shopRender(`Tu as acheté « ${s.name} » ! Il est équipé.`);
+  }
+}
 
 /* ================== Mode course ================== */
 const QE_DUO = !!window.QE_DUO || /[?&]duo\b/.test(location.search);
@@ -1556,7 +1713,7 @@ function raceFinish(){
 }
 function raceStatus(){
   return { x:Math.round(P.x), y:Math.round(P.y), f:P.face, w:world, prog: RACE.done ? 1 : Math.max(0, Math.min(.99, P.x / LV.doorX)),
-    phase: RACE.done ? 'done' : state === 'boss' ? 'boss' : state === 'countdown' ? 'wait' : 'play', time: Math.round(raceTime() * 10) / 10, ok:stats.ok, tot:stats.tot };
+    phase: RACE.done ? 'done' : state === 'boss' ? 'boss' : state === 'countdown' ? 'wait' : 'play', time: Math.round(raceTime() * 10) / 10, ok:stats.ok, tot:stats.tot, sk:mySkin() };
 }
 function sendUpdate(){ RACE.lastSend = performance.now(); if (RACE.onUpdate) RACE.onUpdate(raceStatus()); }
 function raceTick(){
@@ -1573,7 +1730,10 @@ function drawGhosts(){
     if (g.w !== world || g.phase === 'done' || g.x == null) continue;
     const x = g.x, y = g.y;
     ctx.globalAlpha = .55; ctx.fillStyle = g.color;
+    if (g.sk && SKINS.some(s => s.id === g.sk)){ drawHero(ctx, x, y, g.f || 1, palFor(g.sk), { t:frame, horror:IS_HORROR }); ctx.globalAlpha = .9; ctx.fillStyle = g.color; ctx.fillRect(x + 3, y + 16, 6, 2); }
+    else {
     ctx.fillRect(x + 1, y, 10, 3); ctx.fillRect(x + 3, y + 3, 7, 4); ctx.fillRect(x + 2, y + 7, 8, 5); ctx.fillRect(x + 2, y + 12, 3, 3); ctx.fillRect(x + 7, y + 12, 3, 3);
+    }
     ctx.globalAlpha = .95; ctx.lineWidth = 2.5; ctx.strokeStyle = '#000'; ctx.strokeText(g.name, x + 6, y - 4); ctx.fillStyle = '#fff'; ctx.fillText(g.name, x + 6, y - 4);
   }
   ctx.restore();
@@ -1849,7 +2009,7 @@ function mpHostData(g, d){
     mpLobbyRefresh();
   } else if (d.t === 'pos' && MP.players[gid] && d.s){
     const s = d.s, p = MP.players[gid];
-    for (const k of ['x', 'y', 'f', 'w', 'prog', 'phase', 'time', 'ok', 'tot']) if (k in s) p[k] = s[k];
+    for (const k of ['x', 'y', 'f', 'w', 'prog', 'phase', 'time', 'ok', 'tot', 'sk']) if (k in s) p[k] = s[k];
   } else if (d.t === 'bye'){
     if (MP.players[gid]){ delete MP.players[gid]; mpLobbyRefresh(); }
   }
@@ -1866,7 +2026,7 @@ function mpEnd(){
   MP.ended = true; mpBroadcast({ t:'results', players:MP.players }); mpResults(MP.players, 'me');
 }
 function mpView(players, myId){
-  RACE.ghosts = Object.entries(players).filter(([id]) => id !== myId).map(([, p]) => ({ name:p.name, color:p.color, x:p.x, y:p.y, w:p.w, phase:p.phase }));
+  RACE.ghosts = Object.entries(players).filter(([id]) => id !== myId).map(([, p]) => ({ name:p.name, color:p.color, x:p.x, y:p.y, w:p.w, phase:p.phase, f:p.f, sk:p.sk }));
   const arr = Object.entries(players).map(([id, p]) => ({ id, ...p })).sort(rankSort);
   const b = $('#raceBoard'); b.hidden = false;
   b.innerHTML = arr.map((p, i) => `<div class="rb${p.id === myId ? ' me' : ''}"><span>${i + 1}</span><span class="dot" style="background:${p.color}"></span><span class="nm">${esc(p.name)}</span>${p.phase === 'done' ? `<span class="tm">${fmtTime(p.time || 0)}</span>` : p.phase === 'boss' ? '<span>BOSS</span>' : `<span class="bar"><i style="width:${Math.round((p.prog || 0) * 100)}%"></i></span>`}</div>`).join('');

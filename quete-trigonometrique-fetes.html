@@ -1,0 +1,2270 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quête Trigonométrique des Fêtes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+body{margin:0}
+img{max-width:100%}
+/* Layout: one centered game column (HUD strip, graph-paper canvas, touch pad) with full-screen cards for questions, boss fights and menus */
+:root{
+  --paper:#f3f8fc;
+  --ink:#1f2f42;
+  --ink-2:#2b4058;
+  --ink-soft:#52677d;
+  --amber:#f2b134;
+  --teal:#1f7a4d;
+  --red:#c8102e;
+  --good:#2f9a57;
+  --plum:#7a4fb3;
+  --page:#0f1e33;
+  --page-text:#a9b8c6;
+  --shadow:#0a1018;
+  --card:#fbfdfb;
+  --white:#ffffff;
+  --line:#cbd9e6;
+  --empty:#3b5068;
+  --scrim:rgba(20,31,44,.62);
+  --display:"Pixelify Sans","Courier New",monospace;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  background-color:var(--page);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  background-image:radial-gradient(circle at 12% 18%,rgba(255,255,255,.5) 0 1.5px,transparent 2px),radial-gradient(circle at 72% 8%,rgba(255,255,255,.4) 0 1px,transparent 1.5px),radial-gradient(circle at 40% 60%,rgba(255,255,255,.35) 0 1.5px,transparent 2px),radial-gradient(circle at 88% 70%,rgba(255,255,255,.4) 0 1px,transparent 1.5px),radial-gradient(ellipse at 50% -10%,#24456b 0%,transparent 60%);
+  background-size:180px 180px,230px 230px,150px 150px,260px 260px,auto;
+  background-attachment:fixed;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:12px 24px;
+}
+.game{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+
+/* HUD */
+.hud{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;background:var(--ink);color:var(--paper);padding:8px 12px;border-radius:6px;font-family:var(--display)}
+.hud-world{display:flex;flex-direction:column;line-height:1.15;margin-right:auto;min-width:0}
+.hud-world b{font-size:1.05rem;font-weight:700}
+.hud-world small{font-family:var(--body);font-size:.78rem;opacity:.8}
+.hearts{display:flex;gap:3px;align-items:center}
+.heart .on{fill:var(--red)} .heart .off{fill:var(--empty)}
+.xp{display:flex;align-items:center;gap:8px}
+.xpbar{width:84px;height:12px;border:2px solid var(--paper);border-radius:2px;overflow:hidden}
+.xpbar i{display:block;height:100%;width:0;background:var(--amber);transition:width .35s}
+.score{font-variant-numeric:tabular-nums}
+.hud-btns{display:flex;gap:6px}
+.icon-btn{font-family:var(--display);font-size:.9rem;background:transparent;color:var(--paper);border:2px solid var(--paper);border-radius:4px;min-width:36px;height:32px;cursor:pointer;padding:0 8px}
+.icon-btn:hover{background:var(--ink-2)}
+.icon-btn[aria-pressed="false"]{opacity:.55}
+
+/* Stage */
+.stage{position:relative;border:3px solid var(--ink);box-shadow:0 0 0 3px var(--amber),6px 6px 0 3px var(--shadow);background:var(--paper);border-radius:4px;overflow:hidden}
+#cv{display:block;width:100%;touch-action:none}
+.toast{position:absolute;left:50%;top:10px;transform:translate(-50%,-6px);background:var(--ink);color:var(--paper);font-family:var(--display);padding:6px 14px;border:2px solid var(--amber);border-radius:4px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.help{font-size:.85rem;color:var(--page-text);text-align:center;margin:0}
+.help kbd{font-family:var(--display);background:var(--card);border:2px solid var(--ink);border-radius:4px;padding:0 5px;font-size:.8rem;color:var(--ink)}
+
+/* Touch pad */
+.pad{display:none;justify-content:space-between;align-items:center;gap:12px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.touch .pad{display:flex}
+.touch .help{display:none}
+.pad-dir{display:flex;gap:10px}
+.pbtn{width:76px;height:66px;font-family:var(--display);font-size:1.5rem;background:var(--card);color:var(--ink);border:3px solid var(--ink);box-shadow:3px 3px 0 var(--shadow);border-radius:12px;touch-action:none;-webkit-tap-highlight-color:transparent}
+.pbtn.jump{width:120px;font-size:1.1rem;background:var(--amber)}
+.pbtn.on{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);background:var(--line)}
+.pbtn.jump.on{background:var(--amber);filter:brightness(.88)}
+
+/* Overlays */
+.ov{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.ov > *{margin-block:auto}
+.card{background:var(--card);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);width:100%;max-width:620px;padding:22px;display:flex;flex-direction:column;gap:14px;border-radius:6px;min-width:0}
+.card h2{font-family:var(--display);margin:0;font-size:1.6rem;line-height:1.1;text-wrap:balance}
+.card p{margin:0}
+.muted{color:var(--ink-soft)}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+.btn{font-family:var(--display);font-size:1.05rem;padding:10px 18px;border:3px solid var(--ink);background:var(--white);color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;border-radius:6px}
+.btn.primary{background:var(--amber)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.btn:focus-visible,.choice:focus-visible,.wcard:focus-visible,.icon-btn:focus-visible,.pbtn:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* Title */
+.brand{font-family:var(--display);font-weight:700;line-height:.95;margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .3em}
+.brand .q{font-size:clamp(1.3rem,5vw,2rem)}
+.brand .e{display:inline-flex;font-size:clamp(1.3rem,5vw,2rem)}
+.brand .e span{display:inline-block;animation:wave 2.4s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:translateY(-.14em)}50%{transform:translateY(.14em)}}
+.brand .snow{font-size:clamp(1.1rem,4vw,1.6rem);margin-left:.2em}
+.brand-sub{display:flex;align-items:center;gap:10px;font-size:.9rem;color:var(--teal);font-family:var(--display);letter-spacing:.04em}
+.brand-sub svg{flex:none}
+.worlds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.worlds .wcard:last-child:nth-child(odd){grid-column:1/-1}
+.wcard{text-align:left;font:inherit;padding:12px;border:2px solid var(--ink);background:var(--white);border-radius:6px;cursor:pointer;display:flex;flex-direction:column;gap:4px;box-shadow:3px 3px 0 var(--ink);color:var(--ink);min-width:0}
+.wcard:hover{background:var(--paper)}
+.wcard .n{font-family:var(--display);font-size:.78rem;color:var(--teal);letter-spacing:.08em;text-transform:uppercase}
+.wcard b{font-family:var(--display);font-size:1.08rem;font-weight:700;line-height:1.15}
+.wcard small{color:var(--ink-soft);font-size:.82rem;line-height:1.35}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:.92rem}
+.chip{width:18px;height:18px;border:2px solid var(--ink);border-radius:3px;display:grid;place-items:center;font-family:var(--display);font-size:.7rem;line-height:1}
+.chip.qb{background:linear-gradient(90deg,transparent 7px,#f2b134 7px 10px,transparent 10px),linear-gradient(transparent 7px,#f2b134 7px 10px,transparent 10px),#c8102e;color:#fff} .chip.en{background:#f4f8fc;border-radius:50%} .chip.cv{background:#e9f2fb;border-radius:9px 9px 3px 3px}
+
+/* Questions */
+.q-topic{font-family:var(--display);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+.q-text{font-size:1.2rem;line-height:1.55;text-wrap:pretty}
+.choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.choice{display:flex;align-items:center;gap:10px;text-align:left;font:inherit;font-size:1.1rem;line-height:1.4;padding:10px 12px;background:var(--white);color:var(--ink);border:2px solid var(--ink);border-radius:6px;cursor:pointer;min-width:0;box-shadow:2px 2px 0 var(--ink)}
+.choice .ct{min-width:0;overflow-wrap:anywhere}
+.choice .key{font-family:var(--display);flex:none;width:26px;height:26px;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:4px;font-size:.85rem}
+.choice:hover:not(:disabled){background:var(--paper)}
+.choice:disabled{cursor:default}
+.choice:disabled:not(.ok):not(.bad){opacity:.5}
+.choice.ok{background:var(--good);border-color:var(--ink);color:var(--white)}
+.choice.bad{background:var(--red);color:var(--white)}
+.choice.ok .key,.choice.bad .key{background:var(--white);color:var(--ink)}
+.feedback{border-top:2px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.verdict{font-family:var(--display);font-size:1.15rem;margin:0}
+.verdict.ok{color:var(--good)} .verdict.bad{color:var(--red)}
+.verdict small{font-family:var(--body);font-size:.9rem;color:var(--ink-soft);font-weight:400}
+.expl{margin:0;background:var(--paper);border-left:4px solid var(--teal);padding:10px 12px;align-self:stretch;line-height:1.55}
+sup{font-size:.7em;line-height:0}
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.88em;line-height:1.15;margin:0 .1em}
+.fr > span:first-child{border-bottom:2px solid currentColor;padding:0 .2em}
+.qplot{margin-top:10px}
+.qplot .plot{display:block;width:100%;max-width:400px;height:auto;border:2px solid var(--ink);border-radius:4px}
+.choice .ct:has(.plot){flex:1}
+.choice .ct .plot{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:3px}
+.choice:has(.plot){padding:6px 8px;align-items:flex-start}
+
+/* Minuterie + réglage */
+.timer{display:flex;align-items:center;gap:10px;font-family:var(--display)}
+.timer-bar{flex:1;height:12px;border:2px solid var(--ink);border-radius:3px;overflow:hidden;background:var(--paper)}
+.timer-bar i{display:block;height:100%;width:100%;background:var(--teal);transition:width .1s linear}
+.timer-num{min-width:3.5ch;text-align:right;font-variant-numeric:tabular-nums}
+.timer.warn .timer-bar i{background:var(--red)}
+.timer.warn .timer-num{color:var(--red)}
+.setting{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.setting > span{font-family:var(--display);font-size:.95rem}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font-family:var(--display);font-size:.9rem;padding:6px 12px;border:2px solid var(--ink);background:var(--white);color:var(--ink);border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+
+/* Boss arena */
+.arena{background:var(--ink);color:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink-2);width:100%;max-width:660px;padding:18px;display:flex;flex-direction:column;gap:12px;border-radius:6px;min-width:0}
+.arena.hit{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.arena-top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.boss-name{font-family:var(--display);font-size:1.25rem;color:var(--amber);line-height:1.1}
+.bhp{display:flex;gap:4px;align-items:center;font-family:var(--display);font-size:.8rem}
+.bhp i{width:22px;height:12px;background:var(--red);border:2px solid var(--paper);border-radius:2px}
+.bhp i.gone{background:transparent;opacity:.4}
+.arena-mid{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+#bossCv{width:240px;height:180px;max-width:100%;image-rendering:pixelated}
+.arena .log{font-family:var(--display);text-align:center;min-height:1.4em;font-size:1.02rem}
+.arena .you{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--display);font-size:.85rem}
+.arena .card{box-shadow:none;max-width:none;border-color:var(--amber);color:var(--ink)}
+
+/* Memo + stats */
+.memo{display:grid;gap:4px;font-size:.96rem}
+.memo h3{font-family:var(--display);margin:8px 0 2px;font-size:1rem;color:var(--teal)}
+.memo ul{margin:0;padding-left:1.2em;display:grid;gap:3px}
+.tablewrap{overflow-x:auto}
+.stats{width:100%;border-collapse:collapse;font-size:.95rem}
+.stats th,.stats td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.stats td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats th{font-family:var(--display);font-weight:500;font-size:.85rem;color:var(--ink-soft)}
+.tag{font-family:var(--display);font-size:.75rem;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.tag.low{background:var(--red);color:var(--white)} .tag.okk{background:var(--good);color:var(--white)}
+.big{font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--teal)}
+
+@media (max-width:620px){
+  .worlds{grid-template-columns:minmax(0,1fr)}
+  .choices{grid-template-columns:minmax(0,1fr)}
+  .card{padding:18px}
+  .q-text{font-size:1.1rem}
+  .xpbar{width:60px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ===== Mode course et multijoueur ===== */
+.chrono{font-family:var(--display);font-size:1.1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chrono.turbo{color:var(--amber)}
+.countdown{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:clamp(3rem,14vw,7rem);color:#fff;text-shadow:4px 4px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000;pointer-events:none}
+.countdown.pop{animation:cdpop .9s ease-out}
+@keyframes cdpop{0%{transform:scale(1.8);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92);opacity:.85}}
+.race-board{position:absolute;left:8px;top:8px;background:rgba(8,12,20,.74);color:#fff;border-radius:6px;padding:6px 8px;font-family:var(--display);font-size:.76rem;display:grid;gap:3px;min-width:150px;max-width:48%;pointer-events:none}
+.race-board .rb{display:grid;grid-template-columns:1.1em 8px minmax(0,1fr) auto;gap:6px;align-items:center}
+.race-board .dot{width:8px;height:8px;border-radius:50%}
+.race-board .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.race-board .me .nm{text-decoration:underline}
+.race-board .bar{width:54px;height:6px;background:rgba(255,255,255,.22);border-radius:3px;overflow:hidden}
+.race-board .bar i{display:block;height:100%;background:#fff}
+.race-board .tm{font-variant-numeric:tabular-nums}
+.mp-code{font-family:var(--display);font-weight:700;font-size:clamp(2.6rem,12vw,4rem);letter-spacing:.3em;text-align:center;padding:4px 0 4px .3em;border:3px dashed currentColor;border-radius:8px;user-select:all}
+.field{display:flex;flex-direction:column;gap:4px;font-family:var(--display);font-size:.9rem}
+.field input{font-family:var(--body);font-size:1.1rem;padding:8px 10px;border:2px solid currentColor;border-radius:6px;background:transparent;color:inherit;min-width:0;width:100%}
+.field input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.mp-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mp-box{border:2px dashed currentColor;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;min-width:0}
+.mp-box .field{align-self:stretch}
+.mp-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px}
+.mp-list li{display:flex;align-items:center;gap:6px;font-family:var(--display)}
+.mp-list i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.mp-err{color:var(--red);font-weight:700}
+.mp-results{width:100%;border-collapse:collapse;font-size:.98rem}
+.mp-results td{padding:7px 6px;border-bottom:1px solid rgba(127,127,127,.35)}
+.mp-results td.r{font-family:var(--display);width:2em}
+.mp-results td.t{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mp-results tr.win td{font-weight:700}
+.mp-results .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.duo .help,.duo .pad{display:none!important}
+.duo body{padding-block:6px}
+.duo .game{gap:6px}
+@media (max-width:620px){.mp-split{grid-template-columns:minmax(0,1fr)}}
+
+/* ===== Pièces et boutique ===== */
+.coins{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.coin-ic{display:inline-block;width:12px;height:12px;border-radius:50%;background:#f5c518;box-shadow:inset -2px -2px 0 #c99a00,0 0 0 1px #8a5d00;flex:none}
+.coin-ic.big{width:20px;height:20px;box-shadow:inset -3px -3px 0 #c99a00,0 0 0 2px #8a5d00}
+.chip.co{background:#f5c518;border-radius:50%}
+.wallet{font-family:var(--display);font-size:1.3rem;display:flex;align-items:center;gap:10px;margin:0}
+.shop-msg{font-family:var(--display);color:var(--teal);margin:0}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+.sk-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 8px;border:2px solid rgba(127,127,127,.45);border-radius:8px;background:rgba(127,127,127,.1);min-width:0;text-align:center}
+.sk-item.on{border-color:var(--amber);box-shadow:inset 0 0 0 2px var(--amber)}
+.sk-item canvas{width:72px;height:84px;image-rendering:pixelated}
+.sk-item b{font-family:var(--display);font-size:.95rem;line-height:1.1}
+.sk-item .price{font-family:var(--display);font-size:.82rem;display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:wrap}
+.sk-item .btn{font-size:.85rem;padding:6px 8px;width:100%;margin-top:auto}
+.sk-item .btn:disabled{opacity:.55;cursor:default}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+  <header class="hud" aria-label="État du jeu">
+    <div class="hud-world"><b id="hudWorld">Monde 1</b><small id="hudWorldTitle">Le village du cercle</small></div>
+    <div class="hearts" id="hudHearts"></div>
+    <div class="xp"><span>Niv. <b id="hudLvl">1</b></span><div class="xpbar" title="Expérience"><i id="hudXp"></i></div></div>
+    <div class="coins" title="Pièces"><i class="coin-ic"></i><b id="hudCoins">0</b></div>
+    <div class="score" title="Bonnes réponses">✓ <b id="hudOk">0</b>/<span id="hudTot">0</span></div>
+    <div class="chrono" id="hudTime" hidden aria-live="off">0:00,0</div>
+    <div class="hud-btns">
+      <button class="icon-btn" id="btnMusic" aria-pressed="true" aria-label="Musique activée" title="Musique">♫</button>
+      <button class="icon-btn" id="btnSound" aria-pressed="true" aria-label="Effets sonores activés" title="Effets sonores">♪</button>
+      <button class="icon-btn" id="btnPause" aria-label="Pause et aide-mémoire">II</button>
+      <button class="icon-btn" id="btnHome" hidden aria-label="Changer de jeu" title="Changer de jeu">⌂</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Niveau de plateformes"></canvas>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="countdown" id="countdown" hidden aria-live="assertive"></div>
+    <div class="race-board" id="raceBoard" hidden></div>
+  </div>
+
+  <div class="pad" id="pad">
+    <div class="pad-dir">
+      <button class="pbtn" data-k="left" aria-label="Aller à gauche">◀</button>
+      <button class="pbtn" data-k="right" aria-label="Aller à droite">▶</button>
+    </div>
+    <button class="pbtn jump" data-k="jump" aria-label="Sauter">SAUTER</button>
+  </div>
+  <p class="help"><kbd>←</kbd> <kbd>→</kbd> bouger · <kbd>Espace</kbd> ou <kbd>↑</kbd> sauter · <kbd>1</kbd>–<kbd>4</kbd> répondre · <kbd>Échap</kbd> pause</p>
+</div>
+
+<div class="ov" id="qov" hidden><div class="card" id="qcard" role="dialog" aria-modal="true" aria-label="Question"></div></div>
+
+<div class="ov" id="bov" hidden>
+  <div class="arena" id="arena" role="dialog" aria-modal="true" aria-label="Combat de boss">
+    <div class="arena-top">
+      <div class="boss-name" id="bossName"></div>
+      <div class="bhp" id="bossHp"></div>
+    </div>
+    <div class="arena-mid">
+      <canvas id="bossCv" width="160" height="120"></canvas>
+      <div class="you"><span>Toi</span><div class="hearts" id="bossHearts"></div></div>
+    </div>
+    <div class="log" id="bossLog" aria-live="polite"></div>
+    <div class="card" id="bossQ"></div>
+  </div>
+</div>
+
+<div class="ov" id="mov"><div class="card" id="mcard" role="dialog" aria-modal="true"></div></div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const INK = cssVar('--ink') || '#1f2f42', INK2 = cssVar('--ink-2') || '#2b4058', PAPER = cssVar('--paper') || '#eef3ef';
+const AMBER = cssVar('--amber') || '#f0a83a', TEAL = cssVar('--teal') || '#2e8f83', RED = cssVar('--red') || '#d4483c';
+const PLUM = cssVar('--plum') || '#7a4fb3', INKSOFT = cssVar('--ink-soft') || '#52677d';
+const SKIN = '#f1c6a0', HAIR = '#3a2a1e', BRICK = '#d6f0fd', BRICK_D = '#8cc4e6', USED = '#9a8a72', RULER = '#ecd9a2';
+
+/* ================== Outils de format (notation québécoise) ================== */
+const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function num(n){
+  n = Math.round(n * 10000) / 10000;
+  const neg = n < 0; const s = Math.abs(n).toString();
+  let [i, d] = s.split('.');
+  i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return (neg ? '−' : '') + i + (d ? ',' + d : '');
+}
+const sup = (b, e) => `${b}<sup>${e}</sup>`;
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a; }
+function frac(n, d){
+  if (d < 0){ n = -n; d = -d; }
+  const g = gcd(n, d) || 1; n /= g; d /= g;
+  if (d === 1) return num(n);
+  return `${n<0?'−':''}<span class="fr"><span>${Math.abs(n)}</span><span>${d}</span></span>`;
+}
+const aStr = a => a === 1 ? '' : a === -1 ? '−' : num(a);
+function expStr(b, h){
+  if (h === 0) return b === 1 ? '<i>x</i>' : b === -1 ? '−<i>x</i>' : num(b) + '<i>x</i>';
+  const inner = h > 0 ? `<i>x</i> − ${num(h)}` : `<i>x</i> + ${num(-h)}`;
+  return b === 1 ? inner : b === -1 ? `−(${inner})` : `${num(b)}(${inner})`;
+}
+const kStr = k => k === 0 ? '' : k > 0 ? ` + ${num(k)}` : ` − ${num(-k)}`;
+const FX = '<i>f</i>(<i>x</i>)';
+const rule = (a, c, b, h, k) => `${FX} = ${aStr(a)}(${num(c)})<sup>${expStr(b, h)}</sup>${kStr(k)}`;
+
+function mk(topic, q, correct, wrongs, expl){
+  const seen = new Set([correct]), w = [];
+  for (const x of wrongs){ if (!seen.has(x)){ seen.add(x); w.push(x); } if (w.length === 3) break; }
+  const choices = shuffle([correct, ...w]);
+  return { topic, q, choices, answer: choices.indexOf(correct), expl };
+}
+
+/* ================== Banque de questions : trigonométrie ================== */
+// --- Angles en multiples de π : { n, d } signifie nπ/d ---
+const gcdI = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; };
+function PI(n, d){ if (d < 0){ n = -n; d = -d; } const g = gcdI(n, d) || 1; return { n:n / g, d:d / g }; }
+const piVal = a => a.n / a.d * Math.PI;
+const piAdd = (a, b) => PI(a.n * b.d + b.n * a.d, a.d * b.d);
+const piEq = (a, b) => a.n * b.d === b.n * a.d;
+function piStr(a){
+  const { n, d } = a; if (n === 0) return '0';
+  const s = n < 0 ? '−' : '', m = Math.abs(n), top = (m === 1 ? '' : m) + 'π';
+  return d === 1 ? s + top : `${s}<span class="fr"><span>${top}</span><span>${d}</span></span>`;
+}
+const XI = '<i>x</i>', TH_ = '<i>θ</i>';
+// x − h avec h en multiple de π
+const xMinus = (h, v = XI) => h.n === 0 ? v : h.n > 0 ? `${v} − ${piStr(h)}` : `${v} + ${piStr(PI(-h.n, h.d))}`;
+// --- Valeurs exactes ---
+const EXV = { '0':0, '1/2':.5, '√2/2':Math.SQRT2 / 2, '√3/2':Math.sqrt(3) / 2, '1':1, '√3/3':Math.sqrt(3) / 3, '√3':Math.sqrt(3) };
+function exStr(v){
+  if (!v || v.s === 0 || v.k === '0') return '0';
+  const sg = v.s < 0 ? '−' : '';
+  if (v.k === '1' || v.k === '√3') return sg + v.k;
+  const [t, b] = v.k.split('/'); return `${sg}<span class="fr"><span>${t}</span><span>${b}</span></span>`;
+}
+const exNum = v => v ? v.s * EXV[v.k] : NaN;
+const exEq = (u, v) => (u === null && v === null) || (u && v && exStr(u) === exStr(v));
+// sin, cos, tan exacts d'un angle remarquable (multiple de π/6 ou de π/4)
+function trigEx(a){
+  const D = 2 * a.d, n2 = ((a.n % D) + D) % D, t = n2 / a.d;        // angle dans [0, 2[ (en π)
+  const ref = t <= .5 ? t : t <= 1 ? 1 - t : t <= 1.5 ? t - 1 : 2 - t;
+  const R = [[0, '0', '1', '0'], [1/6, '1/2', '√3/2', '√3/3'], [1/4, '√2/2', '√2/2', '1'], [1/3, '√3/2', '1/2', '√3'], [1/2, '1', '0', null]];
+  const row = R.find(r => Math.abs(r[0] - ref) < 1e-9); if (!row) return null;
+  const ss = (t === 0 || t === 1) ? 0 : t < 1 ? 1 : -1;
+  const cs = (t === .5 || t === 1.5) ? 0 : (t < .5 || t > 1.5) ? 1 : -1;
+  const sin = { s:ss, k:row[1] }, cos = { s:cs, k:row[2] };
+  const tan = cs === 0 ? null : { s:ss * cs, k:row[3] };
+  return { sin, cos, tan, t };
+}
+// tous les angles remarquables de [0, 2π[
+const REM = (() => { const L = [], seen = new Set(); for (const d of [1, 2, 3, 4, 6]) for (let n = 0; n < 2 * d; n++){ const a = PI(n, d), key = a.n + '/' + a.d; if (!seen.has(key)){ seen.add(key); L.push(a); } } return L.sort((u, v) => piVal(u) - piVal(v)); })();
+const REM6 = REM.filter(a => [1, 2, 3, 6].includes(a.d) || a.n === 0), REM4 = REM.filter(a => [1, 2, 4].includes(a.d));
+const setStr = arr => arr.length ? '{' + arr.map(piStr).join(', ') + '}' : '∅';
+const OPS2 = ['<', '≤', '>', '≥'], opT = o => ({ '<':'&lt;', '≤':'≤', '>':'&gt;', '≥':'≥' })[o];
+const cmpT = (l, o, r) => o === '<' ? l < r - 1e-9 : o === '≤' ? l <= r + 1e-9 : o === '>' ? l > r + 1e-9 : l >= r - 1e-9;
+const flipO = o => ({ '<':'>', '≤':'≥', '>':'<', '≥':'≤' })[o];
+// Intervalles sur [0, 2π] à partir de deux bornes p1 < p2 (angles) et d'un test de vérité
+function intervals2(p1, p2, test, closed){
+  const z = PI(0, 1), two = PI(2, 1), pts = [z, p1, p2, two], parts = [];
+  for (let i = 0; i < 3; i++){
+    const m = (piVal(pts[i]) + piVal(pts[i + 1])) / 2;
+    if (test(m)) parts.push([pts[i], pts[i + 1]]);
+  }
+  if (!parts.length) return '∅';
+  return parts.map(([a, b]) => {
+    const lb = a.n === 0 ? '[' : closed ? '[' : ']', rb = (b.n === 2 && b.d === 1) ? ']' : closed ? ']' : '[';
+    return `${lb}${piStr(a)}, ${piStr(b)}${rb}`;
+  }).join(' ∪ ');
+}
+// Nombres
+const fr2 = (n, d) => frac(n, d);
+const PT = (x, y) => `(${x}, ${y})`;
+const FN = { sin:'sin', cos:'cos', tan:'tan' };
+// Règle québécoise : f(x) = a sin(b(x − h)) + k
+function bStr(b){ return b === 1 ? '' : b === -1 ? '−' : Number.isInteger(b) ? num(b) : b === .5 ? fr2(1, 2) : b === 1/3 ? fr2(1, 3) : b === .25 ? fr2(1, 4) : num(b); }
+function trigRule(fn, a, b, h, k, name = FX){
+  const aS = a === 1 ? '' : a === -1 ? '−' : num(a) + ' ';
+  let arg;
+  if (h.n === 0) arg = b === 1 ? XI : `${bStr(b)}${XI}`;
+  else arg = b === 1 ? xMinus(h) : `${bStr(b)}(${xMinus(h)})`;
+  return `${name} = ${aS}${fn}(${arg})${kStr(k)}`;
+}
+const trigF = (fn, a, b, h, k) => x => { const u = b * (x - piVal(h)); return a * (fn === 'sin' ? Math.sin(u) : fn === 'cos' ? Math.cos(u) : Math.tan(u)) + k; };
+// Graphique SVG (axes gradués en π/2)
+function plotSVG(f, o){
+  const W = 240, H = 150, L = 26, Rm = 8, T = 8, B = 20;
+  const { x0, x1, y0, y1 } = o, sx = x => L + (x - x0) / (x1 - x0) * (W - L - Rm), sy = y => T + (y1 - y) / (y1 - y0) * (H - T - B);
+  let g = `<svg viewBox="0 0 ${W} ${H}" class="plot" role="img" aria-label="graphique">`;
+  g += `<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`;
+  const step = Math.PI / 2;
+  for (let x = Math.ceil(x0 / step) * step; x <= x1 + 1e-9; x += step){ const X = sx(x).toFixed(1); g += `<line x1="${X}" y1="${T}" x2="${X}" y2="${H - B}" stroke="#e3e9f0" stroke-width="1"/>`; }
+  const ys = (y1 - y0) > 9 ? 2 : 1;
+  for (let y = Math.ceil(y0 / ys) * ys; y <= y1 + 1e-9; y += ys){ const Y = sy(y).toFixed(1); g += `<line x1="${L}" y1="${Y}" x2="${W - Rm}" y2="${Y}" stroke="#e3e9f0" stroke-width="1"/>`; if (y !== 0) g += `<text x="${L - 4}" y="${(+Y + 3).toFixed(1)}" font-size="9" text-anchor="end" fill="#3b4a5a">${num(y)}</text>`; }
+  if (y0 <= 0 && y1 >= 0) g += `<line x1="${L}" y1="${sy(0).toFixed(1)}" x2="${W - Rm}" y2="${sy(0).toFixed(1)}" stroke="#3b4a5a" stroke-width="1.2"/>`;
+  if (x0 <= 0 && x1 >= 0) g += `<line x1="${sx(0).toFixed(1)}" y1="${T}" x2="${sx(0).toFixed(1)}" y2="${H - B}" stroke="#3b4a5a" stroke-width="1.2"/>`;
+  const lab = q => { const a = PI(q, 2); if (a.n === 0) return '0'; const s = a.n < 0 ? '−' : '', m = Math.abs(a.n); return s + (m === 1 ? '' : m) + 'π' + (a.d === 2 ? '/2' : ''); };
+  for (let q = Math.ceil(x0 / step); q * step <= x1 + 1e-9; q++){ if (q === 0) continue; g += `<text x="${sx(q * step).toFixed(1)}" y="${H - 6}" font-size="9" text-anchor="middle" fill="#3b4a5a">${lab(q)}</text>`; }
+  (o.asym || []).forEach(xa => { if (xa > x0 && xa < x1) g += `<line x1="${sx(xa).toFixed(1)}" y1="${T}" x2="${sx(xa).toFixed(1)}" y2="${H - B}" stroke="#c8102e" stroke-width="1" stroke-dasharray="4 3"/>`; });
+  let d = '', pen = false, prev = null;
+  const N = 360;
+  for (let i = 0; i <= N; i++){
+    const x = x0 + (x1 - x0) * i / N, y = f(x);
+    const ok = isFinite(y) && y > y0 - 3 && y < y1 + 3 && !(prev !== null && Math.abs(y - prev) > (y1 - y0));
+    if (ok){ const Y = Math.max(T - 6, Math.min(H - B + 6, sy(y))); d += (pen ? 'L' : 'M') + sx(x).toFixed(1) + ' ' + Y.toFixed(1); pen = true; } else pen = false;
+    prev = isFinite(y) ? y : null;
+  }
+  g += `<clipPath id="cp${o.id || 0}"><rect x="${L}" y="${T}" width="${W - L - Rm}" height="${H - T - B}"/></clipPath>`;
+  g += `<path d="${d}" fill="none" stroke="#1e5aa8" stroke-width="2.2" clip-path="url(#cp${o.id || 0})"/>`;
+  return g + '</svg>';
+}
+let PLOT_ID = 0;
+const differs = (f, g, x0, x1) => { for (let i = 0; i <= 40; i++){ const x = x0 + (x1 - x0) * i / 40, a = f(x), b = g(x); if (isFinite(a) && isFinite(b) && Math.abs(a - b) > .3) return true; } return false; };
+
+/* ---------------- Monde 1 : le cercle trigonométrique ---------------- */
+const T1 = [
+  () => { const a = pick(REM.filter(x => x.n !== 0)), deg = Math.round(a.n / a.d * 180);
+    return mk('Degrés et radians', `Exprime ${deg}° en radians.`, piStr(a),
+      [piStr(PI(a.d, a.n)), piStr(PI(a.n, 2 * a.d)), piStr(PI(2 * a.n, a.d)), `${deg}π`, piStr(PI(a.n + 1, a.d))],
+      `On multiplie par π/180 : ${deg}° × π/180 = ${piStr(a)} rad. Repère : 180° = π.`); },
+  () => { const a = pick(REM.filter(x => x.n !== 0)), deg = Math.round(a.n / a.d * 180);
+    return mk('Degrés et radians', `Exprime ${piStr(a)} rad en degrés.`, `${deg}°`,
+      [`${Math.round(deg / 2)}°`, `${deg * 2}°`, `${(360 - deg) || 180}°`, `${Math.round(a.d / a.n * 180)}°`, `${deg + 30}°`],
+      `On multiplie par 180/π : ${piStr(a)} × 180°/π = ${deg}°.`); },
+  () => { const a = pick(REM.filter(x => x.d !== 1 && x.d !== 2)), e = trigEx(a);
+    const P_ = (c, s) => PT(exStr(c), exStr(s)), neg = v => ({ s:-v.s, k:v.k });
+    return mk('Points remarquables', `Quelles sont les coordonnées du point P(${piStr(a)}) sur le cercle trigonométrique ?`, P_(e.cos, e.sin),
+      [P_(e.sin, e.cos), P_(neg(e.cos), e.sin), P_(e.cos, neg(e.sin)), P_(neg(e.sin), neg(e.cos))],
+      `P(θ) = (cos θ, sin θ). L'angle ${piStr(a)} est dans le quadrant ${['I', 'II', 'III', 'IV'][Math.floor(e.t * 2)]}; on lit cos ${piStr(a)} = ${exStr(e.cos)} et sin ${piStr(a)} = ${exStr(e.sin)}.`); },
+  () => { const fn = pick(['sin', 'cos']), a = pick(REM.filter(x => x.n !== 0)), e = trigEx(a), v = e[fn];
+    const turn = pick([0, 0, 1, -1]), shown = piAdd(a, PI(2 * turn, 1));
+    const others = [{ s:-v.s, k:v.k }, e[fn === 'sin' ? 'cos' : 'sin'], { s:1, k:v.k === '1/2' ? '√3/2' : '1/2' }, { s:-1, k:'√2/2' }, { s:1, k:'1' }];
+    return mk('Valeurs exactes', `Quelle est la valeur exacte de ${fn}(${piStr(shown)}) ?`, exStr(v), others.map(exStr),
+      `${turn ? `${piStr(shown)} = ${piStr(a)} ${turn > 0 ? '+' : '−'} 2π : même point sur le cercle. ` : ''}Sur le cercle, ${fn === 'sin' ? 'sin θ est l’ordonnée' : 'cos θ est l’abscisse'} de P(θ). Pour ${piStr(a)}, ${fn}(${piStr(a)}) = ${exStr(v)}.`); },
+  () => { const a = pick(REM.filter(x => x.n !== 0)), e = trigEx(a);
+    const cor = e.tan ? exStr(e.tan) : 'Non définie';
+    const opts = ['Non définie', '0', exStr({ s:1, k:'1' }), exStr({ s:-1, k:'1' }), exStr({ s:1, k:'√3' }), exStr({ s:-1, k:'√3' }), exStr({ s:1, k:'√3/3' }), exStr({ s:-1, k:'√3/3' })];
+    return mk('Valeurs exactes', `Quelle est la valeur exacte de tan(${piStr(a)}) ?`, cor, shuffle(opts.filter(o => o !== cor)).slice(0, 4),
+      e.tan ? `tan θ = sin θ ÷ cos θ = ${exStr(e.sin)} ÷ ${exStr(e.cos)} = ${cor}.` : `cos(${piStr(a)}) = 0 : on ne peut pas diviser par 0, donc tan(${piStr(a)}) n'est pas définie.`); },
+  () => { const signs = pick([[1, 1, 'I'], [1, -1, 'II'], [-1, -1, 'III'], [-1, 1, 'IV']]);
+    const say = (s, f) => `${f} θ ${s > 0 ? '&gt; 0' : '&lt; 0'}`;
+    return mk('Quadrants et signes', `Dans quel quadrant se trouve P(θ) si ${say(signs[0], 'sin')} et ${say(signs[1], 'cos')} ?`, `Quadrant ${signs[2]}`,
+      ['I', 'II', 'III', 'IV'].filter(q => q !== signs[2]).map(q => `Quadrant ${q}`),
+      `sin θ est le signe de l'ordonnée et cos θ celui de l'abscisse de P(θ). Ordonnée ${signs[0] > 0 ? 'positive' : 'négative'} et abscisse ${signs[1] > 0 ? 'positive' : 'négative'} : quadrant ${signs[2]}.`); },
+  () => { const a = pick(REM.filter(x => x.d !== 1 && x.d !== 2)), e = trigEx(a);
+    const pt = PT(exStr(e.cos), exStr(e.sin));
+    const alt = REM.filter(b => b.d !== 1 && b.d !== 2 && !piEq(a, b));
+    return mk('Points remarquables', `Le point P(θ) = ${pt} est sur le cercle trigonométrique. Quelle est la valeur de θ dans [0, 2π[ ?`, piStr(a),
+      [piStr(PI(2 * a.d - a.n, a.d)), piStr(piAdd(a, PI(1, 1)).n / piAdd(a, PI(1, 1)).d >= 2 ? piAdd(a, PI(-1, 1)) : piAdd(a, PI(1, 1))), piStr(PI(a.d - a.n > 0 ? a.d - a.n : a.n, a.d)), ...shuffle(alt.slice()).slice(0, 3).map(piStr)],
+      `L'abscisse est cos θ = ${exStr(e.cos)} et l'ordonnée est sin θ = ${exStr(e.sin)}. Le seul angle de [0, 2π[ qui donne ces deux valeurs est ${piStr(a)}.`); },
+  () => { const r = pick([2, 3, 4, 5, 6, 10]), a = pick([PI(1, 6), PI(1, 4), PI(1, 3), PI(1, 2), PI(2, 3), PI(3, 4), PI(5, 6), PI(1, 1), PI(3, 2)]);
+    const L = PI(a.n * r, a.d), u = r === 1 ? '' : ' cm';
+    return mk('Longueur d’arc', `Sur un cercle de rayon ${r} cm, quelle est la longueur de l'arc intercepté par un angle au centre de ${piStr(a)} rad ?`, piStr(L) + u,
+      [piStr(a) + u, piStr(PI(a.n * r * 2, a.d)) + u, piStr(PI(a.n, a.d * r)) + u, piStr(PI(a.n * r, 2 * a.d)) + u],
+      `Longueur d'arc : <i>L</i> = <i>r</i> × θ = ${r} × ${piStr(a)} = ${piStr(L)} cm. Sur le cercle trigonométrique (<i>r</i> = 1), la longueur d'arc est égale à l'angle.`); },
+  () => { const a = pick(REM.filter(x => x.n !== 0 && x.d !== 1)), k = pick([1, -1, 2]), co = piAdd(a, PI(2 * k, 1));
+    return mk('Angles coterminaux', `Lequel de ces angles a le même point P(θ) sur le cercle que ${piStr(a)} ?`, piStr(co),
+      [piStr(PI(-a.n, a.d)), piStr(piAdd(a, PI(1, 1))), piStr(PI(a.d - a.n, a.d)), piStr(piAdd(a, PI(k, 2)))],
+      `Ajouter ou retirer un tour complet (2π) ramène au même point : ${piStr(a)} ${k > 0 ? '+' : '−'} ${Math.abs(k) === 1 ? '' : Math.abs(k)}2π = ${piStr(co)}.`); },
+];
+
+/* ---------------- Monde 2 : les identités trigonométriques ---------------- */
+const TH2 = TH_;
+const E = { s:`sin ${TH2}`, c:`cos ${TH2}`, t:`tan ${TH2}`, sec:`sec ${TH2}`, csc:`cosec ${TH2}`, cot:`cotan ${TH2}`, s2:`sin<sup>2</sup> ${TH2}`, c2:`cos<sup>2</sup> ${TH2}`, t2:`tan<sup>2</sup> ${TH2}`, sec2:`sec<sup>2</sup> ${TH2}`, csc2:`cosec<sup>2</sup> ${TH2}`, cot2:`cotan<sup>2</sup> ${TH2}`, one:'1' };
+const fracE = (a, b) => `<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const T2 = [
+  () => { const q = pick([[E.sec, fracE('1', E.c)], [E.csc, fracE('1', E.s)], [E.cot, fracE(E.c, E.s)], [E.t, fracE(E.s, E.c)], [E.cot, fracE('1', E.t)]]);
+    const pool = [fracE('1', E.c), fracE('1', E.s), fracE(E.c, E.s), fracE(E.s, E.c), fracE('1', E.t), fracE('1', E.cot), `${E.s} × ${E.c}`];
+    return mk('Définitions', `Laquelle de ces expressions est égale à ${q[0]} ?`, q[1], shuffle(pool.filter(p => p !== q[1] && !(q[0] === E.cot && p === fracE('1', E.t)) && !(q[0] === E.cot && p === fracE(E.c, E.s)) && !(q[0] === E.t && p === fracE('1', E.cot)))).slice(0, 4),
+      `Définitions : sec θ = 1 ÷ cos θ, cosec θ = 1 ÷ sin θ, tan θ = sin θ ÷ cos θ et cotan θ = cos θ ÷ sin θ = 1 ÷ tan θ.`); },
+  () => { const q = pick([[`1 + ${E.t2}`, E.sec2], [`1 + ${E.cot2}`, E.csc2], [`1 − ${E.c2}`, E.s2], [`1 − ${E.s2}`, E.c2], [`${E.sec2} − ${E.t2}`, '1'], [`${E.csc2} − 1`, E.cot2], [`${E.sec2} − 1`, E.t2], [`${E.s2} + ${E.c2}`, '1']]);
+    const pool = [E.sec2, E.csc2, E.s2, E.c2, '1', E.cot2, E.t2, '0', `−${E.c2}`];
+    return mk('Identités de Pythagore', `Simplifie : ${q[0]}`, q[1], shuffle(pool.filter(p => p !== q[1])).slice(0, 4),
+      `Identités de Pythagore : sin² θ + cos² θ = 1; en divisant par cos² θ : tan² θ + 1 = sec² θ; en divisant par sin² θ : 1 + cotan² θ = cosec² θ.`); },
+  () => { const [p, q2, hy] = pick([[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]]), quad = pick([1, 2, 3, 4]);
+    const sS = quad <= 2 ? 1 : -1, cS = (quad === 1 || quad === 4) ? 1 : -1, ask = pick(['cos', 'tan', 'sin']);
+    const giveSin = ask !== 'sin';
+    const given = giveSin ? `sin ${TH2} = ${frac(sS * p, hy)}` : `cos ${TH2} = ${frac(cS * q2, hy)}`;
+    const ans = ask === 'cos' ? frac(cS * q2, hy) : ask === 'sin' ? frac(sS * p, hy) : frac(sS * cS * p, q2);
+    const wr = ask === 'cos' ? [frac(-cS * q2, hy), frac(cS * p, hy), frac(cS * q2, p), frac(sS * q2, hy)]
+             : ask === 'sin' ? [frac(-sS * p, hy), frac(sS * q2, hy), frac(sS * p, q2), frac(sS * hy, p)]
+             : [frac(-sS * cS * p, q2), frac(sS * cS * q2, p), frac(sS * cS * p, hy), frac(sS * cS * hy, q2)];
+    return mk('Calculer avec les identités', `Si ${given} et que ${TH2} est dans le quadrant ${['I', 'II', 'III', 'IV'][quad - 1]}, que vaut ${ask} ${TH2} ?`, ans, wr,
+      `On utilise sin² θ + cos² θ = 1. ${giveSin ? `cos² θ = 1 − (${p}/${hy})² = ${q2 * q2}/${hy * hy}, donc |cos θ| = ${q2}/${hy}` : `sin² θ = 1 − (${q2}/${hy})² = ${p * p}/${hy * hy}, donc |sin θ| = ${p}/${hy}`}. Dans le quadrant ${['I', 'II', 'III', 'IV'][quad - 1]}, sin θ est ${sS > 0 ? 'positif' : 'négatif'} et cos θ est ${cS > 0 ? 'positif' : 'négatif'}.${ask === 'tan' ? ` Puis tan θ = sin θ ÷ cos θ = ${ans}.` : ''}`); },
+  () => { const q = pick([
+      [`${E.s} × ${E.cot}`, E.c, 'cotan θ = cos θ / sin θ, donc sin θ × cos θ / sin θ = cos θ.'],
+      [`${E.t} × ${E.c}`, E.s, 'tan θ = sin θ / cos θ, donc (sin θ / cos θ) × cos θ = sin θ.'],
+      [`${E.sec} × ${E.c}`, '1', 'sec θ = 1 / cos θ, donc (1 / cos θ) × cos θ = 1.'],
+      [fracE(`1 − ${E.c2}`, E.s), E.s, '1 − cos² θ = sin² θ, et sin² θ / sin θ = sin θ.'],
+      [fracE(E.s2, `1 − ${E.s2}`), E.t2, '1 − sin² θ = cos² θ, et sin² θ / cos² θ = tan² θ.'],
+      [`${E.csc} × ${E.t}`, E.sec, '(1 / sin θ) × (sin θ / cos θ) = 1 / cos θ = sec θ.'],
+      [fracE(`${E.sec2} − 1`, E.t), E.t, 'sec² θ − 1 = tan² θ, et tan² θ / tan θ = tan θ.'],
+      [`${E.c} × ${E.t} × ${E.csc}`, '1', 'cos θ × (sin θ / cos θ) × (1 / sin θ) = 1.'],
+      [fracE('1', `1 + ${E.t2}`), E.c2, '1 + tan² θ = sec² θ, et 1 / sec² θ = cos² θ.'],
+      [`${E.cot} × ${E.sec}`, E.csc, '(cos θ / sin θ) × (1 / cos θ) = 1 / sin θ = cosec θ.']]);
+    const pool = [E.s, E.c, E.t, '1', E.sec, E.csc, E.cot, E.s2, E.c2, E.t2];
+    return mk('Simplifier une expression', `Simplifie : ${q[0]}`, q[1], shuffle(pool.filter(p => p !== q[1])).slice(0, 4), `On écrit tout en sinus et en cosinus : ${q[2]}`); },
+  () => { const good = pick([`${E.csc2} − ${E.cot2} = 1`, `${E.t} × ${E.cot} = 1`, `${E.sec2} = 1 + ${E.t2}`, `${E.s2} = 1 − ${E.c2}`, `${E.t} = ${fracE(E.sec, E.csc)}`]);
+    const bad = [`${E.s} + ${E.c} = 1`, `${E.t} = ${fracE(E.c, E.s)}`, `${E.sec2} − ${E.t2} = −1`, `${E.s2} − ${E.c2} = 1`, `${E.sec} = ${fracE('1', E.s)}`, `1 + ${E.s2} = ${E.c2}`];
+    return mk('Reconnaître une identité', `Laquelle de ces égalités est une identité (vraie pour toutes les valeurs permises de ${TH2}) ?`, good, shuffle(bad).slice(0, 4),
+      `On vérifie en écrivant tout en sinus et en cosinus. Les autres égalités sont fausses : par exemple, sin θ + cos θ = 1 n'est pas vrai pour θ = π/4 (on obtient √2).`); },
+  () => { const target = pick([
+      [`${E.t} + ${E.cot} = ${E.sec} ${E.csc}`, 'Écrire tan θ et cotan θ en sinus et cosinus, puis mettre au même dénominateur'],
+      [`(1 − ${E.c})(1 + ${E.c}) = ${E.s2}`, 'Développer le produit pour obtenir 1 − cos² θ'],
+      [`${E.sec} − ${E.c} = ${E.s} ${E.t}`, 'Écrire sec θ = 1/cos θ et mettre au même dénominateur']]);
+    return mk('Démontrer une identité', `Pour démontrer que ${target[0]}, quelle première étape est la plus utile ?`, target[1],
+      ['Remplacer θ par π/4 et vérifier que l’égalité est vraie', 'Mettre les deux membres au carré', 'Diviser les deux membres par sin θ', 'Ajouter 1 aux deux membres'],
+      `Pour démontrer une identité, on transforme un membre à l'aide des définitions et des identités connues. Vérifier une seule valeur de θ ne démontre rien : il faut que ce soit vrai pour toutes les valeurs permises.`); },
+  () => { const [p, q2, hy] = pick([[3, 4, 5], [5, 12, 13], [8, 15, 17]]), quad = pick([2, 3, 4]);
+    const sS = quad <= 2 ? 1 : -1, cS = quad === 4 ? 1 : -1;
+    const ask = pick(['sec', 'cosec', 'cotan']);
+    const ans = ask === 'sec' ? frac(cS * hy, q2) : ask === 'cosec' ? frac(sS * hy, p) : frac(sS * cS * q2, p);
+    return mk('Calculer avec les identités', `Si cos ${TH2} = ${frac(cS * q2, hy)} et sin ${TH2} = ${frac(sS * p, hy)}, que vaut ${ask} ${TH2} ?`, ans,
+      [frac(-1 * (ask === 'sec' ? cS * hy : ask === 'cosec' ? sS * hy : sS * cS * q2), ask === 'sec' ? q2 : p), frac(ask === 'sec' ? cS * q2 : ask === 'cosec' ? sS * p : sS * cS * p, hy), frac(ask === 'sec' ? cS * hy : sS * hy, ask === 'sec' ? p : q2), frac(ask === 'cotan' ? sS * cS * p : cS * hy, ask === 'cotan' ? q2 : p)],
+      `${ask === 'sec' ? 'sec θ = 1 ÷ cos θ' : ask === 'cosec' ? 'cosec θ = 1 ÷ sin θ' : 'cotan θ = cos θ ÷ sin θ'} = ${ans}. ${ask === 'cotan' ? 'Les dénominateurs se simplifient : on divise les numérateurs, en tenant compte des signes.' : 'On inverse la fraction en gardant le signe.'}`); },
+];
+
+/* ---------------- Monde 3 : fonctions sinus et cosinus ---------------- */
+const HS = [PI(0, 1), PI(1, 2), PI(-1, 2), PI(1, 4), PI(-1, 4), PI(1, 1), PI(1, 3), PI(-1, 6)];
+const T3 = [
+  () => { const fn = pick(['sin', 'cos']), a = pick([1, 2, 3, -2, -1, 4]), b = pick([1, 2, 3, 4, .5]), h = pick(HS), k = pick([-2, -1, 0, 1, 3]);
+    const P = PI(2 * (b === .5 ? 2 : 1), b === .5 ? 1 : b);
+    return mk('Période', `Quelle est la période de ${trigRule(fn, a, b, h, k)} ?`, piStr(P),
+      [piStr(PI(P.n * 2, P.d)), piStr(PI(P.n, P.d * 2)), '2π', piStr(PI(1, b === .5 ? 1 : b)), piStr(PI(Math.abs(a) * 2, 1)), piStr(PI(b === .5 ? 1 : b, 1)), '4π', piStr(PI(1, 2)), '3π', piStr(PI(1, 4))],
+      `Pour une fonction sinus ou cosinus, la période est 2π ÷ |<i>b</i>| = 2π ÷ ${bStr(Math.abs(b)) || '1'} = ${piStr(P)}.`); },
+  () => { const fn = pick(['sin', 'cos']), a = pick([1, 2, 3, -2, -3, 4]), b = pick([1, 2, .5]), h = pick(HS), k = pick([-2, -1, 0, 1, 2, 3]);
+    const A = Math.abs(a), cor = `[${num(k - A)}, ${num(k + A)}]`;
+    return mk('Amplitude et codomaine', `Quel est le codomaine de ${trigRule(fn, a, b, h, k)} ?`, cor,
+      [`]${num(k - A)}, ${num(k + A)}[`, `[${num(-A)}, ${num(A)}]`, `[${num(k - 2 * A)}, ${num(k + 2 * A)}]`, `[${num(a - k)}, ${num(a + k)}]`, 'ℝ'],
+      `L'axe d'oscillation est <i>y</i> = <i>k</i> = ${num(k)} et l'amplitude est |<i>a</i>| = ${A}. La courbe va de ${num(k)} − ${A} = ${num(k - A)} à ${num(k)} + ${A} = ${num(k + A)}.`); },
+  () => { const fn = pick(['sin', 'cos']), a = pick([1, 2, -2, -1, 3]), b = pick([1, 2]), h = pick([PI(0, 1), PI(1, 2), PI(-1, 2), PI(1, 4)]), k = pick([-1, 0, 1, 2]);
+    const f = trigF(fn, a, b, h, k), x0 = 0, x1 = 2 * Math.PI, cands = [];
+    const tries = [[-a, b, h, k], [a, b === 1 ? 2 : 1, h, k], [a, b, piAdd(h, PI(1, 2)), k], [a, b, h, k + (k >= 1 ? -2 : 2)], [-a, b, h, -k], [a, b, piAdd(h, PI(-1, 2)), k], [a * (Math.abs(a) === 1 ? 2 : .5), b, h, k]];
+    for (const t of tries){ const g = trigF(fn, ...t); if (differs(f, g, x0, x1) && cands.every(c => differs(c, g, x0, x1))) cands.push(g); if (cands.length === 3) break; }
+    const all = [f, ...cands], ys = []; all.forEach(fun => { for (let i = 0; i <= 60; i++) ys.push(fun(x0 + (x1 - x0) * i / 60)); });
+    const y0 = Math.floor(Math.min(...ys)) - 1, y1 = Math.ceil(Math.max(...ys)) + 1, id = () => ++PLOT_ID;
+    return mk('Tracer la courbe', `Quel graphique représente ${trigRule(fn, a, b, h, k)} ?`, plotSVG(f, { x0, x1, y0, y1, id:id() }), cands.map(g => plotSVG(g, { x0, x1, y0, y1, id:id() })),
+      `On repère les paramètres : amplitude |<i>a</i>| = ${Math.abs(a)}, période 2π/${b} = ${piStr(PI(2, b))}, axe <i>y</i> = ${num(k)}${h.n ? `, déphasage <i>h</i> = ${piStr(h)}` : ''}. ${fn === 'sin' ? `Le cycle commence au point (${piStr(h)}, ${num(k)}) et la courbe ${a > 0 ? 'monte' : 'descend'}` : `La courbe a un ${a > 0 ? 'maximum' : 'minimum'} au point (${piStr(h)}, ${num(k + a)})`}.`); },
+  () => { const a = pick([1, 2, 3, -2]), b = pick([1, 2]), h = pick([PI(0, 1), PI(1, 2), PI(1, 4), PI(-1, 4)]), k = pick([-1, 0, 1, 2]);
+    const f = trigF('sin', a, b, h, k), x0 = 0, x1 = 2 * Math.PI;
+    const tries = [[-a, b, h, k], [a, b === 1 ? 2 : 1, h, k], [a, b, piAdd(h, PI(1, 4)), k], [a, b, h, -k + (k === 0 ? 1 : 0)], [2 * a, b, h, k], [a, b, PI(-h.n, h.d), k]];
+    const cands = [];
+    for (const t of tries){ if (t[2].n === h.n && t[2].d === h.d && t[0] === a && t[1] === b && t[3] === k) continue; const g = trigF('sin', ...t); if (differs(f, g, x0, x1) && cands.every(c => differs(trigF('sin', ...c), g, x0, x1))) cands.push(t); if (cands.length === 3) break; }
+    const ys = []; for (let i = 0; i <= 60; i++) ys.push(f(x1 * i / 60));
+    const y0 = Math.floor(Math.min(...ys)) - 1, y1 = Math.ceil(Math.max(...ys)) + 1;
+    return mk('Rechercher la règle', `Quelle règle de la forme <i>f</i>(<i>x</i>) = <i>a</i> sin(<i>b</i>(<i>x</i> − <i>h</i>)) + <i>k</i> correspond à ce graphique ?<div class="qplot">${plotSVG(f, { x0, x1, y0, y1, id:++PLOT_ID })}</div>`, trigRule('sin', a, b, h, k),
+      cands.map(t => trigRule('sin', ...t)),
+      `Axe : <i>k</i> = (max + min) ÷ 2 = ${num(k)}. Amplitude : |<i>a</i>| = (max − min) ÷ 2 = ${Math.abs(a)}. Période : ${piStr(PI(2, b))}, donc <i>b</i> = 2π ÷ période = ${b}. Le cycle ${a > 0 ? 'croissant' : 'décroissant'} commence sur l'axe en <i>x</i> = ${piStr(h)}, donc <i>h</i> = ${piStr(h)}${a < 0 ? ' et a est négatif' : ''}.`); },
+  () => { const A = pick([1, 2, 3, 5]), k = pick([0, 1, 2, 4, -1]), max = k + A, min = k - A, bP = pick([[1, PI(2, 1)], [2, PI(1, 1)], [.5, PI(4, 1)]]), h = pick([PI(0, 1), PI(1, 2), PI(1, 4), PI(1, 1), PI(1, 3)]);
+    return mk('Rechercher la règle', `Une fonction cosinus a un maximum de ${num(max)}, un minimum de ${num(min)}, une période de ${piStr(bP[1])} et un maximum en <i>x</i> = ${piStr(h)}. Quelle est sa règle ?`, trigRule('cos', A, bP[0], h, k),
+      [trigRule('cos', A, bP[0], h, max), trigRule('cos', 2 * A, bP[0], h, k), trigRule('cos', A, bP[0] === 1 ? 2 : 1, h, k), trigRule('cos', -A, bP[0], h, k), trigRule('sin', A, bP[0], h, k)],
+      `<i>k</i> = (${num(max)} + ${min < 0 ? '(' + num(min) + ')' : num(min)}) ÷ 2 = ${num(k)} et |<i>a</i>| = (${num(max)} − ${min < 0 ? '(' + num(min) + ')' : num(min)}) ÷ 2 = ${A}. <i>b</i> = 2π ÷ ${piStr(bP[1])} = ${bStr(bP[0]) || '1'}. Un cosinus avec <i>a</i> &gt; 0 commence son cycle par un maximum : <i>h</i> = ${piStr(h)}.`); },
+  () => { const fn = pick(['sin', 'cos']), a = pick([1, 2, 3]), h = pick([PI(0, 1), PI(1, 3), PI(1, 4), PI(1, 6), PI(1, 2)]), k = pick([0, 1, -1, 2]);
+    const xm = fn === 'sin' ? piAdd(h, PI(1, 2)) : h;
+    return mk('Points particuliers', `Quelles sont les coordonnées du premier maximum de ${trigRule(fn, a, 1, h, k)} à partir de <i>x</i> = ${piStr(h)} ?`, PT(piStr(xm), num(k + a)),
+      [PT(piStr(fn === 'sin' ? h : piAdd(h, PI(1, 2))), num(k + a)), PT(piStr(xm), num(a)), PT(piStr(piAdd(xm, PI(1, 1))), num(k + a)), PT(piStr(xm), num(k - a))],
+      fn === 'sin' ? `Pour un sinus avec <i>a</i> &gt; 0, le cycle part de l'axe en <i>x</i> = <i>h</i> et atteint le maximum un quart de période plus loin : ${piStr(h)} + π/2 = ${piStr(xm)}. Le maximum vaut <i>k</i> + <i>a</i> = ${num(k + a)}.` : `Pour un cosinus avec <i>a</i> &gt; 0, le cycle commence par le maximum en <i>x</i> = <i>h</i> = ${piStr(h)}, qui vaut <i>k</i> + <i>a</i> = ${num(k + a)}.`); },
+  () => { const t = pick([[PI(1, 2), 'gauche'], [PI(-1, 2), 'droite'], [PI(1, 4), 'gauche'], [PI(-1, 3), 'droite']]);
+    const hh = PI(-t[0].n, t[0].d), m = Math.abs(t[0].n) === 1 && t[0].d !== 1 ? piStr(PI(Math.abs(t[0].n), t[0].d)) : piStr(PI(Math.abs(t[0].n), t[0].d));
+    return mk('Transformations', `Par rapport à <i>y</i> = sin <i>x</i>, quelle transformation subit ${trigRule('sin', 1, 1, hh, 0, '<i>y</i>')} ?`, `Translation horizontale de ${m} vers la ${t[1]}`,
+      [`Translation horizontale de ${m} vers la ${t[1] === 'gauche' ? 'droite' : 'gauche'}`, `Translation verticale de ${m} vers le haut`, `Changement de période`, `Réflexion par rapport à l'axe des <i>x</i>`],
+      `Dans sin(<i>x</i> − <i>h</i>), <i>h</i> = ${piStr(hh)}. ${hh.n < 0 ? 'Un <i>h</i> négatif (x + …) déplace la courbe vers la gauche.' : 'Un <i>h</i> positif (x − …) déplace la courbe vers la droite.'}`); },
+  () => { const q = pick([[trigRule('sin', 1, 1, PI(-1, 2), 0), `${FX} = cos ${XI}`], [trigRule('cos', 1, 1, PI(1, 2), 0), `${FX} = sin ${XI}`], [trigRule('sin', -1, 1, PI(0, 1), 0), `${FX} = sin(−${XI})`], [trigRule('cos', 1, 1, PI(1, 1), 0), `${FX} = −cos ${XI}`]]);
+    return mk('Liens entre sinus et cosinus', `Laquelle de ces règles est équivalente à ${q[0]} ?`, q[1],
+      [`${FX} = cos ${XI}`, `${FX} = sin ${XI}`, `${FX} = −sin ${XI}`, `${FX} = −cos ${XI}`, `${FX} = sin(−${XI})`, `${FX} = cos(2${XI})`].filter(s => s !== q[1] && !(q[1] === `${FX} = sin(−${XI})` && s === `${FX} = −sin ${XI}`)),
+      `La courbe du cosinus est celle du sinus translatée de π/2 vers la gauche : sin(<i>x</i> + π/2) = cos <i>x</i> et cos(<i>x</i> − π/2) = sin <i>x</i>. Aussi, sin(−<i>x</i>) = −sin <i>x</i> et cos(<i>x</i> − π) = −cos <i>x</i>.`); },
+];
+
+/* ---------------- Monde 4 : équations, inéquations et problèmes ---------------- */
+const VS = [{ s:1, k:'1/2' }, { s:-1, k:'1/2' }, { s:1, k:'√2/2' }, { s:-1, k:'√2/2' }, { s:1, k:'√3/2' }, { s:-1, k:'√3/2' }];
+const solsOn02 = (fn, v) => REM.filter(a => exEq(trigEx(a)[fn], v));
+const T4 = [
+  () => { const fn = pick(['sin', 'cos']), v = pick(VS), S = solsOn02(fn, v), other = fn === 'sin' ? 'cos' : 'sin';
+    const neg = { s:-v.s, k:v.k };
+    return mk('Résoudre une équation', `Résous ${fn} ${XI} = ${exStr(v)} sur [0, 2π].`, setStr(S),
+      [setStr(solsOn02(other, v)), setStr(solsOn02(fn, neg)), setStr(S.slice(0, 1)), setStr([S[0], piAdd(S[0], PI(1, 1)).n / piAdd(S[0], PI(1, 1)).d < 2 ? piAdd(S[0], PI(1, 1)) : piAdd(S[0], PI(-1, 1))])],
+      `On cherche les points du cercle dont ${fn === 'sin' ? 'l’ordonnée' : 'l’abscisse'} vaut ${exStr(v)}. Il y en a deux : ${S.map(piStr).join(' et ')}. Ils sont symétriques par rapport à l'axe des ${fn === 'sin' ? '<i>y</i>' : '<i>x</i>'}.`); },
+  () => { const fn = pick(['sin', 'cos']), v = pick(VS.filter(x => x.s > 0)), S = solsOn02(fn, v);
+    const gen = s => `${XI} = ${piStr(s[0])} + 2π<i>n</i> ou ${XI} = ${piStr(s[1])} + 2π<i>n</i>, <i>n</i> ∈ ℤ`;
+    return mk('Solution générale', `Quelle est la solution générale de ${fn} ${XI} = ${exStr(v)} ?`, gen(S),
+      [`${XI} = ${piStr(S[0])} + π<i>n</i>, <i>n</i> ∈ ℤ`, gen(solsOn02(fn === 'sin' ? 'cos' : 'sin', v)), `${XI} = ${piStr(S[0])} + 2π<i>n</i>, <i>n</i> ∈ ℤ`, gen(solsOn02(fn, { s:-1, k:v.k }))],
+      `Sur un tour, il y a deux solutions : ${S.map(piStr).join(' et ')}. Comme sinus et cosinus ont une période de 2π, on ajoute 2π<i>n</i> à chacune.`); },
+  () => { const fn = pick(['sin', 'cos']), v = pick(VS), A = pick([2, 4]), kk = pick([-1, 1, 3, 0]);
+    const rhs = A * v.s * EXV[v.k] + kk;   // A·fn x + kk = rhs  ⇒ fn x = v
+    const rhsS = v.k === '1/2' ? num(A * v.s / 2 + kk) : `${kk ? num(kk) + (v.s > 0 ? ' + ' : ' − ') : (v.s < 0 ? '−' : '')}${A / 2 === 1 ? '' : A / 2}${v.k.split('/')[0]}`;
+    const S = solsOn02(fn, v);
+    return mk('Résoudre une équation', `Résous ${A} ${fn} ${XI}${kStr(kk)} = ${rhsS} sur [0, 2π].`, setStr(S),
+      [setStr(solsOn02(fn, { s:-v.s, k:v.k })), setStr(solsOn02(fn === 'sin' ? 'cos' : 'sin', v)), setStr(S.slice(0, 1)), setStr(solsOn02(fn, { s:v.s, k:v.k === '1/2' ? '√3/2' : '1/2' }))],
+      `On isole la fonction : ${A} ${fn} ${XI} = ${rhsS}${kk ? ` − ${num(kk)}`.replace('− −', '+ ') : ''}, donc ${fn} ${XI} = ${exStr(v)}. Sur [0, 2π] : ${setStr(S)}.`); },
+  () => { const v = pick(VS.filter(x => x.s > 0)), fn = 'sin', S1 = solsOn02(fn, v);
+    const U = [...S1, ...S1.map(a => piAdd(a, PI(2, 1)))], X = U.map(a => PI(a.n, a.d * 2)).sort((p, q) => piVal(p) - piVal(q));
+    return mk('Résoudre une équation', `Résous sin(2${XI}) = ${exStr(v)} sur [0, 2π].`, setStr(X),
+      [setStr(S1), setStr(S1.map(a => PI(a.n, a.d * 2))), setStr(U), setStr(X.map(a => PI(a.n * 2, a.d)).filter(a => piVal(a) <= 2 * Math.PI + 1e-9))],
+      `On pose <i>u</i> = 2${XI}. Si ${XI} ∈ [0, 2π], alors <i>u</i> ∈ [0, 4π] : deux tours, donc 4 solutions. sin <i>u</i> = ${exStr(v)} donne <i>u</i> ∈ ${setStr(U)}. On divise par 2 : ${setStr(X)}.`); },
+  () => { const fn = pick(['sin', 'cos']), v = pick(VS), o = pick(OPS2), S = solsOn02(fn, v);
+    const f = fn === 'sin' ? Math.sin : Math.cos, val = exNum(v), test = x => cmpT(f(x), o, val), closed = o === '≤' || o === '≥';
+    const cor = intervals2(S[0], S[1], test, closed);
+    return mk('Résoudre une inéquation', `Résous ${fn} ${XI} ${opT(o)} ${exStr(v)} sur [0, 2π].`, cor,
+      [intervals2(S[0], S[1], x => !test(x), closed), intervals2(S[0], S[1], test, !closed), intervals2(...solsOn02(fn === 'sin' ? 'cos' : 'sin', v), x => cmpT((fn === 'sin' ? Math.cos : Math.sin)(x), o, val), closed), setStr(S)],
+      `On trouve d'abord les bornes : ${fn} ${XI} = ${exStr(v)} pour ${XI} = ${S.map(piStr).join(' et ')}. Ensuite, on regarde sur le cercle (ou sur la courbe) où ${fn} ${XI} est ${o === '<' || o === '≤' ? 'plus petit' : 'plus grand'} que ${exStr(v)}. Les bornes sont ${closed ? 'incluses' : 'exclues'}.`); },
+  () => { const D = pick([20, 30, 40, 50]), C = D / 2 + pick([1, 2, 4]), Tm = pick([4, 6, 8, 10]), ask = pick(['max', 'min', 'b', 'rule']);
+    const b = PI(2, Tm), bS = piStr(b);
+    const rule = `<i>H</i>(<i>t</i>) = −${D / 2} cos(${bS}<i>t</i>) + ${C}`;
+    const intro = `Une grande roue décorée de lumières de Noël a un diamètre de ${D} m. Son centre est à ${C} m du sol et un tour dure ${Tm} minutes. On monte à bord au point le plus bas, au temps <i>t</i> = 0.`;
+    if (ask === 'max') return mk('Problèmes', `${intro} Quelle est la hauteur maximale atteinte ?`, `${C + D / 2} m`, [`${D} m`, `${C} m`, `${C + D} m`, `${D / 2} m`],
+      `La hauteur maximale est la hauteur du centre plus le rayon : ${C} + ${D / 2} = ${C + D / 2} m.`);
+    if (ask === 'min') return mk('Problèmes', `${intro} À quelle hauteur se trouve le point le plus bas de la roue ?`, `${C - D / 2} m`, [`0 m`, `${C} m`, `${D / 2} m`, `${C + D / 2} m`],
+      `Point le plus bas : centre moins rayon, ${C} − ${D / 2} = ${C - D / 2} m.`);
+    if (ask === 'b') return mk('Problèmes', `${intro} Dans la règle <i>H</i>(<i>t</i>) = <i>a</i> cos(<i>bt</i>) + <i>k</i>, quelle est la valeur de <i>b</i> ?`, bS, [piStr(PI(Tm, 2)) === bS ? '2π' : piStr(PI(Tm, 2)), `${Tm}`, piStr(PI(1, Tm)), piStr(PI(4, Tm))],
+      `La période est de ${Tm} minutes, donc <i>b</i> = 2π ÷ ${Tm} = ${bS}.`);
+    return mk('Problèmes', `${intro} Quelle règle donne la hauteur <i>H</i> (en m) après <i>t</i> minutes ?`, rule,
+      [`<i>H</i>(<i>t</i>) = ${D / 2} cos(${bS}<i>t</i>) + ${C}`, `<i>H</i>(<i>t</i>) = −${D} cos(${bS}<i>t</i>) + ${C}`, `<i>H</i>(<i>t</i>) = −${D / 2} cos(${Tm}<i>t</i>) + ${C}`, `<i>H</i>(<i>t</i>) = −${D / 2} sin(${bS}<i>t</i>) + ${C}`],
+      `<i>k</i> = hauteur du centre = ${C}; |<i>a</i>| = rayon = ${D / 2}; <i>b</i> = 2π ÷ ${Tm} = ${bS}. On part du point le plus bas : un cosinus qui commence par un minimum, donc <i>a</i> = −${D / 2}.`); },
+  () => { const Tm = pick([6, 9, 12]), R = pick([10, 15, 20]), C = R + 2, lim = C + R / 2;
+    return mk('Problèmes', `La hauteur d'une nacelle de grande roue est <i>H</i>(<i>t</i>) = −${R} cos(${piStr(PI(2, Tm))}<i>t</i>) + ${C}, où <i>t</i> est en minutes. Pendant combien de temps, à chaque tour, la nacelle est-elle à plus de ${num(lim)} m du sol ?`, `${num(Tm / 3)} min`,
+      [`${num(Tm / 2)} min`, `${num(Tm / 6)} min`, `${num(2 * Tm / 3)} min`, `${num(Tm / 4)} min`],
+      `−${R} cos(${piStr(PI(2, Tm))}<i>t</i>) + ${C} &gt; ${num(lim)} donne cos(${piStr(PI(2, Tm))}<i>t</i>) &lt; −1/2. Sur un tour, cos <i>u</i> &lt; −1/2 pour <i>u</i> ∈ ]2π/3, 4π/3[ : un tiers du tour. Un tiers de ${Tm} min, c'est ${num(Tm / 3)} min.`); },
+  () => { const Tmax = pick([18, 20, 22]), amp = pick([3, 4, 5]), hr = pick([14, 15, 16]);
+    return mk('Problèmes', `Dans une serre, la température (en °C) est donnée par <i>T</i>(<i>t</i>) = ${amp} cos(${piStr(PI(1, 12))}(<i>t</i> − ${hr})) + ${Tmax - amp}, où <i>t</i> est l'heure de la journée (0 à 24). Quelle est la température maximale, et à quelle heure ?`, `${Tmax} °C à ${hr} h`,
+      [`${Tmax - amp} °C à ${hr} h`, `${Tmax} °C à ${hr - 12 < 0 ? hr + 12 : hr - 12} h`, `${Tmax + amp} °C à ${hr} h`, `${Tmax} °C à 12 h`],
+      `Le maximum d'un cosinus (<i>a</i> &gt; 0) est <i>k</i> + <i>a</i> = ${Tmax - amp} + ${amp} = ${Tmax} °C, atteint quand <i>t</i> − ${hr} = 0, donc à ${hr} h. La période est 2π ÷ (π/12) = 24 h.`); },
+];
+
+/* ---------------- Monde 5 : la fonction tangente ---------------- */
+const T5 = [
+  () => { const a = pick([1, 2, -1, 3]), b = pick([1, 2, 3, .5, 4]), h = pick(HS), k = pick([0, 1, -2, 2]);
+    const P = b === .5 ? PI(2, 1) : PI(1, b);
+    return mk('Période', `Quelle est la période de ${trigRule('tan', a, b, h, k)} ?`, piStr(P),
+      [piStr(PI(2 * P.n, P.d)), piStr(PI(P.n, 2 * P.d)), b === 1 ? '2π' : piStr(PI(1, 1)), piStr(PI(b === .5 ? 1 : b, 1)), `${Math.abs(a)}π`, '3π', piStr(PI(1, 4)), '2π', piStr(PI(1, 1))],
+      `Pour une fonction tangente, la période est π ÷ |<i>b</i>| = π ÷ ${bStr(Math.abs(b)) || '1'} = ${piStr(P)}. (Pour sinus et cosinus, c'est 2π ÷ |<i>b</i>|.)`); },
+  () => { const b = pick([1, 2]), h = pick([PI(0, 1), PI(1, 4), PI(-1, 4), PI(1, 3), PI(1, 6), PI(1, 2)]), a = pick([1, 2, -1]), k = pick([0, 1, -1]);
+    const P = PI(1, b), first = piAdd(h, PI(1, 2 * b)), nP = b === 1 ? 'π<i>n</i>' : `${piStr(P)}<i>n</i>`;
+    const asym = s => `<i>x</i> = ${piStr(s)} + ${nP}, <i>n</i> ∈ ℤ`;
+    return mk('Asymptotes', `Quelle est l'équation des asymptotes de ${trigRule('tan', a, b, h, k)} ?`, asym(first),
+      [asym(h), `<i>x</i> = ${piStr(first)} + ${b === 1 ? '2π<i>n</i>' : 'π<i>n</i>'}, <i>n</i> ∈ ℤ`, asym(piAdd(h, PI(1, b === 1 ? 4 : 8))), `<i>y</i> = ${num(k)}`],
+      `Les asymptotes sont à une demi-période du point d'inflexion (<i>h</i>, <i>k</i>). Période = π ÷ ${b} = ${piStr(P)}; demi-période = ${piStr(PI(1, 2 * b))}. Première asymptote : ${piStr(h)} + ${piStr(PI(1, 2 * b))} = ${piStr(first)}, puis on ajoute la période.`); },
+  () => { const a = pick([1, 2, -1, -2, 3]), b = pick([1, 2]), h = pick([PI(0, 1), PI(1, 4), PI(1, 3), PI(-1, 6), PI(1, 2)]), k = pick([0, 1, 2, -1]);
+    return mk('Point d’inflexion', `Quelles sont les coordonnées du point d'inflexion de ${trigRule('tan', a, b, h, k)} situé le plus près de <i>x</i> = ${piStr(h)} ?`, PT(piStr(h), num(k)),
+      [PT(piStr(PI(-h.n, h.d)), num(k)), PT(num(k), piStr(h)), PT(piStr(h), num(a)), PT(piStr(h), num(-k)), PT(piStr(h), num(k + 1)), PT(piStr(piAdd(h, PI(1, 2))), num(k)), PT(piStr(h), num(k - 1)), PT(piStr(piAdd(h, PI(1, 4))), num(k + a))],
+      `Pour <i>f</i>(<i>x</i>) = <i>a</i> tan(<i>b</i>(<i>x</i> − <i>h</i>)) + <i>k</i>, le point d'inflexion est (<i>h</i>, <i>k</i>) = (${piStr(h)}, ${num(k)}). La courbe change de concavité à cet endroit.`); },
+  () => { const a = pick([1, 2, 3, -1, -2]), b = pick([1, 2, -1]), h = pick([PI(0, 1), PI(1, 4)]), k = pick([0, 1]);
+    const inc = a * b > 0;
+    return mk('Variation', `Sur chaque intervalle entre deux asymptotes, la fonction ${trigRule('tan', a, b, h, k)} est…`, inc ? 'Croissante' : 'Décroissante',
+      [inc ? 'Décroissante' : 'Croissante', 'Constante', 'Croissante, puis décroissante'],
+      `Une fonction tangente est croissante si <i>a</i> et <i>b</i> ont le même signe, et décroissante sinon. Ici, <i>a</i> × <i>b</i> = ${num(a * b)} ${inc ? '&gt;' : '&lt;'} 0.`); },
+  () => { const v = pick([{ s:1, k:'1' }, { s:-1, k:'1' }, { s:1, k:'√3' }, { s:-1, k:'√3' }, { s:1, k:'√3/3' }, { s:-1, k:'√3/3' }]);
+    const S = REM.filter(a => exEq(trigEx(a).tan, v)), neg = REM.filter(a => exEq(trigEx(a).tan, { s:-v.s, k:v.k }));
+    const sw = REM.filter(a => exEq(trigEx(a).tan, { s:v.s, k:v.k === '√3' ? '√3/3' : v.k === '√3/3' ? '√3' : '1' })).slice(0, 2);
+    return mk('Résoudre une équation', `Résous tan ${XI} = ${exStr(v)} sur [0, 2π].`, setStr(S),
+      [setStr(neg), setStr(S.slice(0, 1)), v.k === '1' ? setStr([S[0], piAdd(S[0], PI(1, 2))]) : setStr(sw), setStr(S.map(a => piAdd(a, PI(1, 2))).filter(a => piVal(a) < 2 * Math.PI))],
+      `La tangente a une période de π : si ${piStr(S[0])} est une solution, ${piStr(S[0])} + π = ${piStr(S[1])} l'est aussi. Sur [0, 2π] : ${setStr(S)}.`); },
+  () => { const v = pick([{ s:1, k:'1' }, { s:1, k:'√3' }, { s:1, k:'√3/3' }, { s:-1, k:'1' }]), S = REM.filter(a => exEq(trigEx(a).tan, v));
+    return mk('Solution générale', `Quelle est la solution générale de tan ${XI} = ${exStr(v)} ?`, `${XI} = ${piStr(S[0])} + π<i>n</i>, <i>n</i> ∈ ℤ`,
+      [`${XI} = ${piStr(S[0])} + 2π<i>n</i>, <i>n</i> ∈ ℤ`, `${XI} = ${piStr(S[0])} + ${fracE('π', '2')}<i>n</i>, <i>n</i> ∈ ℤ`, `${XI} = ${piStr(PI(-S[0].n, S[0].d))} + π<i>n</i>, <i>n</i> ∈ ℤ`, `${XI} = ${piStr(S[1])} + 2π<i>n</i>, <i>n</i> ∈ ℤ`],
+      `La période de la tangente est π. Toutes les solutions s'obtiennent en ajoutant π<i>n</i> à une solution : ${XI} = ${piStr(S[0])} + π<i>n</i>.`); },
+  () => { const v = pick([{ s:1, k:'1' }, { s:-1, k:'1' }, { s:1, k:'√3' }, { s:-1, k:'√3/3' }, { s:1, k:'√3/3' }, { s:-1, k:'√3' }]), o = pick(OPS2);
+    const at = Math.atan(exNum(v)), base = REM.map(a => (a.n / a.d) > 1 ? PI(a.n - 2 * a.d, a.d) : a).find(a => Math.abs(piVal(a) - at) < 1e-9);
+    const up = o === '>' || o === '≥', cl = o === '≥' || o === '≤';
+    const cor = up ? `${cl ? '[' : ']'}${piStr(base)}, ${fracE('π', '2')}[` : `]−${fracE('π', '2')}, ${piStr(base)}${cl ? ']' : '['}`;
+    const other = up ? `]−${fracE('π', '2')}, ${piStr(base)}${cl ? ']' : '['}` : `${cl ? '[' : ']'}${piStr(base)}, ${fracE('π', '2')}[`;
+    return mk('Résoudre une inéquation', `Résous tan ${XI} ${opT(o)} ${exStr(v)} sur ]−${fracE('π', '2')}, ${fracE('π', '2')}[.`, cor,
+      [other, up ? `${cl ? ']' : '['}${piStr(base)}, ${fracE('π', '2')}]` : `[−${fracE('π', '2')}, ${piStr(base)}${cl ? '[' : ']'}`, `${cl ? '[' : ']'}${piStr(PI(-base.n, base.d))}, ${fracE('π', '2')}[`, `]−${fracE('π', '2')}, ${fracE('π', '2')}[`],
+      `Sur ]−π/2, π/2[, tan ${XI} est croissante. tan ${XI} = ${exStr(v)} pour ${XI} = ${piStr(base)}. Donc tan ${XI} ${opT(o)} ${exStr(v)} ${up ? 'à droite' : 'à gauche'} de ${piStr(base)}, jusqu'à l'asymptote (exclue).`); },
+  () => { const a = pick([1, 2, -1, 3]), b = pick([1, 2]), h = pick([PI(0, 1), PI(1, 4), PI(-1, 4), PI(1, 2)]), k = pick([0, 1, -1]);
+    const f = trigF('tan', a, b, h, k), x0 = -Math.PI, x1 = Math.PI, asyOf = (bb, hh) => { const L = []; for (let n = -6; n <= 6; n++) L.push(piVal(hh) + Math.PI / (2 * bb) + n * Math.PI / bb); return L; };
+    const tries = [[-a, b, h, k], [a, b === 1 ? 2 : 1, h, k], [a, b, piAdd(h, PI(1, 4)), k], [a, b, h, k + 2], [a, b, PI(-h.n, h.d), k]];
+    const cands = [];
+    for (const t of tries){ const g = trigF('tan', ...t); if (differs(f, g, x0, x1) && cands.every(c => differs(trigF('tan', ...c), g, x0, x1))) cands.push(t); if (cands.length === 3) break; }
+    return mk('Tracer la courbe', `Quel graphique représente ${trigRule('tan', a, b, h, k)} ?`, plotSVG(f, { x0, x1, y0:-5, y1:5, asym:asyOf(b, h), id:++PLOT_ID }),
+      cands.map(t => plotSVG(trigF('tan', ...t), { x0, x1, y0:-5, y1:5, asym:asyOf(t[1], t[2]), id:++PLOT_ID })),
+      `Point d'inflexion (<i>h</i>, <i>k</i>) = (${piStr(h)}, ${num(k)}); période π ÷ ${b} = ${piStr(PI(1, b))}; asymptotes à une demi-période du point d'inflexion. La courbe est ${a * b > 0 ? 'croissante' : 'décroissante'} entre les asymptotes.`); },
+  () => { const a = pick([1, 2, 3, 4]), h = pick([PI(0, 1), PI(1, 4), PI(1, 2), PI(-1, 4)]), k = pick([0, 1, -1, 2]);
+    const xp = piAdd(h, PI(1, 4)), y = k + a;
+    return mk('Rechercher la règle', `Une fonction tangente de période π a pour point d'inflexion (${piStr(h)}, ${num(k)}) et passe par le point (${piStr(xp)}, ${num(y)}). Quelle est sa règle de la forme <i>f</i>(<i>x</i>) = <i>a</i> tan(<i>x</i> − <i>h</i>) + <i>k</i> ?`, trigRule('tan', a, 1, h, k),
+      [trigRule('tan', y, 1, h, k), trigRule('tan', a, 1, PI(-h.n, h.d), k), trigRule('tan', a, 1, h, y), trigRule('tan', -a, 1, h, k), trigRule('tan', a, 2, h, k), trigRule('tan', a, 1, h, k - a)].filter(s => s !== trigRule('tan', a, 1, h, k)),
+      `Le point d'inflexion donne <i>h</i> = ${piStr(h)} et <i>k</i> = ${num(k)}. On remplace le point : ${num(y)} = <i>a</i> tan(${piStr(xp)} − ${h.n < 0 ? '(' + piStr(h) + ')' : piStr(h)})${kStr(k)} = <i>a</i> tan(π/4)${kStr(k)} = <i>a</i>${kStr(k)}, donc <i>a</i> = ${a}.`); },
+  () => { const d = pick([10, 20, 30, 50]), ang = pick([[PI(1, 4), '1', 1], [PI(1, 3), '√3', Math.sqrt(3)], [PI(1, 6), '√3/3', Math.sqrt(3) / 3]]);
+    const val = ang[1] === '1' ? `${d} m` : ang[1] === '√3' ? `${d}√3 m` : `${fracE(d + '√3', '3')} m`;
+    return mk('Problèmes', `Un projecteur de Noël, placé à ${d} m d'un long mur, pivote. La position du point lumineux sur le mur est <i>P</i>(θ) = ${d} tan θ, où θ est l'angle entre le faisceau et la perpendiculaire au mur. Où est le point lumineux quand θ = ${piStr(ang[0])} ?`, val,
+      [`${d / 2} m`, ang[1] === '√3' ? `${fracE(d + '√3', '3')} m` : `${d}√3 m`, ang[1] === '1' ? `${fracE(d + '√2', '2')} m` : `${d} m`, `${d * 2} m`],
+      `<i>P</i>(${piStr(ang[0])}) = ${d} tan(${piStr(ang[0])}) = ${d} × ${exStr({ s:1, k:ang[1] })} = ${val}. Quand θ approche π/2, tan θ devient immense : le point lumineux file vers l'infini (asymptote).`); },
+];
+
+const WORLDS = [
+  { name:'Monde 1', title:'Le village du cercle', topics:'Degrés et radians, point P(θ), valeurs exactes, quadrants, longueur d’arc, angles coterminaux', gens:T1,
+    boss:{ name:'Le Bonhomme Radian', hp:3, color:'#f4f8fc' },
+    theme:{ kind:'village', skyTop:'#5fb4ee', skyBot:'#d9f0ff', sun:'#fff3b0', sunGlow:'rgba(255,250,210,.5)', sunY:40, cloud:'#ffffff', cloudShade:'#d3e6f5',
+      far:'#8fb3d9', mid:'#b5cfe9', near:'#c9dcef', flakes:22, label:'#173a5e', outline:'#ffffff' } },
+  { name:'Monde 2', title:'L’atelier des identités', topics:'sec, cosec et cotan, identité de Pythagore, calculer avec une identité, simplifier, démontrer', gens:T2,
+    boss:{ name:'Le Yéti des Identités', hp:4, color:'#e6f1fa' },
+    theme:{ kind:'atelier', skyTop:'#2c2d6b', skyBot:'#f59e7a', sun:'#ffcf6b', sunGlow:'rgba(255,170,110,.45)', sunY:150, cloud:'#ffd2bd', cloudShade:'#e39a86',
+      far:'#6d5a9c', mid:'#b7a3d3', near:'#d6c8e8', flakes:26, label:'#fff3e6', outline:'#2a1f4a' } },
+  { name:'Monde 3', title:'La forêt des sinusoïdes', topics:'Sinus et cosinus : période, codomaine, tracer, rechercher la règle, maximum, transformations', gens:T3,
+    boss:{ name:'La Fée Sinusoïde', hp:4, color:'#2e8f6a', f:true },
+    theme:{ kind:'foret', skyTop:'#06122a', skyBot:'#1d3d5c', stars:'#e9f1ff', aurora:true,
+      far:'#183450', mid:'#14402f', near:'#b9cfe2', flakes:34, label:'#eaf6ff', outline:'#06122a' } },
+  { name:'Monde 4', title:'Le lac gelé des équations', topics:'Équations sur [0, 2π], solution générale, inéquations, problèmes (grande roue, serre)', gens:T4,
+    boss:{ name:'Le Lutin des Équations', hp:5, color:'#1f7a4d' },
+    theme:{ kind:'lac', skyTop:'#1b2a5e', skyBot:'#c9a2d6', stars:'#fff6e6', lights:true, moon:true,
+      far:'#53608f', mid:'#8ea3cc', near:'#c4d4ea', flakes:28, label:'#ffffff', outline:'#1b2a5e' } },
+  { name:'Monde 5', title:'Le sommet de la tangente', topics:'Tangente : période, asymptotes, point d’inflexion, tracer, règle, équations, inéquations, problèmes', gens:T5,
+    boss:{ name:'Le Dragon de Glace Tangente', hp:5, color:'#3a8fd1' },
+    theme:{ kind:'sommet', skyTop:'#0a1630', skyBot:'#4a6fa8', stars:'#e9f1ff', moon:true,
+      far:'#2e4a7a', mid:'#9fb8d8', near:'#c8d8ea', flakes:60, label:'#ffffff', outline:'#0a1630' } },
+];
+let lastGen = -1;
+let FORCE_GEN = null;
+function genQRaw(w){
+  if (FORCE_GEN) return FORCE_GEN();
+  const gens = WORLDS[w].gens; let i;
+  do { i = Math.floor(Math.random() * gens.length); } while (i === lastGen && gens.length > 1);
+  lastGen = i; return gens[i]();
+}
+
+/* ================== État RPG ================== */
+const START_HP = 3;
+let world = 0, xp = 0, lvl = 1, maxHp = START_HP, hp = START_HP;
+let stats = { ok:0, tot:0, topics:{} }, worldStats = { ok:0, tot:0 };
+let state = 'title';
+const TIME_OPTS = [0, 20, 45, 90];
+let timeLimit = 0, qTimer = null;
+try { const t = +localStorage.getItem('qt-time'); if (TIME_OPTS.includes(t)) timeLimit = t; } catch(_){}
+const need = () => 100 + 25 * (lvl - 1);
+function record(topic, ok){
+  stats.tot++; worldStats.tot++; if (ok){ stats.ok++; worldStats.ok++; }
+  const t = stats.topics[topic] || (stats.topics[topic] = { ok:0, tot:0 });
+  t.tot++; if (ok) t.ok++;
+  updateHUD();
+}
+
+/* ================== Niveau ================== */
+const TS = 16, ROWS = 15, VH = ROWS * TS;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function genLevel(w){
+  const rnd = mulberry32(4242 + w * 977), ri = (a,b) => a + Math.floor(rnd() * (b - a + 1));
+  const W = 150 + w * 25, g = [];
+  for (let r = 0; r < ROWS; r++) g.push(new Uint8Array(W));
+  for (let x = 0; x < W; x++){ g[13][x] = 1; g[14][x] = 1; }
+  const en = [], labels = [], coins = [];
+  const coin = (c, r) => { if (g[r] && c > 0 && c < W && !g[r][c]) coins.push({ x:c*TS+4, y:r*TS+3, w:8, h:10, t:false }); };
+  for (let c = 6; c <= 8; c++) coin(c, 12);
+  const mkE = c => en.push({ x:c*TS+1, y:12*TS+4, w:14, h:12, vx:-0.45, vy:0, dead:false, squish:0, onGround:false });
+  let x = 14, last = -1;
+  while (x < W - 26){
+    let f; do { f = ri(0,5); } while (f === last);
+    last = f;
+    if (f === 0){ const gw = ri(2,3); for (let i = 0; i < gw; i++){ g[13][x+i] = 0; g[14][x+i] = 0; } for (let i = -1; i <= gw; i++) coin(x+i, i < 0 || i === gw ? 10 : 9); x += gw + ri(3,5); }
+    else if (f === 1){ const n = ri(1,3) + (rnd() < .4 ? 2 : 0);
+      for (let i = 0; i < n; i++){ g[9][x+i] = (i % 2 === 0) ? 3 : 2; coin(x+i, 11); }
+      if (rnd() < .7) mkE(x + n + 2);
+      x += n + ri(5,7); }
+    else if (f === 2){ const n = 9;
+      for (let i = 0; i < n; i++){ const h = Math.round(2 + 2 * Math.sin(i * Math.PI / 4)); for (let r = 0; r < h; r++) g[12-r][x+i] = 5; coin(x+i, 12-h); }
+      g[5][x+2] = 3;
+      labels.push({ x:(x+4)*TS, y:9.4*TS, base:'2 sin(πx/4) + 2', exp:'' });
+      x += n + ri(3,5); }
+    else if (f === 3){ const len = ri(3,5);
+      for (let i = 0; i < len; i++){ g[10][x+i] = 6; coin(x+i, 9); }
+      g[6][x + Math.floor(len/2)] = 3;
+      if (rnd() < .6) mkE(x + len - 1);
+      x += len + ri(4,6); }
+    else if (f === 4){ mkE(x + 2); if (rnd() < .6) mkE(x + 5); coin(x+3, 10); coin(x+4, 10); x += ri(8,10); }
+    else { const h = ri(2,3);
+      for (let r = 0; r < h; r++){ g[12-r][x] = 1; g[12-r][x+1] = 1; }
+      coin(x, 12-h); coin(x+1, 12-h);
+      if (rnd() < .5) mkE(x + 4);
+      x += 2 + ri(4,6); }
+  }
+  for (let c = W-21; c <= W-18; c++) coin(c, 12);
+  return { g, W, enemies:en, labels, coins, flagC:W-15, castleC:W-11, doorX:(W-8)*TS };
+}
+
+let LV = null, enemies = [], floats = [], parts = [], bumps = [], pendingQ = 0, frame = 0, camX = 0;
+const P = { x:0, y:0, w:12, h:15, vx:0, vy:0, onGround:false, face:1, coyote:0, jumpBuf:0, inv:0 };
+function tile(c, r){ if (r < 0 || r >= ROWS) return 0; if (c < 0 || c >= LV.W) return 1; return LV.g[r][c]; }
+function solid(c, r){ if (r < 0 || r >= ROWS) return false; if (c < 0 || c >= LV.W) return true; return LV.g[r][c] > 0; }
+
+function loadWorld(w){
+  world = w; LV = genLevel(w); runCoins = 0; coinStreak = 0;
+  enemies = LV.enemies.map(e => ({ ...e }));
+  Object.assign(P, { x:2*TS, y:11*TS, vx:0, vy:0, face:1, inv:0, onGround:false, coyote:0, jumpBuf:0 });
+  camX = 0; floats = []; parts = []; bumps = []; pendingQ = 0;
+  worldStats = { ok:0, tot:0 };
+  updateHUD();
+}
+
+/* ================== Entrées ================== */
+const keys = { left:false, right:false, jump:false, jumpPressed:false };
+const clearKeys = () => { keys.left = keys.right = keys.jump = keys.jumpPressed = false; document.querySelectorAll('.pbtn.on').forEach(b => b.classList.remove('on')); };
+const KMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump', KeyZ:'jump' };
+const AMAP = { Digit1:0, Digit2:1, Digit3:2, Digit4:3, Numpad1:0, Numpad2:1, Numpad3:2, Numpad4:3, KeyA:0, KeyB:1, KeyC:2, KeyD:3 };
+let activeAnswer = null;
+addEventListener('keydown', e => {
+  if (RACE.remote && e.isTrusted) return;
+  unlockAudio();
+  if (state === 'question' || state === 'boss'){
+    if (activeAnswer && e.code in AMAP){ e.preventDefault(); activeAnswer(AMAP[e.code]); }
+    return;
+  }
+  if (!RACE.on && (e.code === 'Escape' || e.code === 'KeyP')){ if (state === 'play') pauseGame(); else if (state === 'paused') resumeGame(); return; }
+  const k = KMAP[e.code];
+  if (k && state === 'play'){ e.preventDefault(); if (k === 'jump' && !keys.jump) keys.jumpPressed = true; keys[k] = true; }
+});
+addEventListener('keyup', e => { if (RACE.remote && e.isTrusted) return; const k = KMAP[e.code]; if (k) keys[k] = false; });
+addEventListener('blur', () => { if (RACE.remote) return; clearKeys(); if (state === 'play' && !RACE.on) pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !RACE.on) pauseGame(); });
+
+const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || ('ontouchstart' in window);
+document.documentElement.classList.toggle('touch', !!isTouch);
+document.querySelectorAll('.pbtn').forEach(b => {
+  const k = b.dataset.k;
+  const down = e => { e.preventDefault(); unlockAudio(); try { b.setPointerCapture(e.pointerId); } catch(_){}
+    if (k === 'jump' && !keys.jump) keys.jumpPressed = true; keys[k] = true; b.classList.add('on'); };
+  const up = e => { keys[k] = false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', down);
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+/* ================== Son ================== */
+let AC = null, soundOn = true;
+function unlockAudio(){ if (AC) { if (AC.state === 'suspended') AC.resume().catch(()=>{}); return; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){ AC = null; } }
+addEventListener('pointerdown', unlockAudio);
+const TONES = {
+  jump:[[440,.09,'square',760]], stomp:[[260,.09,'square',90]], bump:[[150,.06,'square']],
+  ok:[[660,.08,'square'],[990,.14,'square']], bad:[[220,.22,'sawtooth',110]], hurt:[[320,.16,'sawtooth',90]],
+  lvl:[[523,.08,'square'],[659,.08,'square'],[784,.08,'square'],[1046,.18,'square']], hit:[[180,.14,'square',50]], tick:[[1200,.03,'square']], coin:[[988,.05,'square'],[1319,.1,'square']], win:[[392,.1,'square'],[523,.1,'square'],[659,.1,'square'],[784,.25,'square']],
+};
+function sfx(type){
+  if (!soundOn || !AC || AC.state !== 'running') return;
+  let t = AC.currentTime;
+  for (const [f, d, w = 'square', to] of TONES[type]){
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = w; o.frequency.setValueAtTime(f, t); if (to) o.frequency.exponentialRampToValueAtTime(to, t + d);
+    g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0008, t + d);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + .02); t += d;
+  }
+}
+/* ================== Musique : chiptune originale ================== */
+const NOTE = { C:0, 'C#':1, Db:1, D:2, 'D#':3, Eb:3, E:4, F:5, 'F#':6, Gb:6, G:7, 'G#':8, Ab:8, A:9, 'A#':10, Bb:10, B:11 };
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+function parseLead(str){
+  const toks = str.split(/\s+/).filter(t => t && t !== '|'), ev = [];
+  toks.forEach((t, i) => {
+    if (t === '.') return;
+    if (t === '-'){ const l = ev[ev.length - 1]; if (l && l.end === i) l.end = i + 1; return; }
+    const m = t.match(/^([A-G][#b]?)(\d)$/); if (!m) return;
+    ev.push({ step:i, end:i + 1, f:mf((+m[2] + 1) * 12 + NOTE[m[1]]) });
+  });
+  return { ev, len:toks.length };
+}
+function makeTrack(o){
+  const lead = parseLead(o.lead), len = lead.len, steps = [];
+  for (let i = 0; i < len; i++) steps.push({ lead:null, bass:null, drum:o.drums[i % o.drums.length] });
+  for (const e of lead.ev) steps[e.step].lead = e;
+  for (let i = 0; i < len; i++){ const r = o.roots[Math.floor(i / 8) % o.roots.length], d = o.bpat[i % 8]; if (d !== null) steps[i].bass = mf(r + d); }
+  return { steps, len, sd:60 / o.bpm / 2 };
+}
+// Chants de Noël du domaine public, arrangés en 8 bits
+const TRACKS = {
+  // Monde 1 : Ah ! vous dirai-je, maman
+  w0: makeTrack({ bpm:150, drums:'k.h.s.h.', roots:[48,41,41,43,48,43,48,43,48,41,41,43], bpat:[0,null,12,null,7,null,12,null],
+    lead:'C5 . C5 . G5 . G5 . | A5 . A5 . G5 - - . | F5 . F5 . E5 . E5 . | D5 . D5 . C5 - - . | G5 . G5 . F5 . F5 . | E5 . E5 . D5 - - . | G5 . G5 . F5 . F5 . | E5 . E5 . D5 - - . | C5 . C5 . G5 . G5 . | A5 . A5 . G5 - - . | F5 . F5 . E5 . E5 . | D5 . D5 . C5 - - .' }),
+  // Monde 2 : Deck the Halls
+  w1: makeTrack({ bpm:150, drums:'khshkhsh', roots:[41,41,36,41,41,41,36,41,36,41,41,36,41,41,34,41], bpat:[0,null,7,null,12,null,7,null],
+    lead:'C6 - - Bb5 A5 - G5 - | F5 - G5 - A5 - F5 - | G5 A5 Bb5 G5 A5 - - G5 | F5 - E5 - F5 - - . | C6 - - Bb5 A5 - G5 - | F5 - G5 - A5 - F5 - | G5 A5 Bb5 G5 A5 - - G5 | F5 - E5 - F5 - - . | G5 - - A5 Bb5 - G5 - | A5 - - Bb5 C6 - G5 - | A5 B5 C6 - D6 E6 F6 - | E6 - D6 - C6 - - . | C6 - - Bb5 A5 - G5 - | F5 - G5 - A5 - F5 - | D6 D6 D6 D6 C6 - - Bb5 | A5 - G5 - F5 - - .' }),
+  // Monde 3 : Vive le vent (Jingle Bells)
+  w2: makeTrack({ bpm:168, drums:'khshkhsh', roots:[48,48,48,48,41,48,43,43,48,48,48,48,41,48,43,48], bpat:[0,null,7,null,12,null,7,null],
+    lead:'E5 . E5 . E5 - - . | E5 . E5 . E5 - - . | E5 . G5 . C5 - - D5 | E5 - - - - - - . | F5 . F5 . F5 - - F5 | F5 . E5 . E5 . E5 E5 | E5 . D5 . D5 . E5 . | D5 - - . G5 - - . | E5 . E5 . E5 - - . | E5 . E5 . E5 - - . | E5 . G5 . C5 - - D5 | E5 - - - - - - . | F5 . F5 . F5 - - F5 | F5 . E5 . E5 . E5 E5 | G5 . G5 . F5 . D5 . | C5 - - - - - - .' }),
+  // Monde 4 : Joy to the World
+  w3: makeTrack({ bpm:150, drums:'kh.hsh.h', roots:[48,41,43,48,43,48,48,43,48,43,41,43,48], bpat:[0,null,7,null,12,null,7,null],
+    lead:'C6 - - B5 A5 - - G5 | F5 - - - E5 - - - | D5 - - - C5 - - - | G5 - - - A5 - - - | A5 - - - B5 - - - | B5 - - - C6 - - - | C6 C6 B5 A5 G5 - F5 E5 | C6 C6 B5 A5 G5 - F5 E5 | E5 E5 E5 E5 E5 F5 G5 - | F5 E5 D5 D5 D5 E5 F5 - | E5 D5 C5 C6 - A5 G5 - | F5 E5 F5 . E5 - D5 - | C5 - - - - - . .' }),
+  // Monde 5 : Douce nuit (6/8, pédale de do)
+  w4: makeTrack({ bpm:150, drums:'k..h..', roots:[48], bpat:[0,null,null,null,null,null,null,null],
+    lead:'G5 - - A5 G5 - E5 - - - - - G5 - - A5 G5 - E5 - - - - - D6 - - - D6 - B5 - - - - - C6 - - - C6 - G5 - - - - - A5 - - - A5 - C6 - - B5 A5 - G5 - - A5 G5 - E5 - - - - - A5 - - - A5 - C6 - - B5 A5 - G5 - - A5 G5 - E5 - - - - - D6 - - - D6 - F6 - - D6 B5 - C6 - - - - - E6 - - - - - C6 - G5 - E5 - G5 - - F5 D5 - C5 - - - - - - - - . . .' }),
+  // Boss : God Rest Ye Merry Gentlemen, mi mineur
+  boss: makeTrack({ bpm:176, drums:'kkshkksh', roots:[40,40,38,35,40,40,38,35,43,40,36,40,43,40,45,40], bpat:[0,12,0,12,0,12,0,12],
+    lead:'E5 . E5 . B5 . B5 . | A5 . G5 . F#5 . E5 . | D5 . E5 . F#5 . G5 . | A5 . B5 - - - . . | E5 . E5 . B5 . B5 . | A5 . G5 . F#5 . E5 . | D5 . E5 . F#5 . G5 . | A5 . B5 - - - . . | B5 . C6 . B5 . A5 . | G5 . F#5 . E5 . D5 . | E5 . F#5 . G5 . A5 . | G5 . F#5 . E5 - - . | B5 - A5 . G5 . F#5 . | E5 . D5 . G5 - F#5 G5 | A5 - B5 . C6 . B5 A5 | G5 . F#5 . E5 - - .' }),
+};
+let musicOn = true, musGain = null, noiseBuf = null, wantMusic = null, duck = false;
+const mus = { name:null, step:0, next:0 };
+try { const pref = JSON.parse(localStorage.getItem('qt-audio') || '{}'); if (pref.music === false) musicOn = false; if (pref.sfx === false) soundOn = false; } catch(_){}
+function saveAudio(){ try { localStorage.setItem('qt-audio', JSON.stringify({ music:musicOn, sfx:soundOn })); } catch(_){} }
+function musInit(){
+  if (musGain || !AC) return;
+  musGain = AC.createGain(); musGain.gain.value = .7; musGain.connect(AC.destination);
+  noiseBuf = AC.createBuffer(1, Math.floor(AC.sampleRate * .3), AC.sampleRate);
+  const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+function mtone(f, t, dur, type, vol){
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .006);
+  g.gain.setValueAtTime(vol, t + dur * .65); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(musGain); o.start(t); o.stop(t + dur + .02);
+}
+function mdrum(k, t){
+  if (k === 'k'){
+    const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + .12);
+    g.gain.setValueAtTime(.32, t); g.gain.exponentialRampToValueAtTime(.001, t + .14);
+    o.connect(g).connect(musGain); o.start(t); o.stop(t + .16);
+  } else if (k === 's' || k === 'h'){
+    const src = AC.createBufferSource(), fl = AC.createBiquadFilter(), g = AC.createGain(), dur = k === 's' ? .12 : .04;
+    src.buffer = noiseBuf; fl.type = k === 's' ? 'bandpass' : 'highpass'; fl.frequency.value = k === 's' ? 1800 : 7000;
+    g.gain.setValueAtTime(k === 's' ? .16 : .05, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    src.connect(fl).connect(g).connect(musGain); src.start(t); src.stop(t + dur + .01);
+  }
+}
+function musTick(){
+  if (!AC || AC.state !== 'running') return;
+  musInit();
+  const name = musicOn ? wantMusic : null;
+  if (name !== mus.name){ mus.name = name; mus.step = 0; mus.next = AC.currentTime + .06; }
+  musGain.gain.setTargetAtTime(duck ? .25 : .7, AC.currentTime, .15);
+  if (!name) return;
+  if (mus.next < AC.currentTime - .1) mus.next = AC.currentTime + .05;
+  const tr = TRACKS[name];
+  while (mus.next < AC.currentTime + .15){
+    const st = tr.steps[mus.step], t = mus.next;
+    if (st.lead) mtone(st.lead.f, t, (st.lead.end - st.lead.step) * tr.sd * .92, 'square', .045);
+    if (st.bass) mtone(st.bass, t, tr.sd * .85, 'triangle', .14);
+    if (st.drum && st.drum !== '.') mdrum(st.drum, t);
+    mus.next += tr.sd; mus.step = (mus.step + 1) % tr.len;
+  }
+}
+setInterval(musTick, 25);
+function syncAudioBtns(){
+  const m = $('#btnMusic'), b = $('#btnSound');
+  m.setAttribute('aria-pressed', musicOn); m.setAttribute('aria-label', musicOn ? 'Musique activée' : 'Musique coupée');
+  b.setAttribute('aria-pressed', soundOn); b.setAttribute('aria-label', soundOn ? 'Effets sonores activés' : 'Effets sonores coupés');
+}
+$('#btnSound').onclick = () => { soundOn = !soundOn; syncAudioBtns(); saveAudio(); unlockAudio(); };
+$('#btnMusic').onclick = () => { musicOn = !musicOn; syncAudioBtns(); saveAudio(); unlockAudio(); };
+syncAudioBtns();
+
+/* ================== HUD ================== */
+function heartsHTML(n, max){
+  let s = '';
+  for (let i = 0; i < max; i++) s += `<svg class="heart" viewBox="0 0 7 6" width="17" height="15" shape-rendering="crispEdges" aria-hidden="true"><g class="${i < n ? 'on' : 'off'}"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>`;
+  return s;
+}
+function updateHUD(){
+  const W = WORLDS[world];
+  $('#hudWorld').textContent = W.name; $('#hudWorldTitle').textContent = W.title;
+  const h = heartsHTML(hp, maxHp);
+  $('#hudHearts').innerHTML = h; $('#hudHearts').setAttribute('aria-label', `${hp} cœurs sur ${maxHp}`);
+  $('#bossHearts').innerHTML = h;
+  $('#hudLvl').textContent = lvl;
+  $('#hudXp').style.width = Math.min(100, xp / need() * 100) + '%';
+  $('#hudOk').textContent = stats.ok; $('#hudCoins').textContent = getWallet(); $('#hudTot').textContent = stats.tot;
+}
+let toastT = 0;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200); }
+function addFloat(text, x, y, color){ floats.push({ text, x, y, life:60, color:color || INK }); }
+function addXP(n, x, y){
+  xp += n; if (x != null) addFloat(`+${n} XP`, x, y, TEAL);
+  let up = false;
+  while (xp >= need()){ xp -= need(); lvl++; maxHp = Math.min(HP_CAP, maxHp + 1); hp = maxHp; up = true; }
+  if (up){ sfx('lvl'); toast(`Niveau ${lvl} ! +1 cœur (${maxHp})`); }
+  updateHUD();
+}
+function hurt(n, quiet){
+  hp = Math.max(0, hp - n); updateHUD();
+  if (!quiet){ sfx('hurt'); P.inv = 90; if (hp <= 0) gameOver(false); }
+}
+const HP_CAP = 10;
+function gainHeart(){ if (hp >= HP_CAP) return false; hp++; if (hp > maxHp) maxHp = hp; updateHUD(); return true; }
+
+/* ================== Physique ================== */
+const ACC = .32, MAXV = 2.3, GRAV = .38, JUMP = -6.7;
+function moveX(o){
+  o.x += o.vx; o.hitWall = false;
+  const top = Math.floor(o.y / TS), bot = Math.floor((o.y + o.h - .01) / TS);
+  if (o.vx > 0){ const c = Math.floor((o.x + o.w - .01) / TS);
+    for (let r = top; r <= bot; r++) if (solid(c, r)){ o.x = c*TS - o.w; o.vx = 0; o.hitWall = true; break; } }
+  else if (o.vx < 0){ const c = Math.floor(o.x / TS);
+    for (let r = top; r <= bot; r++) if (solid(c, r)){ o.x = (c+1)*TS; o.vx = 0; o.hitWall = true; break; } }
+}
+function moveY(o){
+  o.y += o.vy; o.onGround = false;
+  const l = Math.floor(o.x / TS), r = Math.floor((o.x + o.w - .01) / TS);
+  if (o.vy >= 0){ const row = Math.floor((o.y + o.h) / TS);
+    for (let c = l; c <= r; c++) if (solid(c, row)){ o.y = row*TS - o.h; o.vy = 0; o.onGround = true; break; } }
+  else { const row = Math.floor(o.y / TS); let hit = -1, best = 1e9;
+    for (let c = l; c <= r; c++) if (solid(c, row)){ const d = Math.abs((c + .5)*TS - (o.x + o.w/2)); if (d < best){ best = d; hit = c; } }
+    if (hit >= 0){ o.y = (row + 1)*TS; o.vy = 0; if (o === P) bumpTile(hit, row); } }
+}
+function bumpTile(c, r){
+  const t = tile(c, r);
+  if (t === 3){ LV.g[r][c] = 4; bumps.push({ c, r, t:10 }); pendingQ = 14; sfx('bump'); addFloat('?', c*TS + 5, r*TS - 4, AMBER); }
+  else if (t === 2){ LV.g[r][c] = 0; sfx('bump'); addCoins(1, c*TS + 2, r*TS - 4);
+    for (let i = 0; i < 4; i++) parts.push({ x:c*TS + 8, y:r*TS + 8, vx:(i%2 ? 1.4 : -1.4), vy:-3 - (i>1 ? 1.5 : 0), life:50 }); }
+  else sfx('bump');
+}
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function respawn(){
+  let c = Math.floor(P.x / TS) - 2;
+  while (c > 1 && !(tile(c,13) === 1 && tile(c+1,13) === 1 && !solid(c,12) && !solid(c,11) && !solid(c+1,12) && !solid(c+1,11))) c--;
+  if (c < 1) c = 2;
+  Object.assign(P, { x:c*TS + 2, y:10*TS, vx:0, vy:0, inv:90 });
+}
+
+function step(){
+  frame++;
+  const L = keys.left, Rt = keys.right;
+  if (L && !Rt){ P.vx -= ACC; P.face = -1; }
+  else if (Rt && !L){ P.vx += ACC; P.face = 1; }
+  else { P.vx *= P.onGround ? .74 : .94; if (Math.abs(P.vx) < .05) P.vx = 0; }
+  const mv = MAXV * (RACE.turbo > 0 ? 1.4 : 1); if (RACE.turbo > 0) RACE.turbo--;
+  P.vx = Math.max(-mv, Math.min(mv, P.vx));
+  if (keys.jumpPressed){ P.jumpBuf = 7; keys.jumpPressed = false; }
+  if (P.jumpBuf > 0) P.jumpBuf--;
+  if (P.onGround) P.coyote = 6; else if (P.coyote > 0) P.coyote--;
+  if (P.jumpBuf > 0 && P.coyote > 0){ P.vy = JUMP; P.jumpBuf = 0; P.coyote = 0; P.onGround = false; sfx('jump'); }
+  if (!keys.jump && P.vy < -2.4) P.vy = -2.4;
+  P.vy = Math.min(P.vy + GRAV, 7);
+  moveX(P); if (P.x < 0){ P.x = 0; P.vx = 0; }
+  moveY(P);
+  if (P.inv > 0) P.inv--;
+
+  if (P.y > ROWS*TS + 30){ addFloat('−1 ♥', P.x, (ROWS-3)*TS, RED); hurt(1, true); sfx('hurt'); if (hp <= 0){ gameOver(false); return; } respawn(); }
+
+  for (const e of enemies){
+    if (e.dead) continue;
+    if (e.squish > 0){ if (--e.squish === 0) e.dead = true; continue; }
+    if (e.x < camX - 80 || e.x > camX + VW + 140) continue;
+    e.vy = Math.min(e.vy + GRAV, 7);
+    const dir = Math.sign(e.vx) || -1;
+    moveX(e); if (e.hitWall) e.vx = -dir * 0.45;
+    moveY(e);
+    if (e.onGround){ const ahead = e.vx > 0 ? Math.floor((e.x + e.w + 1) / TS) : Math.floor((e.x - 1) / TS);
+      if (!solid(ahead, Math.floor((e.y + e.h + 1) / TS))) e.vx = -e.vx; }
+    if (e.y > ROWS*TS + 20){ e.dead = true; continue; }
+    if (overlap(P, e)){
+      if (P.vy > 0 && (P.y + P.h) - e.y < 9){ e.squish = 24; P.vy = keys.jump ? -6 : -4.2; sfx('stomp'); addXP(10, e.x, e.y - 6); }
+      else if (P.inv === 0){ hurt(1); if (state !== 'play') return; P.vy = -3.2; P.vx = (P.x < e.x ? -1 : 1) * 2.4; addFloat('−1 ♥', P.x, P.y - 6, RED); }
+    }
+  }
+  collectCoins();
+  for (const b of bumps) b.t--; bumps = bumps.filter(b => b.t > 0);
+  for (const p of parts){ p.x += p.vx; p.y += p.vy; p.vy += .3; p.life--; } parts = parts.filter(p => p.life > 0);
+  for (const f of floats){ f.y -= .5; f.life--; } floats = floats.filter(f => f.life > 0);
+
+  if (pendingQ > 0 && --pendingQ === 0){ openQuestion(); return; }
+  if (P.x + P.w/2 >= LV.doorX + 8 && P.onGround){ startBoss(); return; }
+}
+
+/* ================== Rendu ================== */
+const cv = $('#cv'), ctx = cv.getContext('2d'), stage = $('#stage');
+let scale = 1, VW = 400;
+function resize(){
+  const cw = stage.clientWidth || 360;
+  const reserve = (window.QE_DUO || /[?&]duo\b/.test(location.search)) ? 60 : isTouch ? 250 : 180;
+  const maxH = Math.max(200, Math.min(540, window.innerHeight - reserve));
+  const ch = Math.round(Math.min(cw * (cw < 620 ? .78 : .56), maxH));
+  cv.style.height = ch + 'px';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  scale = cv.height / VH; VW = cv.width / scale;
+}
+new ResizeObserver(resize).observe(stage);
+addEventListener('resize', resize);
+
+let TH = WORLDS[0].theme;
+function hash(n){ n = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b); n ^= n >>> 13; n = Math.imul(n, 0xc2b2ae35); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; }
+const tri = t => { t = ((t % 1) + 1) % 1; return 1 - Math.abs(t * 2 - 1); };
+function ridge(par, period, baseY, amp, color, step, sharp){
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, VH);
+  const off = par % step;
+  for (let x = -off; x <= VW + step; x += step){
+    const wx = Math.round(x + par);
+    const h = sharp ? tri(wx / period) * .7 + tri(wx / (period * .43) + .3) * .3
+                    : (Math.sin(wx / period * Math.PI * 2) * .5 + .5) * .6 + (Math.sin(wx / (period * .37) + 1.3) * .5 + .5) * .4;
+    const y = Math.round((baseY - amp * h) / 2) * 2;
+    ctx.lineTo(x, y); ctx.lineTo(x + step, y);
+  }
+  ctx.lineTo(VW + step, VH); ctx.closePath(); ctx.fill();
+}
+function drawCloud(x, y, s, th){
+  ctx.fillStyle = th.cloudShade; ctx.fillRect(x + 2*s, y + 6*s, 30*s, 6*s);
+  ctx.fillStyle = th.cloud;
+  ctx.fillRect(x, y + 4*s, 34*s, 6*s); ctx.fillRect(x + 6*s, y, 12*s, 6*s); ctx.fillRect(x + 17*s, y + 2*s, 11*s, 4*s); ctx.fillRect(x + 3*s, y + 2*s, 5*s, 4*s);
+}
+function snowLayer(cx, now, n, size, speed, par, alpha){
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+  const span = VW + 20;
+  for (let i = 0; i < n; i++){
+    const fall = (now * speed * (.6 + hash(i + 900) * .8) + hash(i + 800) * (VH + 10)) % (VH + 10);
+    const x = (((hash(i + 700) * 1000 - cx * par + Math.sin(now / 900 + i) * 10) % span) + span) % span - 10;
+    ctx.fillRect(Math.round(x), Math.round(fall - 5), size, size);
+  }
+}
+function drawPine(x, base, h, col, snow){
+  for (let i = 0; i < 3; i++){
+    const w = h * (.42 - i * .1), yb = base - h * (.18 + i * .26), yt = yb - h * .36;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x - w, yb); ctx.lineTo(x, yt); ctx.lineTo(x + w, yb); ctx.closePath(); ctx.fill();
+    if (snow){ ctx.fillStyle = snow; ctx.beginPath(); ctx.moveTo(x - w * .35, yt + h * .13); ctx.lineTo(x, yt); ctx.lineTo(x + w * .35, yt + h * .13); ctx.closePath(); ctx.fill(); }
+  }
+  ctx.fillStyle = '#4a3326'; ctx.fillRect(x - 1.5, base - h * .18, 3, h * .18);
+}
+const BULBS = ['#ff4d4d', '#4ade80', '#ffd34d', '#5ab0ff', '#ff8af0'];
+function bulb(x, y, i, now){
+  const on = (Math.floor(now / 400) + i) % 3 !== 0;
+  ctx.fillStyle = on ? BULBS[i % BULBS.length] : '#3a3f4f'; ctx.fillRect(Math.round(x) - 1, Math.round(y), 3, 3);
+  if (on){ ctx.globalAlpha = .25; ctx.fillRect(Math.round(x) - 2, Math.round(y) - 1, 5, 5); ctx.globalAlpha = 1; }
+}
+function drawHouseH(x, base, w, h, wall, roof, k, now){
+  ctx.fillStyle = wall; ctx.fillRect(x, base - h, w, h);
+  const rt = base - h - h * .55;
+  ctx.fillStyle = roof; ctx.beginPath(); ctx.moveTo(x - 4, base - h); ctx.lineTo(x + w / 2, rt); ctx.lineTo(x + w + 4, base - h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f6fbff'; ctx.beginPath(); ctx.moveTo(x - 5, base - h + 1); ctx.lineTo(x + w / 2, rt - 2); ctx.lineTo(x + w + 5, base - h + 1); ctx.lineTo(x + w + 5, base - h + 3); ctx.lineTo(x + w / 2, rt + 3); ctx.lineTo(x - 5, base - h + 3); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd36b'; ctx.fillRect(x + 4, base - h + 7, 6, 6); ctx.fillRect(x + w - 10, base - h + 7, 6, 6);
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x + w / 2 - 3, base - 10, 6, 10);
+  for (let i = 0; i <= 6; i++){ const t = i / 6; bulb(x - 3 + t * (w / 2 + 3), base - h + 2 - t * (h * .55) , i + k, now); bulb(x + w / 2 + t * (w / 2 + 3), rt + 2 + t * (h * .55), i + k + 3, now); }
+}
+function drawGarland(cx, now){
+  const par = cx * .15, step = 3;
+  ctx.strokeStyle = 'rgba(30,40,30,.7)'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let x = -step; x <= VW + step; x += step){ const y = 16 + 7 * Math.sin((x + par) / 38); x === -step ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+  ctx.stroke();
+  const gap = 19, off = ((par % gap) + gap) % gap;
+  for (let x = -off, i = Math.floor(par / gap); x <= VW + gap; x += gap, i++) bulb(x, 16 + 7 * Math.sin((x + par) / 38), i, now);
+}
+function drawAurora(cx, now){
+  const cols = [['74,222,128', 0], ['94,234,212', 1.8], ['244,114,182', 3.6]];
+  for (const [c, ph] of cols){
+    const g = ctx.createLinearGradient(0, 20, 0, 110);
+    g.addColorStop(0, `rgba(${c},0)`); g.addColorStop(.45, `rgba(${c},.32)`); g.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = g; ctx.beginPath();
+    const top = x => 40 + 16 * Math.sin((x + cx * .05) / 70 + now / 2600 + ph) + 8 * Math.sin((x) / 23 + now / 1700 + ph);
+    ctx.moveTo(0, top(0));
+    for (let x = 0; x <= VW + 6; x += 6) ctx.lineTo(x, top(x));
+    for (let x = VW + 6; x >= 0; x -= 6) ctx.lineTo(x, top(x) + 46);
+    ctx.closePath(); ctx.fill();
+  }
+}
+function drawBackdrop(cx, now){
+  const th = TH;
+  const sky = ctx.createLinearGradient(0, 0, 0, VH);
+  sky.addColorStop(0, th.skyTop); sky.addColorStop(1, th.skyBot);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, VW + 1, VH);
+  if (th.stars){
+    ctx.fillStyle = th.stars; const span = VW + 20;
+    for (let i = 0; i < 50; i++){
+      const sx = (((hash(i) * 900 - cx * .04) % span) + span) % span, sy = hash(i + 99) * 130;
+      const tw = (Math.floor(now / 450 + i * 3) % 6) ? 1 : 2; ctx.fillRect(Math.round(sx), Math.round(sy), tw, tw);
+    }
+  }
+  if (th.aurora) drawAurora(cx, now);
+  if (th.sun){
+    const sx = Math.round(VW * .78 - cx * .02), sy = th.sunY;
+    ctx.fillStyle = th.sunGlow; ctx.beginPath(); ctx.arc(sx, sy, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = th.sun; ctx.beginPath(); ctx.arc(sx, sy, 17, 0, Math.PI * 2); ctx.fill();
+  }
+  if (th.moon){
+    const mx = Math.round(VW * .8 - cx * .02), my = 36;
+    const halo = ctx.createRadialGradient(mx, my, 8, mx, my, 56);
+    halo.addColorStop(0, 'rgba(230,240,255,.3)'); halo.addColorStop(1, 'rgba(230,240,255,0)');
+    ctx.fillStyle = halo; ctx.fillRect(mx - 56, my - 56, 112, 112);
+    ctx.save(); ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = '#f4f1e1'; ctx.beginPath(); ctx.arc(mx, my, 14, 0, Math.PI * 2); ctx.arc(mx + 6, my - 4, 12, 0, Math.PI * 2); ctx.fill('evenodd'); ctx.restore();
+  }
+  if (th.cloud){
+    const cpar = cx * .18 + now * .006, cper = 200;
+    for (let k = Math.floor(cpar / cper) - 1; k * cper - cpar < VW + 80; k++)
+      drawCloud(Math.round(k * cper - cpar + hash(k) * 60), Math.round(14 + hash(k + 7) * 50), 1 + (hash(k + 3) < .4 ? 1 : 0), th);
+  }
+  snowLayer(cx, now, Math.round((th.flakes || 30) * .8), 1, .018, .15, .7);
+  const sharp = th.kind === 'sommet';
+  ridge(cx * .12, sharp ? 170 : 150, 198, sharp ? 150 : 96, th.far, 4, 1);
+  if (th.kind === 'lac'){
+    ctx.fillStyle = '#dbe7f8'; ctx.fillRect(0, 176, VW + 1, 40);
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    for (let i = 0; i < 14; i++){ const x = (((hash(i + 40) * 900 - cx * .3) % (VW + 60)) + VW + 60) % (VW + 60) - 30; ctx.fillRect(Math.round(x), 182 + Math.round(hash(i + 41) * 22), 18 + Math.round(hash(i + 42) * 20), 1); }
+  }
+  if (th.kind === 'foret'){
+    const per = 22, par = cx * .3;
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 30; k++) drawPine(Math.round(k * per - par + hash(k + 60) * 10), 206, 40 + hash(k + 61) * 30, th.mid, 'rgba(230,240,250,.85)');
+  } else ridge(cx * .3, 110, 206, sharp ? 50 : 36, th.mid, 4, 0);
+  if (th.kind === 'village'){
+    const per = 120, par = cx * .35, walls = ['#c8102e', '#1e5aa8', '#1f7a4d', '#d98a1f', '#7a3e9d'];
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 80; k++){
+      const x = Math.round(k * per - par + hash(k + 20) * 40);
+      drawHouseH(x, 200, 34 + Math.round(hash(k + 21) * 12), 24, walls[Math.abs(k) % walls.length], '#3b2a20', k, now);
+      if (hash(k + 22) > .4) drawPine(x + 60, 202, 34, '#1f6b45', '#f6fbff');
+    }
+  }
+  if (th.kind === 'atelier'){
+    const per = 170, par = cx * .33;
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 100; k++){
+      const x = Math.round(k * per - par + hash(k + 30) * 50);
+      ctx.fillStyle = '#5a2a3a'; ctx.fillRect(x + 30, 150, 10, 40);
+      for (let j = 0; j < 4; j++){ const t = ((now / 2600 + j * .25 + hash(k)) % 1); ctx.fillStyle = `rgba(240,240,250,${.5 * (1 - t)})`; ctx.beginPath(); ctx.arc(x + 35 + Math.sin(t * 6 + k) * 4 + t * 10, 148 - t * 50, 4 + t * 8, 0, Math.PI * 2); ctx.fill(); }
+      drawHouseH(x, 202, 56, 32, '#8b2332', '#2c1f1a', k, now);
+    }
+  }
+  ridge(cx * .5, 70, 213, 16, th.near, 4, 0);
+  if (th.kind === 'foret' || th.kind === 'sommet'){
+    const per = 90, par = cx * .5;
+    for (let k = Math.floor(par / per) - 1; k * per - par < VW + 30; k++) if (hash(k + 80) > .45) drawPine(Math.round(k * per - par + hash(k + 81) * 30), 212, 22 + hash(k + 82) * 10, '#1b5e3f', '#ffffff');
+  }
+  if (th.lights) drawGarland(cx, now);
+}
+function drawSnowFG(cx, now){ snowLayer(cx, now, Math.round((TH.flakes || 30) * .45), 2, .045, .9, .9); }
+function drawRule(x, y, base, exp, col){
+  ctx.lineWidth = 3; ctx.strokeStyle = TH.outline; ctx.fillStyle = col; ctx.lineJoin = 'round';
+  ctx.font = 'italic 700 10px "Atkinson Hyperlegible", system-ui, sans-serif';
+  const pre = 'y = ' + base; ctx.strokeText(pre, x, y); ctx.fillText(pre, x, y);
+  if (exp){ const w = ctx.measureText(pre).width; ctx.font = 'italic 700 7px "Atkinson Hyperlegible", system-ui, sans-serif'; ctx.strokeText(exp, x + w + 1, y - 5); ctx.fillText(exp, x + w + 1, y - 5); }
+}
+function drawTile(t, x, y, c, r){
+  switch (t){
+    case 1:
+      ctx.fillStyle = '#5b4636'; ctx.fillRect(x, y, TS + .4, TS + .4);
+      ctx.fillStyle = '#46352a'; ctx.fillRect(x + 3 + (c*7) % 8, y + 7 + (c*3 + r) % 6, 2, 2); ctx.fillRect(x + 10 - (c*5) % 6, y + 11 - (r*2) % 4, 2, 2);
+      if (tile(c, r-1) !== 1){
+        ctx.fillStyle = '#f7fbff'; ctx.fillRect(x, y - 1, TS + .4, 6);
+        ctx.fillStyle = '#c7d9ec'; ctx.fillRect(x, y + 5, TS + .4, 1.5);
+        ctx.fillStyle = '#f7fbff'; ctx.fillRect(x + (c*5) % 12, y + 5, 3, 2.5); ctx.fillRect(x + (c*11 + 7) % 13, y + 5, 2, 2);
+        if ((c * 7 + frame >> 4) % 23 === 0){ ctx.fillStyle = '#ffffff'; ctx.fillRect(x + (c * 3) % 14, y, 1, 1); }
+      }
+      break;
+    case 2:
+      ctx.fillStyle = '#9fd3f0'; ctx.fillRect(x, y, TS, TS);
+      ctx.fillStyle = '#d6f0fd'; ctx.fillRect(x + 1, y + 1, TS - 2, TS - 2);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 2, y + 2, 5, 2); ctx.fillRect(x + 2, y + 2, 2, 5);
+      ctx.fillStyle = '#8cc4e6'; ctx.fillRect(x + 9, y + 9, 4, 1); ctx.fillRect(x + 11, y + 10, 1, 3);
+      break;
+    case 3: {
+      const bob = Math.floor(frame / 20) % 2;
+      ctx.fillStyle = '#7a0a1c'; ctx.fillRect(x, y + 1, TS, TS - 1);
+      ctx.fillStyle = '#c8102e'; ctx.fillRect(x + 1, y + 2, TS - 2, TS - 3);
+      ctx.fillStyle = '#f2b134'; ctx.fillRect(x + 7, y + 2, 2, TS - 3); ctx.fillRect(x + 1, y + 7, TS - 2, 2);
+      ctx.fillRect(x + 4, y - 1, 3, 3); ctx.fillRect(x + 9, y - 1, 3, 3);
+      ctx.font = '700 10px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = '#5a0614';
+      ctx.strokeText('?', x + 8, y + 12 - bob); ctx.fillStyle = '#ffffff'; ctx.fillText('?', x + 8, y + 12 - bob); ctx.textAlign = 'left';
+      break; }
+    case 4:
+      ctx.fillStyle = '#6b5a4a'; ctx.fillRect(x, y + 3, TS, TS - 3);
+      ctx.fillStyle = '#9a8670'; ctx.fillRect(x + 1, y + 4, TS - 2, TS - 5);
+      ctx.fillStyle = '#7d6b58'; ctx.fillRect(x - 1, y, TS + 2, 3);
+      break;
+    case 5:
+      ctx.fillStyle = '#e9f2fb'; ctx.fillRect(x, y, TS + .4, TS + .4);
+      if (tile(c, r-1) !== 5){ ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, TS + .4, 3); }
+      ctx.fillStyle = '#cfe0f0'; ctx.fillRect(x, y + TS - 1, TS, 1); ctx.fillRect(x + 4, y + 7, 3, 1); ctx.fillRect(x + 10, y + 11, 3, 1);
+      break;
+    case 6:
+      ctx.fillStyle = '#7a0a1c'; ctx.fillRect(x, y, TS + .4, TS - 4);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y + 1, TS + .4, TS - 6);
+      ctx.fillStyle = '#c8102e'; for (let i = -1; i < 4; i++){ const sx = x + i * 5 + ((c * 16) % 5); ctx.beginPath(); ctx.moveTo(sx, y + 1); ctx.lineTo(sx + 3, y + 1); ctx.lineTo(sx + 6, y + TS - 5); ctx.lineTo(sx + 3, y + TS - 5); ctx.closePath(); ctx.fill(); }
+      break;
+  }
+}
+function drawCastle(){
+  const x0 = LV.castleC * TS, top = 8 * TS, now = performance.now();
+  ctx.fillStyle = '#7a1f2b'; ctx.fillRect(x0, top, 7 * TS, 5 * TS);
+  ctx.fillStyle = '#5e1621'; for (let r = 0; r < 5; r++) ctx.fillRect(x0, top + r * TS + 13, 7 * TS, 2);
+  ctx.fillStyle = '#8a3b2b'; ctx.fillRect(x0 + 5 * TS, top - 3 * TS - 4, TS, 2 * TS);
+  for (let j = 0; j < 5; j++){ const t = ((now / 2400 + j * .2) % 1); ctx.fillStyle = `rgba(235,235,245,${.55 * (1 - t)})`; ctx.beginPath(); ctx.arc(x0 + 5.5 * TS + Math.sin(t * 7) * 4 + t * 12, top - 3 * TS - 8 - t * 60, 3 + t * 9, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = '#3b2a20'; ctx.beginPath(); ctx.moveTo(x0 - 10, top); ctx.lineTo(x0 + 3.5 * TS, top - 3 * TS); ctx.lineTo(x0 + 7 * TS + 10, top); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f6fbff'; ctx.beginPath(); ctx.moveTo(x0 - 12, top + 1); ctx.lineTo(x0 + 3.5 * TS, top - 3 * TS - 3); ctx.lineTo(x0 + 7 * TS + 12, top + 1); ctx.lineTo(x0 + 7 * TS + 12, top + 5); ctx.lineTo(x0 + 3.5 * TS, top - 3 * TS + 4); ctx.lineTo(x0 - 12, top + 5); ctx.closePath(); ctx.fill();
+  for (let i = 0; i <= 12; i++){ const t = i / 12; bulb(x0 - 10 + t * (3.5 * TS + 10), top + 4 - t * 3 * TS, i, now); bulb(x0 + 3.5 * TS + t * (3.5 * TS + 10), top - 3 * TS + 4 + t * 3 * TS, i + 5, now); }
+  ctx.fillStyle = '#ffd36b'; ctx.fillRect(x0 + TS, top + TS, TS, TS); ctx.fillRect(x0 + 5 * TS, top + TS, TS, TS);
+  ctx.fillStyle = '#5e1621'; ctx.fillRect(x0 + 1.5 * TS - 1, top + TS, 2, TS); ctx.fillRect(x0 + 5.5 * TS - 1, top + TS, 2, TS); ctx.fillRect(x0 + TS, top + 1.5 * TS - 1, TS, 2); ctx.fillRect(x0 + 5 * TS, top + 1.5 * TS - 1, TS, 2);
+  ctx.fillStyle = '#2a140f'; ctx.fillRect(LV.doorX - 2, 11 * TS - 2, TS + 4, 2 * TS + 2); ctx.beginPath(); ctx.arc(LV.doorX + 8, 11 * TS - 2, 10, Math.PI, 0); ctx.fill();
+  ctx.strokeStyle = '#1f7a4d'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(LV.doorX + 8, 11 * TS - 4, 5, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#c8102e'; ctx.fillRect(LV.doorX + 6, 11 * TS + 1, 4, 3);
+  // sapin de Noël avec étoile
+  const fx = LV.flagC * TS + 8;
+  for (let i = 0; i < 4; i++){ const w = 26 - i * 6, yb = 13 * TS - 4 - i * 26; ctx.fillStyle = '#1f6b45'; ctx.beginPath(); ctx.moveTo(fx - w, yb); ctx.lineTo(fx, yb - 34); ctx.lineTo(fx + w, yb); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#f6fbff'; ctx.fillRect(fx - w + 2, yb - 2, 2 * w - 4, 2); }
+  ctx.fillStyle = '#4a3326'; ctx.fillRect(fx - 3, 13 * TS - 4, 6, 4);
+  for (let i = 0; i < 14; i++) bulb(fx - 18 + hash(i + 300) * 36 * (1 - i / 16), 13 * TS - 12 - i * 7, i, now);
+  const sy = 13 * TS - 4 - 3 * 26 - 36, glow = .6 + Math.sin(now / 300) * .3;
+  ctx.fillStyle = `rgba(255,220,90,${glow * .4})`; ctx.beginPath(); ctx.arc(fx, sy, 9, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd34d'; ctx.beginPath(); for (let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, rr2 = i % 2 ? 2.6 : 6; ctx.lineTo(fx + Math.cos(a) * rr2, sy + Math.sin(a) * rr2); } ctx.closePath(); ctx.fill();
+  ctx.font = '700 8px "Pixelify Sans", monospace'; ctx.lineWidth = 3; ctx.strokeStyle = TH.outline; ctx.strokeStyle = '#2a140f'; ctx.strokeText('BOSS →', LV.doorX - 12, 10 * TS - 6); ctx.fillStyle = '#ffd36b'; ctx.fillText('BOSS →', LV.doorX - 12, 10 * TS - 6);
+}
+function drawPlayer(){
+  if (P.inv > 0 && Math.floor(P.inv / 4) % 2 === 0) return;
+  drawPlayerHero();
+}
+function render(){
+  const th = TH = WORLDS[world].theme;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = th.skyBot; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  if (!LV) return;
+  const cx = Math.round(camX * scale) / scale;
+  drawBackdrop(cx, performance.now());
+  ctx.save(); ctx.translate(-cx, 0);
+  for (const l of LV.labels) if (l.x > cx - 120 && l.x < cx + VW + 20) drawRule(l.x, l.y, l.base, l.exp, th.label);
+  if (LV.castleC * TS - 60 < cx + VW) drawCastle();
+  const c0 = Math.max(0, Math.floor(cx / TS)), c1 = Math.min(LV.W - 1, Math.ceil((cx + VW) / TS));
+  for (let c = c0; c <= c1; c++) if (!LV.g[13][c]){ const pg = ctx.createLinearGradient(0, 13 * TS, 0, VH); pg.addColorStop(0, 'rgba(10,22,40,.55)'); pg.addColorStop(1, 'rgba(10,22,40,.95)'); ctx.fillStyle = pg; ctx.fillRect(c * TS, 13 * TS + 2, TS + .4, 2 * TS); }
+  for (let r = 0; r < ROWS; r++) for (let c = c0; c <= c1; c++){
+    const t = LV.g[r][c]; if (!t) continue;
+    let oy = 0; for (const b of bumps) if (b.c === c && b.r === r) oy = -Math.sin((10 - b.t) / 10 * Math.PI) * 5;
+    drawTile(t, c*TS, r*TS + oy, c, r);
+  }
+  drawCoins();
+  for (const e of enemies) if (!e.dead && e.x > cx - 20 && e.x < cx + VW + 20) drawEnemy(e);
+  drawPlayer();
+  drawGhosts();
+  ctx.fillStyle = BRICK; for (const p of parts) ctx.fillRect(p.x, p.y, 4, 4);
+  ctx.font = '700 9px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = th.outline;
+  for (const f of floats){ ctx.globalAlpha = Math.min(1, f.life / 20); ctx.strokeText(f.text, f.x + 6, f.y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x + 6, f.y); }
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  ctx.restore();
+  drawSnowFG(cx, performance.now());
+}
+
+/* ================== Questions ================== */
+function stopTimer(){ if (qTimer){ clearInterval(qTimer); qTimer = null; } }
+function renderQuestion(el, q, onAnswer, onContinue){
+  stopTimer();
+  const timed = timeLimit > 0;
+  el.innerHTML = `${timed ? `<div class="timer" role="timer" aria-label="Temps restant"><div class="timer-bar"><i></i></div><span class="timer-num">${timeLimit} s</span></div>` : ''}
+    <div class="q-topic">${q.topic}</div><div class="q-text">${q.q}</div>
+    <div class="choices">${q.choices.map((c, i) => `<button class="choice" data-i="${i}"><span class="key">${i+1}</span><span class="ct">${c}</span></button>`).join('')}</div>
+    <div class="feedback" hidden></div>`;
+  const btns = [...el.querySelectorAll('.choice')], fb = el.querySelector('.feedback');
+  let done = false;
+  const answer = i => {
+    if (done || i >= btns.length) return; done = true; activeAnswer = null; stopTimer();
+    const timedOut = i < 0, ok = i === q.answer;
+    btns.forEach((b, j) => { b.disabled = true; if (j === q.answer) b.classList.add('ok'); else if (j === i) b.classList.add('bad'); });
+    record(q.topic, ok);
+    const extra = onAnswer(ok) || '';
+    const head = ok ? 'Bonne réponse !' : timedOut ? 'Temps écoulé !' : 'Pas tout à fait.';
+    fb.innerHTML = `<p class="verdict ${ok ? 'ok' : 'bad'}">${head} <small>${extra}</small></p>
+      <p class="expl">${q.expl}</p><button class="btn primary">Continuer</button>`;
+    fb.hidden = false;
+    const cb = fb.querySelector('button');
+    cb.onclick = () => { stopTimer(); onContinue(ok); };
+    cb.focus({ preventScroll:true });
+    fb.scrollIntoView({ block:'nearest' });
+  };
+  btns.forEach(b => b.onclick = () => answer(+b.dataset.i));
+  activeAnswer = answer;
+  if (timed){
+    const tEl = el.querySelector('.timer'), bar = tEl.querySelector('i'), numEl = tEl.querySelector('.timer-num');
+    let left = timeLimit, last = performance.now(), lastSec = timeLimit;
+    qTimer = setInterval(() => {
+      const now = performance.now(), dt = (now - last) / 1000; last = now;
+      if (document.hidden) return;
+      left = Math.max(0, left - dt);
+      bar.style.width = (left / timeLimit * 100) + '%';
+      const sec = Math.ceil(left);
+      if (sec !== lastSec){ lastSec = sec; numEl.textContent = sec + ' s'; if (sec <= 3 && sec > 0) sfx('tick'); }
+      tEl.classList.toggle('warn', left <= 5);
+      if (left <= 0) answer(-1);
+    }, 100);
+  }
+}
+function openQuestion(){
+  state = 'question'; clearKeys();
+  const ov = $('#qov'); ov.hidden = false; ov.scrollTop = 0;
+  renderQuestion($('#qcard'), genQ(world), ok => {
+    if (ok){ sfx('ok'); const g = gainHeart(); addXP(30, P.x, P.y - 10); addCoins(5, P.x, P.y - 22); if (RACE.on) RACE.turbo = 360; return (g ? '+30 XP, +1 cœur' : '+30 XP') + ' et +5 pièces' + (RACE.on ? ' · TURBO pendant 6 s !' : ''); }
+    sfx('bad'); hurt(1, true); return hp > 0 ? 'Tu perds 1 cœur. Lis l’explication :' : 'Tu n’as plus de cœurs…';
+  }, () => {
+    $('#qov').hidden = true; activeAnswer = null;
+    if (hp <= 0) gameOver(false); else { state = 'play'; }
+  });
+}
+
+/* ================== Boss ================== */
+const bcv = $('#bossCv'), bctx = bcv.getContext('2d');
+let bossHp = 0, bossShake = 0, bossFlash = 0, bossDead = false;
+function rr(c, x, y, w, h, r){ c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function drawEnemy(e){
+  const x = e.x, y = e.y;
+  if (e.squish > 0){
+    ctx.fillStyle = '#f4f8fc'; ctx.fillRect(x - 1, y + e.h - 4, e.w + 2, 4); ctx.fillRect(x + 2, y + e.h - 6, e.w - 4, 2);
+    ctx.fillStyle = '#1b1b1f'; ctx.fillRect(x + 1, y + e.h - 7, 6, 2);
+    ctx.fillStyle = '#f28c28'; ctx.fillRect(x + 8, y + e.h - 5, 3, 1); return;
+  }
+  const d = e.vx > 0 ? 1 : -1, st = Math.floor(frame / 8) % 2, cx = x + 7;
+  ctx.fillStyle = '#c9d8e8'; ctx.beginPath(); ctx.arc(cx, y + 8.5, 5.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#f4f8fc'; ctx.beginPath(); ctx.arc(cx - .5, y + 8, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, y + 2, 3.6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#6b4a2b'; ctx.lineWidth = 1; ctx.beginPath();
+  ctx.moveTo(cx - 4, y + 7); ctx.lineTo(cx - 8, y + 4 + st); ctx.moveTo(cx + 4, y + 7); ctx.lineTo(cx + 8, y + 5 - st); ctx.stroke();
+  ctx.fillStyle = '#1b1b1f'; ctx.fillRect(cx - 3, y - 4, 6, 3); ctx.fillRect(cx - 4, y - 1, 8, 1);
+  ctx.fillStyle = '#c8102e'; ctx.fillRect(cx - 3, y - 2, 6, 1); ctx.fillRect(cx - 4, y + 5, 8, 1.5); ctx.fillRect(cx + (d > 0 ? -4 : 2), y + 6, 2, 3);
+  ctx.fillStyle = '#1b1b1f'; ctx.fillRect(cx - 2 + d, y + 1, 1, 1); ctx.fillRect(cx + 1 + d, y + 1, 1, 1);
+  ctx.fillRect(cx - .5, y + 8, 1, 1); ctx.fillRect(cx - .5, y + 10, 1, 1);
+  ctx.fillStyle = '#f28c28'; ctx.fillRect(d > 0 ? cx + 1 : cx - 4, y + 2, 3, 1);
+}
+function santaHat(c, x, y, w, tilt){
+  const t = tilt || 1;
+  c.fillStyle = '#c8102e'; c.beginPath(); c.moveTo(x - w / 2, y);
+  c.quadraticCurveTo(x - w * .05, y - 30, x + t * w * .62, y - 16); c.lineTo(x + w / 2, y); c.closePath(); c.fill();
+  c.fillStyle = '#ffffff'; rr(c, x - w / 2 - 4, y - 5, w + 8, 10, 5); c.fill();
+  c.beginPath(); c.arc(x + t * w * .62, y - 16, 5.5, 0, Math.PI * 2); c.fill();
+}
+function bossEyes(c, y, dark){
+  c.fillStyle = '#fff'; c.fillRect(-22, y, 13, 12); c.fillRect(9, y, 13, 12);
+  c.fillStyle = INK; c.fillRect(-19, y + 5, 6, 7); c.fillRect(12, y + 5, 6, 7);
+  c.fillStyle = dark || INK; c.fillRect(-24, y - 5, 16, 3); c.fillRect(8, y - 5, 16, 3);
+}
+function drawBoss(now){
+  const c = bctx, B = WORLDS[world].boss;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, 160, 120);
+  const bob = Math.sin(now / 320) * 3, sx = bossShake > 0 ? (bossShake % 4 < 2 ? 4 : -4) : 0;
+  c.globalAlpha = bossDead ? .25 : 1;
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(80, 112, 40, 6, 0, 0, Math.PI * 2); c.fill();
+  c.save(); c.translate(80 + sx, 66 + bob);
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  if (world === 0){
+    // Bonhomme Radian
+    c.strokeStyle = '#6b4a2b'; c.lineWidth = 3; c.beginPath(); c.moveTo(-26, 4); c.lineTo(-50, -14 + Math.sin(now / 200) * 4); c.moveTo(26, 4); c.lineTo(50, -12); c.stroke();
+    c.fillStyle = '#c9d8e8'; c.beginPath(); c.arc(1, 20, 30, 0, Math.PI * 2); c.fill();
+    c.fillStyle = B.color; c.beginPath(); c.arc(0, 19, 29, 0, Math.PI * 2); c.fill(); c.beginPath(); c.arc(0, -20, 20, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#c8102e'; c.fillRect(-20, -4, 40, 6); c.fillRect(8, -2, 7, 16);
+    c.fillStyle = '#1b1b1f'; c.fillRect(-10, -26, 6, 6); c.fillRect(5, -26, 6, 6); c.fillRect(-13, -31, 10, 2); c.fillRect(4, -31, 10, 2);
+    for (let i = 0; i < 5; i++) c.fillRect(-8 + i * 4, -12 + (i === 0 || i === 4 ? -1 : 0), 2, 2);
+    c.fillStyle = '#f28c28'; c.beginPath(); c.moveTo(-1, -20); c.lineTo(16, -17); c.lineTo(-1, -15); c.fill();
+    c.fillStyle = INK; c.font = 'italic 700 22px "Atkinson Hyperlegible", serif'; c.fillText('θ', 0, 32);
+    santaHat(c, 0, -36, 36);
+  } else if (world === 1){
+    // Yéti des identités
+    c.fillStyle = '#d7c3a3'; c.beginPath(); c.moveTo(-30, -26); c.lineTo(-44, -50); c.lineTo(-22, -34); c.fill(); c.beginPath(); c.moveTo(30, -26); c.lineTo(44, -50); c.lineTo(22, -34); c.fill();
+    c.fillStyle = B.color; rr(c, -40, -34, 80, 72, 22); c.fill();
+    c.fillStyle = '#c3d9ea'; for (let i = -36; i < 36; i += 8){ c.beginPath(); c.moveTo(i, 36); c.lineTo(i + 4, 44); c.lineTo(i + 8, 36); c.fill(); }
+    c.fillStyle = '#9fc4e0'; rr(c, -28, -26, 56, 30, 12); c.fill();
+    bossEyes(c, -22);
+    c.fillStyle = INK; c.fillRect(-12, -6, 24, 5); c.fillStyle = '#fff'; c.fillRect(-10, -6, 4, 4); c.fillRect(6, -6, 4, 4);
+    c.fillStyle = INK; c.font = 'italic 700 12px "Atkinson Hyperlegible", serif'; c.fillText('sin² + cos²', 0, 20); c.fillText('= 1', 0, 33);
+    santaHat(c, 0, -34, 48);
+  } else if (world === 2){
+    // Fée Sinusoïde
+    const fl = Math.sin(now / 120) * 4;
+    c.fillStyle = 'rgba(190,240,255,.55)'; c.beginPath(); c.ellipse(-44, -14, 22, 30 + fl, -.5, 0, Math.PI * 2); c.fill(); c.beginPath(); c.ellipse(44, -14, 22, 30 + fl, .5, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.5; c.beginPath(); c.ellipse(-44, -14, 22, 30 + fl, -.5, 0, Math.PI * 2); c.ellipse(44, -14, 22, 30 + fl, .5, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = B.color; rr(c, -34, -34, 68, 72, 26); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.18)'; rr(c, -22, 4, 44, 28, 10); c.fill();
+    bossEyes(c, -20, '#1b3d2f');
+    c.fillStyle = '#ff9ec7'; c.fillRect(-24, -4, 7, 4); c.fillRect(17, -4, 7, 4);
+    c.fillStyle = INK; c.fillRect(-8, -3, 16, 3);
+    c.fillStyle = PAPER; c.font = 'italic 700 18px "Atkinson Hyperlegible", serif'; c.fillText('sin', 0, 28);
+    c.strokeStyle = '#ffd34d'; c.lineWidth = 2; c.beginPath(); for (let x = -70; x <= 70; x += 2){ const y = 48 + 5 * Math.sin(x / 9 + now / 200); x === -70 ? c.moveTo(x, y) : c.lineTo(x, y); } c.stroke();
+    c.strokeStyle = '#8a5a2b'; c.lineWidth = 3; c.beginPath(); c.moveTo(36, 10); c.lineTo(56, -20); c.stroke();
+    c.fillStyle = '#ffd34d'; c.beginPath(); for (let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5 + now / 600, r = i % 2 ? 3.5 : 8; c.lineTo(57 + Math.cos(a) * r, -23 + Math.sin(a) * r); } c.closePath(); c.fill();
+    santaHat(c, 0, -34, 42);
+  } else if (world === 3){
+    // Lutin des équations
+    c.fillStyle = '#f1c6a0'; c.beginPath(); c.moveTo(-32, -18); c.lineTo(-58, -30); c.lineTo(-32, -2); c.fill(); c.beginPath(); c.moveTo(32, -18); c.lineTo(58, -30); c.lineTo(32, -2); c.fill();
+    c.fillStyle = B.color; rr(c, -38, -34, 76, 72, 18); c.fill();
+    c.fillStyle = '#f1c6a0'; rr(c, -30, -30, 60, 34, 12); c.fill();
+    bossEyes(c, -24, '#7a3e12');
+    c.fillStyle = '#ff9a8a'; c.fillRect(-26, -8, 7, 4); c.fillRect(19, -8, 7, 4);
+    c.fillStyle = INK; c.fillRect(-10, -6, 20, 3); c.fillRect(-12, -8, 3, 3); c.fillRect(9, -8, 3, 3);
+    c.fillStyle = '#1b1b1f'; c.fillRect(-38, 14, 76, 6); c.fillStyle = '#ffd34d'; c.fillRect(-6, 13, 12, 8); c.fillStyle = '#1b1b1f'; c.fillRect(-3, 15, 6, 4);
+    c.fillStyle = PAPER; c.fillRect(-10, 24, 20, 4); c.fillRect(-10, 31, 20, 4);
+    santaHat(c, 0, -34, 52);
+  } else {
+    // Dragon de glace tangente
+    c.fillStyle = '#7fb6d9';
+    c.beginPath(); c.moveTo(-34, -10); c.lineTo(-74, -38); c.lineTo(-62, -4); c.lineTo(-72, 10); c.lineTo(-34, 10); c.fill();
+    c.beginPath(); c.moveTo(34, -10); c.lineTo(74, -38); c.lineTo(62, -4); c.lineTo(72, 10); c.lineTo(34, 10); c.fill();
+    c.fillStyle = '#d6f0fd'; for (let i = -24; i <= 24; i += 12){ c.beginPath(); c.moveTo(i - 5, -32); c.lineTo(i, -44); c.lineTo(i + 5, -32); c.fill(); }
+    c.fillStyle = B.color; rr(c, -38, -34, 76, 72, 18); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.2)'; rr(c, -26, 2, 52, 30, 10); c.fill();
+    bossEyes(c, -20);
+    c.fillStyle = INK; c.fillRect(-14, -4, 28, 6); c.fillStyle = '#fff'; for (let i = -12; i < 12; i += 6){ c.beginPath(); c.moveTo(i, -4); c.lineTo(i + 3, 2); c.lineTo(i + 6, -4); c.fill(); }
+    c.fillStyle = PAPER; c.font = 'italic 700 18px "Atkinson Hyperlegible", serif'; c.fillText('tan', 0, 28);
+    c.strokeStyle = 'rgba(255,255,255,.75)'; c.setLineDash([4, 3]); c.lineWidth = 1.5; c.beginPath(); c.moveTo(-52, 14); c.lineTo(-52, 48); c.moveTo(52, 14); c.lineTo(52, 48); c.stroke(); c.setLineDash([]);
+    santaHat(c, -6, -34, 40);
+  }
+  if (bossFlash > 0){ c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(255,255,255,.75)'; c.fillRect(-80, -70, 160, 140); c.globalCompositeOperation = 'source-over'; }
+  c.restore(); c.globalAlpha = 1;
+}
+function bossBar(){
+  const B = WORLDS[world].boss;
+  let s = '<span>PV&nbsp;</span>'; for (let i = 0; i < B.hp; i++) s += `<i class="${i < bossHp ? '' : 'gone'}"></i>`;
+  $('#bossHp').innerHTML = s; $('#bossHp').setAttribute('aria-label', `Boss : ${bossHp} PV sur ${B.hp}`);
+}
+function startBoss(){
+  state = 'boss'; clearKeys(); bossDead = false;
+  const B = WORLDS[world].boss; bossHp = B.hp;
+  $('#bossName').textContent = B.name; bossBar(); updateHUD();
+  $('#bossLog').textContent = `${B.name} te barre la route ! Chaque bonne réponse lui retire 1 PV.`;
+  const ov = $('#bov'); ov.hidden = false; ov.scrollTop = 0;
+  nextBossQ();
+}
+function nextBossQ(){
+  const B = WORLDS[world].boss;
+  renderQuestion($('#bossQ'), genQ(world), ok => {
+    if (ok){ bossHp--; bossShake = 24; bossFlash = 10; sfx('hit'); bossBar(); const g = gainHeart(); addXP(30); addCoins(5);
+      if (bossHp <= 0){ bossDead = true; $('#bossLog').textContent = `${B.name} est vaincu${B.f ? 'e' : ''} !`; return 'Coup final !'; }
+      $('#bossLog').textContent = `Ton attaque trigonométrique touche ! Il reste ${bossHp} PV.`; return (g ? '+30 XP, +1 cœur' : '+30 XP') + ' et +5 pièces';
+    }
+    sfx('hurt'); hurt(1, true); const a = $('#arena'); a.classList.remove('hit'); void a.offsetWidth; a.classList.add('hit');
+    $('#bossLog').textContent = `${B.name} contre-attaque !`;
+    return hp > 0 ? 'Tu perds 1 cœur. Lis l’explication :' : 'Tu n’as plus de cœurs…';
+  }, () => {
+    if (bossHp <= 0) bossDefeated();
+    else if (hp <= 0){ $('#bov').hidden = true; gameOver(true); }
+    else { nextBossQ(); $('#bov').scrollTop = 0; }
+  });
+}
+function bossDefeated(){
+  $('#bov').hidden = true; activeAnswer = null; sfx('win');
+  if (RACE.on){ raceFinish(); return; }
+  const W = WORLDS[world];
+  if (world < WORLDS.length - 1){
+    state = 'menu';
+    showCard(`<div class="q-topic">${W.name} réussi</div><h2>${W.boss.name} est vaincu${W.boss.f ? 'e' : ''} !</h2>
+      <p>Bonnes réponses dans ce monde : <b>${worldStats.ok} / ${worldStats.tot}</b>. Tu es au niveau ${lvl}. Pièces gagnées : <b>${runCoins}</b>.</p>
+      <p class="muted">Prochaine destination : <b>${WORLDS[world+1].title}</b>. ${WORLDS[world+1].topics}.</p>
+      <div class="row"><button class="btn primary" data-act="world" data-w="${world+1}">Aller au ${WORLDS[world+1].name}</button><button class="btn" data-act="pause-memo">Aide-mémoire</button></div>`);
+  } else showVictory();
+}
+
+/* ================== Menus ================== */
+const mov = $('#mov'), mcard = $('#mcard');
+function showCard(html){ mcard.innerHTML = html; mov.hidden = false; mov.scrollTop = 0; const b = mcard.querySelector('.btn.primary, .wcard'); if (b) b.focus({ preventScroll:true }); }
+function hideCard(){ mov.hidden = true; }
+const MEMO = `<div class="memo">
+  <h3>Cercle trigonométrique</h3>
+  <ul><li>π rad = 180°. Degrés → radians : × <span class="fr"><span>π</span><span>180</span></span>; radians → degrés : × <span class="fr"><span>180</span><span>π</span></span></li>
+  <li><i>P</i>(<i>θ</i>) = (cos <i>θ</i>, sin <i>θ</i>) et tan <i>θ</i> = <span class="fr"><span>sin <i>θ</i></span><span>cos <i>θ</i></span></span></li>
+  <li><i>P</i>(<span class="fr"><span>π</span><span>6</span></span>) = (<span class="fr"><span>√3</span><span>2</span></span>, <span class="fr"><span>1</span><span>2</span></span>); <i>P</i>(<span class="fr"><span>π</span><span>4</span></span>) = (<span class="fr"><span>√2</span><span>2</span></span>, <span class="fr"><span>√2</span><span>2</span></span>); <i>P</i>(<span class="fr"><span>π</span><span>3</span></span>) = (<span class="fr"><span>1</span><span>2</span></span>, <span class="fr"><span>√3</span><span>2</span></span>)</li>
+  <li>Signes (cos, sin) : quadrant I (+, +), II (−, +), III (−, −), IV (+, −)</li>
+  <li>Longueur d'arc : <i>L</i> = <i>θr</i> (<i>θ</i> en radians). Angles coterminaux : <i>θ</i> + 2π<i>n</i></li></ul>
+  <h3>Identités</h3>
+  <ul><li>sec <i>θ</i> = <span class="fr"><span>1</span><span>cos <i>θ</i></span></span>, cosec <i>θ</i> = <span class="fr"><span>1</span><span>sin <i>θ</i></span></span>, cotan <i>θ</i> = <span class="fr"><span>cos <i>θ</i></span><span>sin <i>θ</i></span></span></li>
+  <li>sin<sup>2</sup> <i>θ</i> + cos<sup>2</sup> <i>θ</i> = 1; 1 + tan<sup>2</sup> <i>θ</i> = sec<sup>2</sup> <i>θ</i>; 1 + cotan<sup>2</sup> <i>θ</i> = cosec<sup>2</sup> <i>θ</i></li>
+  <li>Pour démontrer : on transforme un seul membre, souvent en ramenant tout en sinus et cosinus</li></ul>
+  <h3>Sinus et cosinus : <i>f</i>(<i>x</i>) = <i>a</i> sin(<i>b</i>(<i>x</i> − <i>h</i>)) + <i>k</i></h3>
+  <ul><li>Amplitude |<i>a</i>|; période <span class="fr"><span>2π</span><span>|<i>b</i>|</span></span>; axe d'oscillation <i>y</i> = <i>k</i>; codomaine [<i>k</i> − |<i>a</i>|, <i>k</i> + |<i>a</i>|]</li>
+  <li>Règle à partir du graphique : |<i>a</i>| = <span class="fr"><span>max − min</span><span>2</span></span>, <i>k</i> = <span class="fr"><span>max + min</span><span>2</span></span>, |<i>b</i>| = <span class="fr"><span>2π</span><span>période</span></span></li>
+  <li>(<i>h</i>, <i>k</i>) : point sur l'axe où la sinusoïde monte (sinus, <i>a</i> &gt; 0) ou point le plus haut (cosinus, <i>a</i> &gt; 0)</li>
+  <li>cos <i>x</i> = sin(<i>x</i> + <span class="fr"><span>π</span><span>2</span></span>)</li></ul>
+  <h3>Équations et inéquations</h3>
+  <ul><li>On isole sin ou cos, puis on trouve les angles du cercle qui donnent cette valeur dans [0, 2π]</li>
+  <li>Solution générale : on ajoute <i>n</i> fois la période (<i>n</i> ∈ ℤ)</li>
+  <li>Avec <i>b</i> ≠ 1 : on résout pour <i>b</i>(<i>x</i> − <i>h</i>), puis on isole <i>x</i></li>
+  <li>Inéquation : on résout l'équation, puis on lit sur le graphique ou le cercle les intervalles où l'inégalité est vraie</li></ul>
+  <h3>Tangente : <i>f</i>(<i>x</i>) = <i>a</i> tan(<i>b</i>(<i>x</i> − <i>h</i>)) + <i>k</i></h3>
+  <ul><li>Période <span class="fr"><span>π</span><span>|<i>b</i>|</span></span>; point d'inflexion (<i>h</i>, <i>k</i>); codomaine ℝ</li>
+  <li>Asymptotes : <i>x</i> = <i>h</i> + <span class="fr"><span><i>P</i></span><span>2</span></span> + <i>nP</i></li>
+  <li>Croissante si <i>ab</i> &gt; 0, décroissante si <i>ab</i> &lt; 0</li></ul></div>`;
+function brandHTML(){
+  const word = 'Trigonométrique', cols = ['#c8102e', '#1f7a4d', '#c98a00']; let s = '';
+  for (let i = 0; i < word.length; i++) s += `<span style="color:${cols[i % 3]};animation-delay:${(-i * .16).toFixed(2)}s">${word[i]}</span>`;
+  return `<h2 class="brand"><span class="q">Quête</span><span class="e" aria-label="Trigonométrique">${s}</span><span class="snow" aria-hidden="true">❄</span></h2>`;
+}
+function timeSettingHTML(){
+  return `<div class="setting"><span>Temps par question</span><div class="seg" role="group" aria-label="Temps par question">${TIME_OPTS.map(t => `<button data-act="time" data-t="${t}" aria-pressed="${t === timeLimit}">${t ? t + ' s' : 'Aucune limite'}</button>`).join('')}</div></div>`;
+}
+function showTitle(){
+  state = 'title'; $('#qov').hidden = true; $('#bov').hidden = true;
+  showCard(`${brandHTML()}
+    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 11 L52 11" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 11 C 8 1, 14 1, 14.5 1 S 21 1, 27 11 S 40 21, 40 21 S 46 21, 52 11" stroke="currentColor" stroke-width="2.4" fill="none"/></svg><span>Cercle trigonométrique, identités, sinus, cosinus et tangente · Secondaire 5 · <b style="color:var(--red)">Édition des fêtes</b> · <b>Version du 26 octobre</b></span></div>
+    <p>Frappe les cadeaux <b>?</b> par en dessous pour obtenir une question. Tu commences chaque monde avec 3 cœurs; chaque niveau gagné t'en donne un de plus jusqu'à la fin du monde. Chaque bonne réponse donne de l'XP et un cœur de plus, même au-delà de 3; une erreur coûte un cœur, avec l'explication. Au bout de chaque monde, l'atelier du père Noël… et un boss coiffé d'une tuque t'attendent.</p>
+    <div class="legend">
+      <span class="chip qb"></span><span>Cadeau question : saute dessous</span>
+      <span class="chip en"></span><span>Bonhomme de neige : écrase-le en sautant dessus (+10 XP)</span>
+      <span class="chip co"></span><span>Pièce : +1 · toutes les 25 pièces, +1 cœur · dépense-les à la boutique</span>
+      <span class="chip cv"></span><span>Colline sinusoïdale : grimpe la courbe <i>y</i> = 2 sin(<span class="fr"><span>π<i>x</i></span><span>4</span></span>) + 2</span>
+    </div>
+    ${timeSettingHTML()}
+    <div class="worlds">${WORLDS.map((W, i) => `<button class="wcard" data-act="world" data-w="${i}"><span class="n">${W.ext ? W.name + ' · Extension' : W.name}</span><b>${W.title}</b><small>${W.topics}</small></button>`).join('')}</div>
+    <div class="row"><button class="btn" data-act="shop"><i class="coin-ic" style="vertical-align:-1px"></i> Boutique de skins · ${getWallet()}</button><button class="btn" data-act="online">Course en ligne (multijoueur)</button></div>
+    <p class="muted" style="font-size:.88rem">${isTouch ? 'Sur téléphone : utilise les boutons sous l’écran de jeu.' : 'Clavier : ← → pour bouger, Espace ou ↑ pour sauter, 1 à 4 pour répondre, Échap pour la pause.'}</p>${(window.QE_LAUNCHER || QE_MENU) ? '<div class="row"><button class="btn" data-act="home">← Changer de jeu</button></div>' : ''}`);
+}
+function pauseGame(){
+  if (state !== 'play' || RACE.on) return; state = 'paused'; clearKeys();
+  showCard(`<div class="q-topic">Pause</div>${timeSettingHTML()}<h2>Aide-mémoire</h2>${MEMO}
+    <div class="row"><button class="btn primary" data-act="resume">Reprendre</button><button class="btn" data-act="shop-pause">Boutique</button><button class="btn" data-act="title">Menu principal</button></div>`);
+}
+function resumeGame(){ hideCard(); clearKeys(); state = 'play'; }
+function gameOver(inBoss){
+  if (RACE.on){ raceKO(inBoss); return; }
+  state = 'over'; clearKeys(); $('#qov').hidden = true; activeAnswer = null;
+  showCard(`<div class="q-topic" style="color:var(--red)">Plus de cœurs</div><h2>Tu as été vaincu…</h2>
+    <p>Tes points d'XP et ton niveau sont conservés. Relis l'aide-mémoire avant de repartir.</p>
+    <details><summary style="cursor:pointer;font-family:var(--display)">Aide-mémoire</summary>${MEMO}</details>
+    <div class="row">${inBoss ? `<button class="btn primary" data-act="retry-boss">Affronter le boss de nouveau</button>` : ''}
+    <button class="btn ${inBoss ? '' : 'primary'}" data-act="world" data-w="${world}">Recommencer le ${WORLDS[world].name}</button>
+    <button class="btn" data-act="title">Menu</button></div>`);
+}
+function showVictory(){
+  state = 'menu';
+  const pct = stats.tot ? Math.round(stats.ok / stats.tot * 100) : 0;
+  const rows = Object.entries(stats.topics).sort((a, b) => (a[1].ok / a[1].tot) - (b[1].ok / b[1].tot)).map(([t, v]) => {
+    const r = v.ok / v.tot, low = r < .7;
+    return `<tr><td>${t}</td><td class="num">${v.ok} / ${v.tot}</td><td><span class="tag ${low ? 'low' : 'okk'}">${low ? 'À revoir' : 'Maîtrisé'}</span></td></tr>`; }).join('');
+  showCard(`<div class="q-topic">Quête terminée · Joyeuses fêtes !</div><h2>${WORLDS[world].boss.name} est vaincu${WORLDS[world].boss.f ? 'e' : ''} !</h2>
+    <div class="row" style="align-items:baseline;gap:16px"><span class="big">${pct} %</span><span>de bonnes réponses (${stats.ok} sur ${stats.tot}) · niveau ${lvl}</span></div>
+    <div class="tablewrap"><table class="stats"><thead><tr><th>Notion</th><th style="text-align:right">Réussite</th><th>Bilan</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="row"><button class="btn primary" data-act="replay">Rejouer depuis le début</button><button class="btn" data-act="title">Choisir un monde</button></div>`);
+}
+mcard.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  unlockAudio();
+  const act = b.dataset.act;
+  if (act === 'online' || act.startsWith('mp-')){ mpAct(act, b); return; }
+  if (act.startsWith('shop')){ shopAct(act, b); return; }
+  if (act === 'world'){ hideCard(); maxHp = START_HP; hp = maxHp; loadWorld(+b.dataset.w); clearKeys(); state = 'play'; toast(`${WORLDS[world].name} · ${WORLDS[world].title}`); }
+  else if (act === 'time'){ timeLimit = +b.dataset.t; try { localStorage.setItem('qt-time', timeLimit); } catch(_){}
+    b.parentElement.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); }
+  else if (act === 'victory') showVictory();
+  else if (act === 'home') goHome();
+  else if (act === 'resume') resumeGame();
+  else if (act === 'title'){ loadWorld(world); showTitle(); }
+  else if (act === 'retry-boss'){ hideCard(); hp = maxHp; updateHUD(); startBoss(); }
+  else if (act === 'pause-memo'){ const r = b.closest('.row'); r.insertAdjacentHTML('beforebegin', MEMO); b.remove(); }
+  else if (act === 'replay'){ xp = 0; lvl = 1; maxHp = START_HP; hp = START_HP; stats = { ok:0, tot:0, topics:{} }; hideCard(); loadWorld(0); state = 'play'; }
+});
+$('#btnPause').onclick = () => { if (state === 'play') pauseGame(); else if (state === 'paused') resumeGame(); };
+const QE_MENU = (() => { try { return new URLSearchParams(location.search).has('menu'); } catch (_) { return false; } })();
+function goHome(){ if (window.QE_LAUNCHER) parent.postMessage({ qe:'home' }, '*'); else location.href = 'index.html'; }
+if (window.QE_LAUNCHER || QE_MENU){ const h = $('#btnHome'); h.hidden = false; h.onclick = goHome; }
+
+/* ================== Pièces, récompenses et boutique de skins ================== */
+const IS_HORROR = false;
+const BASE_PAL = { hat:'tuque', cap:'#c8102e', capHi:'#ffffff', pom:'#ffffff', hair:'#3a2a1e', skin:'#f1c6a0', eye:'#1f2f42', shirt:'#1f7a4d', shirtHi:'#2fa36a', legs:'#1f2f42', scarf:'#f2b134' };
+const SKINS = [
+  { id:'base', name:'Tuque rouge', price:0, pal:{} },
+  { id:'lutin', name:'Lutin', price:30, pal:{ hat:'elf', cap:'#1f9d55', capHi:'#c8102e', pom:'#ffd34d', shirt:'#1f9d55', shirtHi:'#4ade80', legs:'#c8102e', scarf:'#c8102e' } },
+  { id:'pingouin', name:'Pingouin', price:40, pal:{ cap:'#5ab0ff', capHi:'#ffffff', hair:'#1b1b1f', skin:'#f4f6f8', eye:'#1b1b1f', shirt:'#1b1b1f', shirtHi:'#2b2b33', legs:'#f5a623', scarf:'#5ab0ff', deco:'penguin' } },
+  { id:'renne', name:'Renne', price:50, pal:{ hat:'none', hair:'#8a5a34', skin:'#a8703f', eye:'#1b1b1f', shirt:'#8a5a34', shirtHi:'#a8703f', legs:'#5a3a20', scarf:'#c8102e', deco:'antlers' } },
+  { id:'pain', name:'Pain d’épices', price:60, pal:{ hat:'none', hair:'#c47a3a', skin:'#c47a3a', eye:'#3a1f10', shirt:'#c47a3a', shirtHi:'#ffffff', legs:'#a8622a', scarf:'', deco:'ginger' } },
+  { id:'neige', name:'Bonhomme de neige', price:70, pal:{ hat:'top', cap:'#1b1b1f', capHi:'#c8102e', hair:'#f4f8fc', skin:'#f4f8fc', eye:'#1b1b1f', shirt:'#f4f8fc', shirtHi:'#ffffff', legs:'#dfe8f2', scarf:'#c8102e', deco:'carrot' } },
+  { id:'noisette', name:'Casse-noisette', price:90, pal:{ hat:'tall', cap:'#1b1b1f', capHi:'#f2b134', hair:'#f4f4f4', shirt:'#c8102e', shirtHi:'#f2b134', legs:'#1e3a8a', scarf:'', deco:'mustache' } },
+  { id:'pere', name:'Père Noël', price:120, pal:{ cap:'#c8102e', capHi:'#ffffff', hair:'#ffffff', shirt:'#c8102e', shirtHi:'#ffffff', legs:'#1b1b1f', scarf:'', deco:'santa' } },
+  { id:'sapin', name:'Sapin', price:160, pal:{ hat:'elf', cap:'#1f6b45', capHi:'#ffd34d', pom:'#ffd34d', shirt:'#1f6b45', shirtHi:'#2f8f5a', legs:'#5a3a20', scarf:'#ffd34d', deco:'ornaments' } },
+  { id:'etoile', name:'Étoile dorée', price:250, pal:{ cap:'#d4a017', capHi:'#fff3b0', pom:'#fff3b0', hair:'#8a6d00', shirt:'#e6b800', shirtHi:'#fff3b0', legs:'#8a6d00', scarf:'#fff3b0', deco:'sparkle' } },
+];
+const skinById = id => SKINS.find(s => s.id === id) || SKINS[0];
+const palFor = id => Object.assign({}, BASE_PAL, skinById(id).pal);
+let WALLET_MEM = 0, OWNED_MEM = ['base'], SKIN_MEM = 'base';
+function getWallet(){ try { const v = localStorage.getItem('qt-coins'); return v === null ? WALLET_MEM : Math.max(0, parseInt(v, 10) || 0); } catch (_) { return WALLET_MEM; } }
+function setWallet(v){ WALLET_MEM = v; try { localStorage.setItem('qt-coins', String(v)); } catch (_) {} }
+function getOwned(){ try { const v = JSON.parse(localStorage.getItem('qt-skins') || 'null'); return Array.isArray(v) ? v : OWNED_MEM; } catch (_) { return OWNED_MEM; } }
+function setOwned(a){ OWNED_MEM = a; try { localStorage.setItem('qt-skins', JSON.stringify(a)); } catch (_) {} }
+function mySkin(){ let v = SKIN_MEM; try { v = localStorage.getItem('qt-skin-fetes') || SKIN_MEM; } catch (_) {} return getOwned().includes(v) || v === 'base' ? v : 'base'; }
+function setSkin(id){ SKIN_MEM = id; try { localStorage.setItem('qt-skin-fetes', id); } catch (_) {} }
+
+// Dessine le héros (12 × 15 px) avec une palette ; utilisé dans le jeu, pour les fantômes et dans la boutique
+function drawHero(c, x, y, f, pal, st){
+  const px = (dx, dy, w, h, col) => { c.fillStyle = col; c.fillRect(f > 0 ? x + dx : x + 12 - dx - w, y + dy, w, h); };
+  const t = st.t || 0, cap = pal.cap, hat = pal.hat || 'tuque';
+  if (hat === 'tuque'){ px(2, -1, 7, 1, cap); px(1, 0, 9, 2, cap); px(1, 2, 10, 1, pal.capHi); px(4, -3, 3, 2, pal.pom); }
+  else if (hat === 'elf'){ px(1, 1, 9, 2, pal.capHi); px(2, -1, 7, 2, cap); px(0, -3, 5, 2, cap); px(-2, -4, 3, 1, cap); px(-3, -5, 2, 2, pal.pom); }
+  else if (hat === 'top'){ px(2, -3, 8, 3, cap); px(2, -1, 8, 1, pal.capHi); px(1, 0, 10, 1, cap); px(1, 1, 9, 2, pal.hair); }
+  else if (hat === 'tall'){ px(2, -5, 8, 7, cap); px(2, -5, 8, 1, pal.capHi); px(5, -4, 2, 2, pal.capHi); px(1, 2, 10, 1, pal.capHi); }
+  else { px(2, 0, 8, 3, pal.hair); px(1, 1, 1, 2, pal.hair); }
+  px(1, 3, 2, 3, pal.hair); px(3, 3, 7, 4, pal.skin); px(7, 4, 1, 2, pal.eye);
+  px(2, 7, 8, 5, pal.shirt); px(2, 7, 8, 1, pal.shirtHi);
+  if (pal.scarf){ px(2, 7, 9, 1, pal.scarf); px(2, 8, 2, 3, pal.scarf); }
+  px(st.walking && st.ph ? 8 : 9, 8, 2, 3, pal.skin);
+  const L = pal.legs;
+  if (st.air){ px(1, 12, 3, 2, L); px(7, 12, 4, 3, L); }
+  else if (st.walking){ if (st.ph){ px(2, 12, 3, 3, L); px(7, 12, 3, 2, L); } else { px(2, 12, 3, 2, L); px(7, 12, 3, 3, L); } }
+  else { px(2, 12, 3, 3, L); px(7, 12, 3, 3, L); }
+  const d = pal.deco;
+  if (d === 'antlers'){ const A = '#6b4426'; px(3, -3, 1, 3, A); px(2, -4, 1, 1, A); px(4, -5, 1, 2, A); px(8, -3, 1, 3, A); px(7, -4, 1, 1, A); px(9, -5, 1, 2, A); px(10, 5, 2, 1, Math.floor(t / 20) % 2 ? '#ff3b3b' : '#ff7b7b'); }
+  else if (d === 'carrot') px(10, 5, 3, 1, '#f28c28');
+  else if (d === 'penguin'){ px(4, 8, 5, 4, '#ffffff'); px(10, 5, 2, 1, '#f5a623'); }
+  else if (d === 'ginger'){ px(3, 6, 6, 1, '#ffffff'); px(5, 9, 1, 1, '#ff4d4d'); px(5, 11, 1, 1, '#4ade80'); px(2, 12, 3, 1, '#ffffff'); px(7, 12, 3, 1, '#ffffff'); }
+  else if (d === 'mustache'){ px(5, 6, 5, 1, '#f4f4f4'); px(4, 7, 7, 1, '#f2b134'); px(2, 9, 8, 1, '#f2b134'); }
+  else if (d === 'santa'){ px(4, 5, 6, 3, '#ffffff'); px(5, 8, 4, 1, '#ffffff'); px(2, 10, 8, 1, '#1b1b1f'); px(6, 10, 2, 1, '#ffd34d'); }
+  else if (d === 'ornaments'){ const k = Math.floor(t / 15) % 3, O = ['#ff4d4d', '#5ab0ff', '#ff8af0']; px(4, 9, 1, 1, O[k]); px(7, 10, 1, 1, O[(k + 1) % 3]); px(5, 11, 1, 1, O[(k + 2) % 3]); }
+  else if (d === 'sparkle' && Math.floor(t / 10) % 3 === 0){ const s = Math.floor(t / 30) % 4; px([1, 9, 4, 10][s], [1, 6, 9, 11][s], 1, 1, '#ffffff'); }
+}
+
+let runCoins = 0, coinStreak = 0;
+function addCoins(n, fx, fy){
+  setWallet(getWallet() + n); runCoins += n; coinStreak += n;
+  sfx('coin');
+  if (fx != null) addFloat('+' + n + ' ◉', fx, fy, '#c99a00');
+  while (coinStreak >= 25){ coinStreak -= 25; gainHeart(); setTimeout(() => sfx('lvl'), 120); toast('25 pièces ramassées : +1 cœur !'); }
+  updateHUD();
+}
+function collectCoins(){
+  if (!LV || !LV.coins) return;
+  for (const k of LV.coins) if (!k.t && overlap(P, k)){ k.t = true; addCoins(1, k.x - 2, k.y - 4); }
+}
+function drawCoins(){
+  if (!LV || !LV.coins) return;
+  const cx = camX;
+  for (const k of LV.coins){
+    if (k.t || k.x < cx - 16 || k.x > cx + VW + 16) continue;
+    const ph = Math.floor((frame / 7 + k.x * .03) % 4), w = [8, 6, 2, 6][ph], x = k.x + (8 - w) / 2, y = k.y + Math.sin(frame / 14 + k.x * .1);
+    if (IS_HORROR){ ctx.fillStyle = 'rgba(255,190,70,.22)'; ctx.beginPath(); ctx.arc(k.x + 4, y + 5, 9, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = '#8a5d00'; ctx.fillRect(x, y, w, 10);
+    if (w > 2){ ctx.fillStyle = '#f5c518'; ctx.fillRect(x + 1, y + 1, w - 2, 8); }
+    if (w > 5){ ctx.fillStyle = '#fff3b0'; ctx.fillRect(x + 2, y + 2, 1, 4); }
+  }
+}
+function drawPlayerHero(){
+  drawHero(ctx, P.x, P.y, P.face, palFor(mySkin()), { walking: P.onGround && Math.abs(P.vx) > .3, ph: Math.floor(frame / 6) % 2, air: !P.onGround, t: frame, horror: IS_HORROR });
+}
+
+let SHOP_FROM = 'title';
+if (window.QE_TEST) window.qeDbg = { q: () => openQuestion(), boss: () => startBoss(), force: (w, i) => { FORCE_GEN = i == null ? null : WORLDS[w].gens[i]; }, state: () => state, tp: f => { P.x = LV.doorX * f; P.y = 9 * TS; P.vy = 0; camX = Math.max(0, P.x - 120); } };
+if (window.QE_TEST) window.qeShop = { wallet: () => getWallet(), coins: () => LV && LV.coins, add: n => addCoins(n), hp: () => [hp, maxHp], skin: () => mySkin() };
+function shopHTML(msg){
+  const w = getWallet(), owned = getOwned(), cur = mySkin();
+  const items = SKINS.map(s => {
+    const has = s.price === 0 || owned.includes(s.id), on = s.id === cur, miss = s.price - w;
+    const btn = on ? '<button class="btn" disabled>Équipé</button>'
+      : has ? `<button class="btn primary" data-act="shop-equip" data-skin="${s.id}">Équiper</button>`
+      : miss > 0 ? `<button class="btn" disabled>Il manque ${miss}</button>`
+      : `<button class="btn primary" data-act="shop-buy" data-skin="${s.id}">Acheter</button>`;
+    return `<div class="sk-item${on ? ' on' : ''}"><canvas width="72" height="84" data-skin="${s.id}" aria-hidden="true"></canvas><b>${s.name}</b><span class="price">${s.price ? `<i class="coin-ic"></i>${s.price}` : 'Gratuit'}${has && s.price ? ' · acheté' : ''}</span>${btn}</div>`;
+  }).join('');
+  return `<div class="q-topic">Boutique</div><h2>Skins</h2>
+    <p class="wallet"><i class="coin-ic big"></i><span>${w} pièce${w > 1 ? 's' : ''}</span></p>
+    ${msg ? `<p class="shop-msg" role="status">${msg}</p>` : ''}
+    <p class="muted" style="font-size:.9rem">Gagne des pièces en les ramassant dans les niveaux (+1), en cassant des blocs de glace (+1) et en répondant juste aux questions (+5). Toutes les 25 pièces gagnées dans un monde : +1 cœur. Tes pièces restent sur cet appareil et servent dans les deux versions (normale et temps des fêtes).</p>
+    <div class="shop">${items}</div>
+    <div class="row"><button class="btn" data-act="shop-back">← Retour</button></div>`;
+}
+function shopRender(msg){
+  const top = mov.scrollTop;
+  state = 'menu'; mcard.innerHTML = shopHTML(msg); mov.hidden = false; mov.scrollTop = top;
+  mcard.querySelectorAll('canvas[data-skin]').forEach(cv2 => {
+    const c = cv2.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, cv2.width, cv2.height);
+    c.save(); c.scale(4, 4); drawHero(c, 3, 5, 1, palFor(cv2.dataset.skin), { t: 0, horror: IS_HORROR }); c.restore();
+  });
+}
+function shopAct(act, b){
+  if (act === 'shop' || act === 'shop-pause'){ SHOP_FROM = act === 'shop' ? 'title' : 'pause'; mov.scrollTop = 0; return shopRender(); }
+  if (act === 'shop-back'){ if (SHOP_FROM === 'pause'){ state = 'play'; pauseGame(); } else showTitle(); return; }
+  const s = skinById(b.dataset.skin);
+  if (act === 'shop-equip'){ setSkin(s.id); sfx('ok'); return shopRender(`Skin « ${s.name} » équipé !`); }
+  if (act === 'shop-buy'){
+    const w = getWallet();
+    if (w < s.price) return shopRender(`Il te manque ${s.price - w} pièces.`);
+    setWallet(w - s.price); setOwned([...new Set([...getOwned(), s.id])]); setSkin(s.id); sfx('lvl'); updateHUD();
+    return shopRender(`Tu as acheté « ${s.name} » ! Il est équipé.`);
+  }
+}
+
+/* ================== Mode course ================== */
+const QE_DUO = !!window.QE_DUO || /[?&]duo\b/.test(location.search);
+if (QE_DUO) document.documentElement.classList.add('duo');
+const RACE = { on:false, remote:QE_DUO, seed:0, qi:0, t0:0, penalty:0, done:false, finish:0, turbo:0, ghosts:[], onUpdate:null, onFinish:null, lastSend:0, label:'' };
+const GHOST_COLORS = ['#e8505b', '#3a86ff', '#f5b400', '#8338ec', '#06c48f', '#fb5607', '#ff4fa3', '#7c8a99'];
+function genQ(w){
+  if (!RACE.on) return genQRaw(w);
+  const orig = Math.random; Math.random = mulberry32((RACE.seed + RACE.qi++ * 7919) >>> 0);
+  try { return genQRaw(w); } finally { Math.random = orig; }
+}
+const raceTime = () => RACE.done ? RACE.finish : (RACE.t0 ? (performance.now() - RACE.t0) / 1000 : 0) + RACE.penalty;
+function fmtTime(s){ const m = Math.floor(s / 60), r = (s - m * 60).toFixed(1); return `${m}:${r.padStart(4, '0').replace('.', ',')}`; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+function raceStart(o){
+  RACE.on = true; RACE.seed = (o.seed >>> 0) || 1; RACE.qi = 0; RACE.penalty = 0; RACE.done = false; RACE.turbo = 0; RACE.t0 = 0; RACE.ghosts = [];
+  if (o.label) RACE.label = o.label;
+  lastGen = -1; stats = { ok:0, tot:0, topics:{} };
+  hideCard(); $('#qov').hidden = true; $('#bov').hidden = true; activeAnswer = null; stopTimer();
+  maxHp = START_HP; hp = maxHp; loadWorld(o.world); clearKeys(); unlockAudio();
+  $('#hudTime').hidden = false; $('#btnPause').hidden = true; $('#btnHome').hidden = true;
+  state = 'countdown'; raceTick();
+  const cd = $('#countdown'); let n = 3;
+  const pop = t => { cd.textContent = t; cd.hidden = false; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); };
+  const tick = () => {
+    if (!RACE.on || state !== 'countdown'){ cd.hidden = true; return; }
+    if (n > 0){ pop(n); sfx('bump'); n--; setTimeout(tick, 1000); }
+    else { pop('GO !'); sfx('ok'); state = 'play'; RACE.t0 = performance.now(); setTimeout(() => { cd.hidden = true; }, 700); }
+  };
+  tick();
+}
+function raceStop(){
+  RACE.on = false; RACE.done = false; RACE.ghosts = []; RACE.onUpdate = RACE.onFinish = null;
+  $('#hudTime').hidden = true; $('#btnPause').hidden = false; $('#raceBoard').hidden = true; $('#countdown').hidden = true;
+  $('#qov').hidden = true; $('#bov').hidden = true; activeAnswer = null; stopTimer();
+  if (window.QE_LAUNCHER || QE_MENU) $('#btnHome').hidden = false;
+}
+function raceKO(inBoss){
+  RACE.penalty += 15; hp = maxHp; updateHUD(); toast('Plus de cœurs : +15 s de pénalité'); sfx('hurt');
+  if (inBoss){ $('#bov').hidden = false; state = 'boss'; nextBossQ(); }
+  else { $('#qov').hidden = true; activeAnswer = null; state = 'play'; if (P.y > ROWS * TS) respawn(); P.inv = 90; }
+}
+function raceFinish(){
+  RACE.finish = raceTime(); RACE.done = true; state = 'finished'; clearKeys(); raceTick();
+  showCard(`<div class="q-topic">Arrivée${RACE.label ? ' · ' + esc(RACE.label) : ''}</div><h2>Terminé en ${fmtTime(RACE.finish)} !</h2>
+    <p>Bonnes réponses : <b>${stats.ok} / ${stats.tot}</b>${RACE.penalty ? ` · pénalités : ${RACE.penalty} s` : ''}</p>
+    <p class="muted">${QE_DUO ? 'En attente de l’autre joueur…' : MP.role ? 'En attente des autres joueurs…' : ''}</p>
+    ${MP.role === 'host' ? '<div class="row"><button class="btn" data-act="mp-end">Terminer la course maintenant</button></div>' : ''}`);
+  sendUpdate();
+  if (RACE.onFinish) RACE.onFinish({ time:RACE.finish, ok:stats.ok, tot:stats.tot, penalty:RACE.penalty });
+}
+function raceStatus(){
+  return { x:Math.round(P.x), y:Math.round(P.y), f:P.face, w:world, prog: RACE.done ? 1 : Math.max(0, Math.min(.99, P.x / LV.doorX)),
+    phase: RACE.done ? 'done' : state === 'boss' ? 'boss' : state === 'countdown' ? 'wait' : 'play', time: Math.round(raceTime() * 10) / 10, ok:stats.ok, tot:stats.tot, sk:mySkin() };
+}
+function sendUpdate(){ RACE.lastSend = performance.now(); if (RACE.onUpdate) RACE.onUpdate(raceStatus()); }
+function raceTick(){
+  if (!RACE.on) return;
+  const el = $('#hudTime');
+  el.textContent = (RACE.label ? RACE.label + ' · ' : '') + fmtTime(raceTime());
+  el.classList.toggle('turbo', RACE.turbo > 0);
+  if (performance.now() - RACE.lastSend > 100) sendUpdate();
+}
+function drawGhosts(){
+  if (!RACE.on || !RACE.ghosts.length) return;
+  ctx.save(); ctx.font = '700 7px "Pixelify Sans", monospace'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+  for (const g of RACE.ghosts){
+    if (g.w !== world || g.phase === 'done' || g.x == null) continue;
+    const x = g.x, y = g.y;
+    ctx.globalAlpha = .55; ctx.fillStyle = g.color;
+    if (g.sk && SKINS.some(s => s.id === g.sk)){ drawHero(ctx, x, y, g.f || 1, palFor(g.sk), { t:frame, horror:IS_HORROR }); ctx.globalAlpha = .9; ctx.fillStyle = g.color; ctx.fillRect(x + 3, y + 16, 6, 2); }
+    else {
+    ctx.fillRect(x + 1, y, 10, 3); ctx.fillRect(x + 3, y + 3, 7, 4); ctx.fillRect(x + 2, y + 7, 8, 5); ctx.fillRect(x + 2, y + 12, 3, 3); ctx.fillRect(x + 7, y + 12, 3, 3);
+    }
+    ctx.globalAlpha = .95; ctx.lineWidth = 2.5; ctx.strokeStyle = '#000'; ctx.strokeText(g.name, x + 6, y - 4); ctx.fillStyle = '#fff'; ctx.fillText(g.name, x + 6, y - 4);
+  }
+  ctx.restore();
+}
+function duoWait(){
+  state = 'menu';
+  showCard(`<div class="q-topic">Mode 2 joueurs</div><h2>Prêt !</h2><p class="muted">La course commence dans un instant.</p>`);
+}
+window.qeRace = {
+  start: o => raceStart(o),
+  stop: () => raceStop(),
+  setGhosts: list => { RACE.ghosts = list || []; },
+  on: (evt, f) => { if (evt === 'update') RACE.onUpdate = f; else if (evt === 'finish') RACE.onFinish = f; },
+};
+if (window.QE_TEST) Object.assign(window.qeRace, { _finish: () => raceFinish(), _status: () => raceStatus(), _state: () => state, _q: () => genQ(world).q });
+
+/* ================== Réseau robuste : relais Internet (MQTT) + connexion directe (WebRTC) ================== */
+// Chaque joueur essaie les deux chemins en même temps et garde le premier qui fonctionne.
+// Relais : les messages passent par des serveurs publics (WebSocket sécurisé) ; fonctionne presque partout.
+// Direct : plus rapide, mais souvent bloqué par les réseaux d'école.
+const NETCFG = Object.assign({
+  brokers: ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'],
+  peer: null, noPeer: false,
+  ice: [
+    { urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }, { urls:'stun:global.stun.twilio.com:3478' },
+    { urls:'turn:openrelay.metered.ca:80', username:'openrelayproject', credential:'openrelayproject' },
+    { urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject' },
+    { urls:'turn:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject' }
+  ]
+}, window.QE_NET || {});
+const NETLIBS = { peer: window.QE_PEER_URL || 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', mqtt: window.QE_MQTT_URL || 'https://cdn.jsdelivr.net/npm/mqtt@4.3.7/dist/mqtt.min.js' };
+function loadScript(src, ok){
+  return new Promise(res => {
+    if (ok()) return res(true);
+    const s = document.createElement('script'); s.src = src;
+    s.onload = () => res(ok()); s.onerror = () => res(false);
+    document.head.appendChild(s); setTimeout(() => res(ok()), 15000);
+  });
+}
+function loadNetLibs(){
+  return Promise.all([
+    NETCFG.noPeer ? false : loadScript(NETLIBS.peer, () => typeof Peer !== 'undefined'),
+    NETCFG.brokers.length ? loadScript(NETLIBS.mqtt, () => typeof mqtt !== 'undefined') : false
+  ]);
+}
+function makeNet(){
+  const TOPIC = 'quete-trigo-qc/', PFX = 'quete-trigo-';
+  const st = { peer:null, clients:[], timers:[], closed:false, link:null, guests:{} };
+  const hasPeer = () => typeof Peer !== 'undefined' && !NETCFG.noPeer;
+  const hasMqtt = () => typeof mqtt !== 'undefined' && NETCFG.brokers.length > 0;
+  const peerOpts = () => Object.assign({ config:{ iceServers:NETCFG.ice }, debug:0 }, NETCFG.peer || {});
+  const later = (fn, ms) => { const t = setTimeout(fn, ms); st.timers.push(t); return t; };
+  const rid = () => Math.random().toString(36).slice(2, 10);
+  function makeLink(kind, sendFn, closeFn){
+    const L = { kind, h:{}, alive:true, lastIn:Date.now(),
+      on(e, f){ (L.h[e] = L.h[e] || []).push(f); return L; },
+      emit(e, a){ (L.h[e] || []).slice().forEach(f => { try { f(a); } catch (err) { console.error(err); } }); },
+      send(o){ if (L.alive){ try { sendFn(o); } catch (_) {} } },
+      close(){ if (!L.alive) return; L.alive = false; try { closeFn(); } catch (_) {} L.emit('close'); }
+    };
+    return L;
+  }
+  function mqttConnect(url, onReady, onFail){
+    let done = false;
+    const c = mqtt.connect(url, { clientId:'qe_' + rid(), clean:true, connectTimeout:6000, reconnectPeriod:0, keepalive:20 });
+    c.on('connect', () => { if (!done){ done = true; onReady(c); } });
+    const fail = () => { if (!done){ done = true; try { c.end(true); } catch (_) {} onFail(); } };
+    c.on('error', fail); c.on('close', fail); later(fail, 7000);
+    return c;
+  }
+  // Lien relais : on publie sur outTopic ; les messages reçus arrivent par L._msg
+  function relayLink(c, outTopic, extra){
+    const pub = o => c.publish(outTopic, JSON.stringify(Object.assign(o, extra)));
+    let hb = null;
+    const L = makeLink('relais', o => pub({ k:'d', d:o }), () => { clearInterval(hb); try { pub({ k:'bye' }); } catch (_) {} });
+    L._client = c;
+    hb = setInterval(() => {
+      if (!L.alive){ clearInterval(hb); return; }
+      try { pub({ k:'hb' }); } catch (_) {}
+      if (Date.now() - L.lastIn > 9000){ clearInterval(hb); L.alive = false; L.emit('close'); }
+    }, 2000);
+    c.on('close', () => { if (L.alive){ clearInterval(hb); L.alive = false; L.emit('close'); } });
+    L._msg = m => { L.lastIn = Date.now(); if (m.k === 'd') L.emit('data', m.d); else if (m.k === 'bye' && L.alive){ clearInterval(hb); L.alive = false; L.emit('close'); } };
+    return L;
+  }
+  function directLink(conn){
+    const L = makeLink('direct', o => conn.send(o), () => conn.close());
+    conn.on('data', d => { L.lastIn = Date.now(); L.emit('data', d); });
+    const gone = () => { if (L.alive){ L.alive = false; L.emit('close'); } };
+    conn.on('close', gone); conn.on('error', gone);
+    return L;
+  }
+  const API = {
+    available(){ return hasPeer() || hasMqtt(); },
+    // Héberger : onCode(code) dès qu'au moins un chemin est prêt ; onGuest(lien) pour chaque joueur qui arrive
+    host(onCode, onGuest, onFail){
+      st.closed = false; st.guests = {};
+      const code = Array.from({ length:4 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ'[Math.floor(Math.random() * 23)]).join('');
+      let ready = 0, failed = 0, total = 0;
+      const okOne = () => { if (++ready === 1 && !st.closed) onCode(code); };
+      const failOne = () => { if (++failed === total && !ready && !st.closed) onFail('Impossible de joindre les serveurs de jeu. Vérifie la connexion Internet (ou essaie le partage de connexion d’un cellulaire).'); };
+      // Un joueur peut arriver par les deux chemins : on regroupe ses liens et on répond par le plus récent.
+      const attach = (gid, L) => {
+        if (st.closed){ L.close(); return; }
+        let g = st.guests[gid];
+        if (!g){
+          g = st.guests[gid] = makeLink('joueur', o => { const best = [...g.set].filter(l => l.alive).sort((a, b) => b.lastIn - a.lastIn)[0]; if (best) best.send(o); }, () => { [...g.set].forEach(l => l.close()); });
+          g.set = new Set(); g.gid = gid; onGuest(g);
+        }
+        g.set.add(L); g.kind = L.kind;
+        L.on('data', d => { g.kind = L.kind; g.emit('data', d); });
+        L.on('close', () => { g.set.delete(L); if (!g.set.size && g.alive){ g.alive = false; delete st.guests[gid]; g.emit('close'); } });
+      };
+      if (hasMqtt()) NETCFG.brokers.forEach(url => { total++;
+        mqttConnect(url, c => {
+          st.clients.push(c); const relays = {};
+          c.subscribe(TOPIC + code + '/h', { qos:0 }, err => err ? failOne() : okOne());
+          c.on('message', (t, buf) => {
+            let m; try { m = JSON.parse(buf.toString()); } catch (_) { return; }
+            const gid = m && m.from; if (!gid) return;
+            const out = TOPIC + code + '/g/' + gid;
+            if (m.k === 'join'){
+              if (relays[gid] && relays[gid].alive){ c.publish(out, JSON.stringify({ k:'ok' })); return; }
+              relays[gid] = relayLink(c, out, {}); c.publish(out, JSON.stringify({ k:'ok' }));
+              attach(gid, relays[gid]);
+            } else if (relays[gid]) relays[gid]._msg(m);
+          });
+        }, failOne); });
+      if (hasPeer()){ total++;
+        try {
+          const p = new Peer(PFX + code.toLowerCase(), peerOpts()); st.peer = p;
+          p.on('open', okOne);
+          p.on('error', () => { if (!ready) failOne(); });
+          p.on('connection', conn => { conn.on('open', () => attach((conn.metadata && conn.metadata.id) || conn.peer, directLink(conn))); });
+        } catch (_) { failOne(); }
+      }
+      if (!total) onFail('Le mode en ligne demande une connexion Internet.');
+    },
+    // Rejoindre : onLink(lien) au premier chemin qui fonctionne
+    join(code, onLink, onStatus, onFail){
+      st.closed = false; st.link = null;
+      const id = rid(), inbox = TOPIC + code + '/g/' + id, hostBox = TOPIC + code + '/h';
+      let pending = 0;
+      const giveUp = () => { if (--pending <= 0 && !st.link && !st.closed) onFail(`Aucune partie trouvée avec le code ${code}. Vérifie le code, et que la partie est bien créée sur l’autre appareil.`); };
+      const adopt = L => {
+        if (st.link || st.closed){ L.close(); return; }
+        st.link = L;
+        if (L.kind === 'relais'){ try { if (st.peer) st.peer.destroy(); } catch (_) {} st.peer = null; st.clients.filter(c => c !== L._client).forEach(c => { try { c.publish(hostBox, JSON.stringify({ k:'bye', from:id })); c.end(); } catch (_) {} }); }
+        else { st.clients.forEach(c => { try { c.publish(hostBox, JSON.stringify({ k:'bye', from:id })); c.end(); } catch (_) {} }); st.clients = []; }
+        onLink(L);
+      };
+      if (hasMqtt()) NETCFG.brokers.forEach(url => { pending++;
+        mqttConnect(url, c => {
+          st.clients.push(c); let L = null, tries = 0;
+          c.subscribe(inbox, { qos:0 });
+          c.on('message', (t, buf) => {
+            let m; try { m = JSON.parse(buf.toString()); } catch (_) { return; }
+            if (m.k === 'ok' && !L){
+              if (st.link){ c.publish(hostBox, JSON.stringify({ k:'bye', from:id })); return; }
+              L = relayLink(c, hostBox, { from:id }); adopt(L);
+            } else if (L) L._msg(m);
+          });
+          const knock = () => {
+            if (st.link || st.closed || L) return;
+            if (tries++ > 10){ try { c.end(true); } catch (_) {} giveUp(); return; }
+            c.publish(hostBox, JSON.stringify({ k:'join', from:id })); later(knock, 1200);
+          };
+          knock();
+        }, giveUp); });
+      if (hasPeer()){ pending++;
+        try {
+          const p = new Peer(undefined, peerOpts()); st.peer = p;
+          p.on('open', () => { const conn = p.connect(PFX + code.toLowerCase(), { reliable:true, serialization:'json', metadata:{ id } }); conn.on('open', () => adopt(directLink(conn))); });
+          p.on('error', e => { if (e && e.type === 'peer-unavailable') giveUp(); });
+        } catch (_) { giveUp(); }
+      }
+      if (!pending) onFail('Le mode en ligne demande une connexion Internet.');
+      later(() => { if (!st.link && !st.closed) onStatus('La connexion prend du temps… Si rien ne se passe, vérifie le code, ou essaie le partage de connexion d’un cellulaire.'); }, 14000);
+    },
+    close(){
+      st.closed = true; st.timers.forEach(t => clearTimeout(t)); st.timers = [];
+      try { if (st.link) st.link.close(); } catch (_) {}
+      Object.values(st.guests).forEach(g => { try { g.close(); } catch (_) {} }); st.guests = {};
+      try { if (st.peer) st.peer.destroy(); } catch (_) {}
+      const cs = st.clients; st.clients = []; st.peer = null; st.link = null;
+      setTimeout(() => cs.forEach(c => { try { c.end(true); } catch (_) {} }), 300);
+    }
+  };
+  return API;
+}
+
+/* ================== Course en ligne (salle, course, résultats) ================== */
+const MP = { role:null, net:null, links:{}, conn:null, code:'', name:'', players:{}, world:0, joined:false, ended:false, pump:null, myId:'me' };
+const EDITION = 'trigo-fetes';
+const EDITION_NAME = { trigo:'Quête Trigonométrique', 'trigo-fetes':'Quête Trigonométrique (temps des fêtes)', classic:'Quête Exponentielle', horror:'Le Manoir Exponentiel' };
+const savedName = () => { try { return localStorage.getItem('qt-name') || ''; } catch (_) { return ''; } };
+const kindLabel = k => k === 'direct' ? 'connexion directe' : 'relais Internet';
+function mpCleanup(){
+  if (MP.pump){ clearInterval(MP.pump); MP.pump = null; }
+  const net = MP.net;
+  Object.assign(MP, { role:null, net:null, links:{}, conn:null, code:'', players:{}, joined:false, ended:false, myId:'me' });
+  try { if (net) net.close(); } catch (_) {}
+}
+function mpMenu(msg){
+  state = 'menu';
+  showCard(`<div class="q-topic">Multijoueur</div><h2>Course en ligne</h2>
+    <p>Chaque joueur utilise son propre appareil, avec le même jeu (${EDITION_NAME[EDITION]}). Tout le monde reçoit les mêmes questions. Le premier qui bat le boss gagne. Il faut une connexion Internet.</p>
+    ${msg ? `<p class="mp-err" role="alert">${msg}</p>` : ''}
+    <label class="field"><span>Ton nom</span><input id="mpName" maxlength="12" autocomplete="off" value="${esc(savedName())}" placeholder="Ex. : Léa"></label>
+    <div class="mp-split">
+      <div class="mp-box"><b>Créer une partie</b><p class="muted">Tu reçois un code à donner aux autres joueurs.</p><button class="btn primary" data-act="mp-host">Créer</button></div>
+      <div class="mp-box"><b>Rejoindre une partie</b><label class="field"><span>Code</span><input id="mpCode" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="ABCD" style="text-transform:uppercase;letter-spacing:.2em"></label><button class="btn" data-act="mp-join">Rejoindre</button></div>
+    </div>
+    <p class="muted" style="font-size:.88rem">Pendant la course : une bonne réponse donne un turbo de 6 secondes. Si tu perds tous tes cœurs, tu repars avec 15 secondes de pénalité.</p>
+    <div class="row"><button class="btn" data-act="mp-back">← Retour</button></div>`);
+}
+function mpStatus(msg, sub){ state = 'menu'; showCard(`<div class="q-topic">Course en ligne</div><h2>${msg}</h2>${sub ? `<p class="muted">${sub}</p>` : ''}<div class="row"><button class="btn" data-act="mp-quit">Annuler</button></div>`); }
+function mpLost(msg){ mpCleanup(); raceStop(); state = 'menu';
+  showCard(`<div class="q-topic">Course en ligne</div><h2>Partie interrompue</h2><p>${msg}</p><div class="row"><button class="btn primary" data-act="online">Course en ligne</button><button class="btn" data-act="mp-back">Menu</button></div>`); }
+function readName(){
+  const v = (($('#mpName') || {}).value || '').trim().slice(0, 12);
+  if (v){ try { localStorage.setItem('qt-name', v); } catch (_) {} }
+  return v;
+}
+function playerList(){ return Object.entries(MP.players).map(([id, p]) => ({ id, ...p })); }
+function lobbyHTML(isHost){
+  const list = playerList().map(p => `<li><i style="background:${p.color}"></i>${esc(p.name)}</li>`).join('');
+  const W = WORLDS[MP.world] || WORLDS[0];
+  return `<div class="q-topic">Course en ligne · ${isHost ? 'tu es l’hôte' : 'connecté (' + kindLabel(MP.conn && MP.conn.kind) + ')'}</div><h2>Code de la partie</h2>
+    <div class="mp-code">${MP.code}</div>
+    ${isHost ? `<p class="muted">Les autres joueurs ouvrent ${EDITION_NAME[EDITION]}, choisissent « Course en ligne » et tapent ce code.</p>
+      <div class="setting"><span>Monde</span><div class="seg" role="group" aria-label="Monde de la course">${WORLDS.map((w, i) => `<button data-act="mp-world" data-w="${i}" aria-pressed="${i === MP.world}">${w.ext ? 'Extension' : w.name}</button>`).join('')}</div></div>`
+      : `<p>Monde : <b>${W.name} · ${W.title}</b></p>`}
+    <p style="margin:0"><b>Joueurs (${playerList().length}/8)</b></p><ul class="mp-list">${list}</ul>
+    <div class="row">${isHost ? '<button class="btn primary" data-act="mp-start">Lancer la course</button>' : '<span class="muted">En attente du lancement par l’hôte…</span>'}<button class="btn" data-act="mp-quit">Quitter</button></div>`;
+}
+function mpShowLobby(){ state = 'menu'; showCard(lobbyHTML(MP.role === 'host')); }
+function mpBroadcast(msg){ Object.values(MP.links).forEach(g => g.send(msg)); }
+function lobbyMsg(){ return { t:'lobby', code:MP.code, world:MP.world, edition:EDITION, players:MP.players }; }
+function mpLobbyRefresh(){
+  if (MP.role !== 'host') return;
+  mpBroadcast(lobbyMsg());
+  if (!RACE.on && state === 'menu' && mcard.querySelector('.mp-code')) mpShowLobby();
+}
+async function mpHost(name){
+  mpStatus('Création de la partie…');
+  await loadNetLibs();
+  mpCleanup();
+  const net = makeNet();
+  if (!net.available()) return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.');
+  Object.assign(MP, { role:'host', net, name, world, links:{}, players:{ me:{ name, color:GHOST_COLORS[0] } }, myId:'me' });
+  net.host(
+    code => { if (MP.net !== net) return; MP.code = code; mpShowLobby(); if (!MP.pump) MP.pump = setInterval(mpPump, 200); },
+    g => {
+      if (MP.net !== net){ g.close(); return; }
+      MP.links[g.gid] = g;
+      g.on('data', d => mpHostData(g, d));
+      g.on('close', () => { if (MP.links[g.gid] === g) delete MP.links[g.gid]; if (MP.players[g.gid]){ delete MP.players[g.gid]; mpLobbyRefresh(); } });
+    },
+    msg => { if (MP.net === net){ mpCleanup(); mpMenu(msg); } }
+  );
+}
+function mpHostData(g, d){
+  if (!d || typeof d !== 'object') return;
+  const gid = g.gid;
+  if (d.t === 'hello'){
+    if (MP.players[gid]){ g.send({ t:'welcome', id:gid, edition:EDITION }); g.send(lobbyMsg()); return; }
+    if (RACE.on){ g.send({ t:'busy' }); return; }
+    if (playerList().length >= 8){ g.send({ t:'full' }); return; }
+    const used = playerList().map(p => p.color), color = GHOST_COLORS.find(c => !used.includes(c)) || GHOST_COLORS[7];
+    MP.players[gid] = { name:String(d.name || 'Joueur').slice(0, 12), color };
+    g.send({ t:'welcome', id:gid, edition:EDITION });
+    mpLobbyRefresh();
+  } else if (d.t === 'pos' && MP.players[gid] && d.s){
+    const s = d.s, p = MP.players[gid];
+    for (const k of ['x', 'y', 'f', 'w', 'prog', 'phase', 'time', 'ok', 'tot', 'sk']) if (k in s) p[k] = s[k];
+  } else if (d.t === 'bye'){
+    if (MP.players[gid]){ delete MP.players[gid]; mpLobbyRefresh(); }
+  }
+}
+function mpPump(){
+  if (MP.role !== 'host' || !RACE.on) return;
+  mpBroadcast({ t:'state', players:MP.players });
+  mpView(MP.players, 'me');
+  const all = playerList();
+  if (!MP.ended && all.length && all.every(p => p.phase === 'done')) mpEnd();
+}
+function mpEnd(){
+  if (MP.role !== 'host' || MP.ended) return;
+  MP.ended = true; mpBroadcast({ t:'results', players:MP.players }); mpResults(MP.players, 'me');
+}
+function mpView(players, myId){
+  RACE.ghosts = Object.entries(players).filter(([id]) => id !== myId).map(([, p]) => ({ name:p.name, color:p.color, x:p.x, y:p.y, w:p.w, phase:p.phase, f:p.f, sk:p.sk }));
+  const arr = Object.entries(players).map(([id, p]) => ({ id, ...p })).sort(rankSort);
+  const b = $('#raceBoard'); b.hidden = false;
+  b.innerHTML = arr.map((p, i) => `<div class="rb${p.id === myId ? ' me' : ''}"><span>${i + 1}</span><span class="dot" style="background:${p.color}"></span><span class="nm">${esc(p.name)}</span>${p.phase === 'done' ? `<span class="tm">${fmtTime(p.time || 0)}</span>` : p.phase === 'boss' ? '<span>BOSS</span>' : `<span class="bar"><i style="width:${Math.round((p.prog || 0) * 100)}%"></i></span>`}</div>`).join('');
+}
+function rankSort(a, b){
+  const da = a.phase === 'done', db = b.phase === 'done';
+  if (da !== db) return da ? -1 : 1;
+  if (da) return (a.time || 0) - (b.time || 0);
+  const ba = a.phase === 'boss', bb = b.phase === 'boss';
+  if (ba !== bb) return ba ? -1 : 1;
+  return (b.prog || 0) - (a.prog || 0);
+}
+function mpResults(players, myId){
+  state = 'menu'; $('#qov').hidden = true; $('#bov').hidden = true; activeAnswer = null; stopTimer();
+  const arr = Object.entries(players).map(([id, p]) => ({ id, ...p })).sort(rankSort);
+  const medal = ['1<sup>er</sup>', '2<sup>e</sup>', '3<sup>e</sup>'];
+  const rows = arr.map((p, i) => `<tr class="${i === 0 && p.phase === 'done' ? 'win' : ''}"><td class="r">${medal[i] || (i + 1) + '<sup>e</sup>'}</td><td><span class="dot" style="background:${p.color}"></span>${esc(p.name)}${p.id === myId ? ' (toi)' : ''}</td><td class="t">${p.phase === 'done' ? fmtTime(p.time || 0) : `Pas terminé (${Math.round((p.prog || 0) * 100)} %)`}</td><td class="t">${p.ok || 0}/${p.tot || 0}</td></tr>`).join('');
+  const win = arr[0] && arr[0].phase === 'done' ? arr[0] : null;
+  showCard(`<div class="q-topic">Course en ligne · résultats</div><h2>${win ? (win.id === myId ? 'Tu as gagné !' : esc(win.name) + ' gagne !') : 'Course terminée'}</h2>
+    <div class="tablewrap"><table class="mp-results"><tbody>${rows}</tbody></table></div>
+    <p class="muted" style="font-size:.88rem">Temps (pénalités comprises) et bonnes réponses.</p>
+    <div class="row">${MP.role === 'host' ? '<button class="btn primary" data-act="mp-again">Nouvelle course</button>' : '<span class="muted">L’hôte peut lancer une nouvelle course.</span>'}<button class="btn" data-act="mp-quit">Quitter</button></div>`);
+}
+function mpStartRace(){
+  if (MP.role !== 'host') return;
+  const seed = (Math.random() * 4294967296) >>> 0;
+  MP.ended = false;
+  for (const p of Object.values(MP.players)) Object.assign(p, { prog:0, phase:'wait', time:0, ok:0, tot:0, x:null, y:null, w:MP.world });
+  mpBroadcast({ t:'start', world:MP.world, seed });
+  raceStart({ world:MP.world, seed, label:'' });
+  RACE.onUpdate = s => Object.assign(MP.players.me, s);
+  mpView(MP.players, 'me');
+}
+async function mpJoin(name, raw){
+  const code = String(raw || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length !== 4) return mpMenu('Le code de la partie contient 4 lettres.');
+  mpStatus('Connexion à la partie ' + code + '…');
+  await loadNetLibs();
+  mpCleanup();
+  const net = makeNet();
+  if (!net.available()) return mpMenu('Impossible de charger le module en ligne. Vérifie la connexion Internet.');
+  Object.assign(MP, { role:'client', net, code, name });
+  net.join(code,
+    L => {
+      if (MP.net !== net) return;
+      MP.conn = L;
+      L.on('data', d => mpClientData(d));
+      L.on('close', () => { if (MP.conn === L && MP.role === 'client') mpLost('La connexion avec l’hôte a été perdue.'); });
+      L.send({ t:'hello', name, edition:EDITION });
+      mpStatus('Connecté (' + kindLabel(L.kind) + ') !', 'Entrée dans la salle…');
+    },
+    msg => { if (MP.net === net && !MP.conn) mpStatus('Connexion à la partie ' + code + '…', msg); },
+    msg => { if (MP.net === net && !MP.conn){ mpCleanup(); mpMenu(msg); } }
+  );
+}
+function mpClientData(d){
+  if (!d || typeof d !== 'object' || MP.role !== 'client') return;
+  if (d.t === 'welcome'){
+    if (d.edition !== EDITION){ mpCleanup(); return mpMenu(`Cette partie a été créée dans « ${EDITION_NAME[d.edition] || 'l’autre jeu'} ». Ouvre ce jeu pour la rejoindre.`); }
+    MP.joined = true; MP.myId = d.id;
+  } else if (d.t === 'lobby'){
+    MP.players = d.players || {}; MP.world = d.world || 0;
+    if (RACE.on) raceStop();
+    if (MP.joined) mpShowLobby();
+  } else if (d.t === 'start'){
+    raceStart({ world:d.world, seed:d.seed, label:'' });
+    RACE.onUpdate = s => { if (MP.conn) MP.conn.send({ t:'pos', s }); };
+  } else if (d.t === 'state'){
+    if (RACE.on){ MP.players = d.players || {}; mpView(MP.players, MP.myId); }
+  } else if (d.t === 'results'){
+    mpResults(d.players || {}, MP.myId);
+  } else if (d.t === 'bye'){ mpLost('L’hôte a quitté la partie.'); }
+  else if (d.t === 'full'){ mpCleanup(); mpMenu('Cette partie est complète (8 joueurs).'); }
+  else if (d.t === 'busy'){ mpCleanup(); mpMenu('Une course est déjà en cours dans cette partie. Réessaie à la fin de la course.'); }
+}
+function mpAct(act, b){
+  if (act === 'online') return mpMenu();
+  if (act === 'mp-back'){ mpCleanup(); raceStop(); return showTitle(); }
+  if (act === 'mp-quit'){
+    if (MP.role === 'host') mpBroadcast({ t:'bye' }); else if (MP.conn) MP.conn.send({ t:'bye' });
+    const done = () => { mpCleanup(); raceStop(); mpMenu(); };
+    return MP.role ? setTimeout(done, 150) : done();
+  }
+  if (act === 'mp-host'){ const n = readName(); return n ? mpHost(n) : mpMenu('Écris ton nom avant de continuer.'); }
+  if (act === 'mp-join'){ const n = readName(), c = ($('#mpCode') || {}).value; return n ? mpJoin(n, c) : mpMenu('Écris ton nom avant de continuer.'); }
+  if (act === 'mp-world'){ MP.world = +b.dataset.w; return mpLobbyRefresh(); }
+  if (act === 'mp-start') return mpStartRace();
+  if (act === 'mp-end') return mpEnd();
+  if (act === 'mp-again'){ raceStop(); MP.ended = false; for (const p of Object.values(MP.players)) p.phase = 'wait'; mpShowLobby(); return mpLobbyRefresh(); }
+}
+mcard.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+  e.preventDefault(); mpAct(e.target.id === 'mpCode' ? 'mp-join' : 'mp-host');
+});
+addEventListener('pagehide', () => { try { if (MP.role === 'host') mpBroadcast({ t:'bye' }); else if (MP.conn) MP.conn.send({ t:'bye' }); } catch (_) {} });
+
+/* ================== Boucle ================== */
+let lastT = 0, acc = 0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt = Math.min(.1, (t - lastT) / 1000 || 0); lastT = t;
+  if (state === 'play'){ acc += dt; let n = 0; while (acc >= 1/60 && n < 6){ step(); acc -= 1/60; n++; if (state !== 'play') break; } }
+  else acc = 0;
+  if (LV){ const target = Math.max(0, Math.min(LV.W*TS - VW, P.x + P.w/2 - VW * .4)); camX += (target - camX) * .15; if (state === 'title') camX = 0; }
+  wantMusic = (state === 'play' || state === 'question' || state === 'countdown') ? 'w' + world : state === 'boss' ? 'boss' : state === 'title' ? 'w0' : null;
+  duck = state === 'question' || state === 'title';
+  render();
+  raceTick();
+  if (state === 'boss' || !$('#bov').hidden){ if (bossShake > 0) bossShake--; if (bossFlash > 0) bossFlash--; drawBoss(t); }
+}
+
+/* ================== Démarrage ================== */
+window.claude?.hot?.snapshot?.(() => ({ world, xp, lvl, maxHp, stats }));
+function start(data){
+  data = data || {};
+  if (data.stats){ ({ world, xp, lvl } = data); stats = data.stats; }
+  maxHp = START_HP; hp = maxHp;
+  resize(); loadWorld(world || 0); if (QE_DUO) duoWait(); else showTitle();
+  requestAnimationFrame(loop);
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>

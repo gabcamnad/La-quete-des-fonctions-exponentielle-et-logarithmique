@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Les Quêtes Exponentielles</title>
+<title>Les Quêtes Mathématiques</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Creepster&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
@@ -11,13 +11,14 @@
 [hidden]{display:none!important}
 body{margin:0}
 img{max-width:100%}
-/* Layout: arcade cabinet — marquee title on top, two game cartridges side by side (stacked on phones), short footer */
+/* Layout: arcade cabinet — marquee title on top, two shelves (exponentielles, trigonométrie) of two cartridges each, stacked on phones */
 :root{
   --cab:#111722; --cab-2:#1a2231; --line:#2b364b; --text:#eef2f7; --muted:#9fb0c6;
   --amber:#f0a83a; --teal:#2e8f83; --glow:#9be36b; --pumpkin:#f08a24; --sky:#6cc7f5;
   --display:"Pixelify Sans","Courier New",monospace;
   --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --horror:"Creepster","Pixelify Sans",cursive;
+  --holly:#c8102e; --gold:#f2b134; --pine:#1f7a4d;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -52,6 +53,7 @@ h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
 .classic .lead{color:#52677d} .horror .lead{color:#a99cb9}
 .worldlist{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:.94rem}
 .worldlist li{display:grid;grid-template-columns:6.4em 1fr;gap:8px;align-items:baseline}
+.wpick button:last-child:nth-child(odd){grid-column:1/-1}
 .worldlist .n{font-family:var(--display);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
 .classic .n{color:var(--teal)} .horror .n{color:var(--glow)}
 .classic .ext .n{color:#c27a12} .horror .ext .n{color:var(--pumpkin)}
@@ -63,6 +65,27 @@ h1 .exp span{display:inline-block;text-shadow:3px 3px 0 #000}
 .play:hover{filter:brightness(1.06)}
 .play:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
 .play:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+.cart.fetes{background:#0f2a22;color:#f4efe4;box-shadow:0 0 0 2px #2c4a3e,8px 8px 0 #05080d,0 0 44px rgba(242,177,52,.12)}
+.fetes h2{font-family:var(--display);font-weight:700;font-size:1.75rem;color:var(--gold);text-shadow:2px 2px 0 #000}
+.fetes .lead{color:#c4d3c8}
+.fetes .n{color:#ff8a8a}
+.fetes .chip{color:var(--gold)}
+.fetes .play{background:var(--holly);color:#fff}
+.fetes .play.alt{background:#173a2f;color:#f4efe4}
+.shelf{display:flex;flex-direction:column;gap:14px}
+.shelf-title{margin:0;font-family:var(--display);font-weight:700;font-size:1.35rem;color:var(--text);display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;border-bottom:2px dashed var(--line);padding-bottom:8px}
+.shelf-title span{font-family:var(--body);font-style:italic;font-weight:700;font-size:.95rem;color:var(--amber);order:2}
+.shelf-title sup{font-size:.7em}
+.dev-badge{font-style:normal;font-family:var(--display);font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#ffd34d;color:#2a1d00;border:2px solid #000;border-radius:6px;padding:2px 8px;box-shadow:2px 2px 0 #000;align-self:center}
+.dev-note{margin:0;background:#2a2410;border:2px solid #ffd34d;border-left-width:8px;border-radius:8px;padding:10px 14px;color:#fff3c4;line-height:1.45}
+.dev-note b{font-family:var(--display);color:#ffd34d;margin-right:.3em}
+.carts.dev .cart{position:relative}
+.carts.dev .cart::before{content:"EN DÉVELOPPEMENT";position:absolute;z-index:2;top:30px;right:-58px;width:220px;transform:rotate(35deg);text-align:center;font-family:var(--display);font-weight:700;font-size:.68rem;letter-spacing:.05em;background:#ffd34d;color:#2a1d00;border-block:2px solid #000;padding:3px 0;pointer-events:none}
+h1 .exp span{animation:wave 2.4s ease-in-out infinite}
+@keyframes wave{0%,100%{transform:translateY(-.12em)}50%{transform:translateY(.12em)}}
+.snowf{animation:fall 6s linear infinite}
+@keyframes fall{from{transform:translateY(-8px)}to{transform:translateY(96px)}}
+@media (prefers-reduced-motion:reduce){h1 .exp span,.snowf{animation:none}}
 .foot{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 26px;color:var(--muted);font-size:.9rem;margin:0;padding:0;list-style:none}
 .foot li::before{content:"■ ";color:var(--amber);font-size:.7em;vertical-align:.15em}
 .float{animation:float 2.6s ease-in-out infinite}
@@ -115,13 +138,15 @@ kbd{font-family:var(--display);background:var(--cab);border:2px solid var(--line
 <body>
 <main class="launcher" id="launcher">
   <header class="marquee">
-    <span class="eyebrow">Secondaire 5 · Mathématiques · Version du 21 octobre</span>
-    <h1><span class="les">Les Quêtes</span><span class="exp" aria-label="Exponentielles"><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.000);color:#f0a83a">E</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.075);color:#f0a83a">x</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.156);color:#f2b14d">p</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.242);color:#f4ba60">o</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.335);color:#cfe08a">n</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.436);color:#b6e07c">e</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.543);color:#9be36b">n</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.659);color:#8fd9a0">t</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.783);color:#83cfd0">i</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 1.917);color:#6cc7f5">e</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.061);color:#7fb8f0">l</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.216);color:#9aa6ee">l</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.382);color:#b394ea">e</span><span style="font-size:calc(clamp(1.35rem, 4.6vw, 2.3rem) * 2.560);color:#c987e6">s</span></span></h1>
-    <p class="sub">Révise les fonctions exponentielles et les logarithmes en jouant : plateformes, questions et combats de boss.</p>
+    <span class="eyebrow">Secondaire 5 · Mathématiques · Version du 26 octobre</span>
+    <h1><span class="les">Les Quêtes</span><span class="exp" aria-label="Mathématiques"><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#f0a83a;animation-delay:-0.00s">M</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#9be36b;animation-delay:-0.16s">a</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#6cc7f5;animation-delay:-0.32s">t</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#ff6b6b;animation-delay:-0.48s">h</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#c987e6;animation-delay:-0.64s">é</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#f0a83a;animation-delay:-0.80s">m</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#9be36b;animation-delay:-0.96s">a</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#6cc7f5;animation-delay:-1.12s">t</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#ff6b6b;animation-delay:-1.28s">i</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#c987e6;animation-delay:-1.44s">q</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#f0a83a;animation-delay:-1.60s">u</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#9be36b;animation-delay:-1.76s">e</span><span style="font-size:clamp(1.6rem, 5.4vw, 2.9rem);color:#6cc7f5;animation-delay:-1.92s">s</span></span></h1>
+    <p class="sub">Révise les fonctions exponentielles, les logarithmes et la trigonométrie en jouant : plateformes, questions et combats de boss.</p>
     <span class="press"><i>▶</i> CHOISIS TON JEU</span>
   </header>
 
-  <section class="carts" aria-label="Jeux">
+  <section class="shelf" aria-labelledby="sh-exp">
+    <h2 class="shelf-title" id="sh-exp"><span>f(x) = a(c)<sup>x</sup> + k</span>Fonctions exponentielles et logarithmiques</h2>
+    <div class="carts">
     <article class="cart classic">
       <svg class="scene" viewBox="0 0 160 90" shape-rendering="crispEdges" role="img" aria-label="Héros sous un bloc question, en plein jour">
         <defs><linearGradient id="csky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fb8ee"/><stop offset="1" stop-color="#c4ecff"/></linearGradient></defs>
@@ -208,6 +233,95 @@ kbd{font-family:var(--display);background:var(--cab);border:2px solid var(--line
         <div class="btns"><button class="play" data-game="horror"><span aria-hidden="true">▶</span> Jouer</button><button class="play alt" data-duo="horror">2 joueurs · même écran</button></div>
       </div>
     </article>
+    </div>
+  </section>
+
+  <section class="shelf" aria-labelledby="sh-trig">
+    <h2 class="shelf-title" id="sh-trig"><span>f(x) = a sin(b(x − h)) + k</span>Trigonométrie <em class="dev-badge">En développement</em></h2>
+    <p class="dev-note" role="note"><b>⚠ Pas tout de suite!</b> Ces deux jeux sont encore en développement et la matière n'a pas encore été vue en classe. Tu peux les essayer, mais attends que ton enseignante te le demande avant de les faire.</p>
+    <div class="carts dev">
+    <article class="cart classic">
+      <svg class="scene" viewBox="0 0 160 90" shape-rendering="crispEdges" role="img" aria-label="Héros sous un bloc question au bord de la mer, près d’une colline sinusoïdale">
+        <defs><linearGradient id="tsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4fb8ee"/><stop offset="1" stop-color="#c4ecff"/></linearGradient></defs>
+        <rect width="160" height="90" fill="url(#tsky)"/>
+        <circle cx="132" cy="18" r="12" fill="#fff3b0" opacity=".5"/><circle cx="132" cy="18" r="7.5" fill="#ffe066"/>
+        <g fill="#ffffff"><rect x="12" y="13" width="26" height="5"/><rect x="17" y="9" width="10" height="5"/><rect x="27" y="11" width="7" height="3"/><rect x="72" y="20" width="20" height="4"/><rect x="77" y="17" width="7" height="3"/></g>
+        <g fill="#cfe8f7"><rect x="14" y="17" width="22" height="2"/><rect x="74" y="23" width="17" height="1"/></g>
+        <path d="M0 60 L18 50 L38 57 L62 42 L88 55 L112 38 L138 52 L160 44 V90 H0Z" fill="#9cc3e4"/>
+        <path d="M0 61 Q5 58 10 61 T20 61 T30 61 T40 61 T50 61 T60 61 T70 61 T80 61 T90 61 T100 61 T110 61 T120 61 T130 61 T140 61 T150 61 T160 61 V90 H0Z" fill="#7fd0f5"/><path d="M0 65 Q7 62 14 65 T28 65 T42 65 T56 65 T70 65 T84 65 T98 65 T112 65 T126 65 T140 65 T154 65 T168 65 V90 H0Z" fill="#3f9fdc"/><path d="M0 74 Q20 68 40 71 T80 70 T120 71 T160 70 V90 H0Z" fill="#ead7a0"/>
+        <g fill="#2e8f83"><rect x="100" y="66.0" width="6" height="8.0"/><rect x="106" y="60.4" width="6" height="13.6"/><rect x="112" y="58.0" width="6" height="16.0"/><rect x="118" y="60.4" width="6" height="13.6"/><rect x="124" y="66.0" width="6" height="8.0"/><rect x="130" y="71.6" width="6" height="2.4"/><rect x="142" y="71.6" width="6" height="2.4"/><rect x="148" y="66.0" width="6" height="8.0"/></g>
+        <g fill="#56b3a6"><rect x="100" y="66.0" width="6" height="1"/><rect x="106" y="60.4" width="6" height="1"/><rect x="112" y="58.0" width="6" height="1"/><rect x="118" y="60.4" width="6" height="1"/><rect x="124" y="66.0" width="6" height="1"/><rect x="130" y="71.6" width="6" height="1"/><rect x="142" y="71.6" width="6" height="1"/><rect x="148" y="66.0" width="6" height="1"/></g>
+        <text x="94" y="50" font-family="Atkinson Hyperlegible, sans-serif" font-style="italic" font-weight="700" font-size="5.5" fill="#1f2f42">y = 2 sin(πx/4) + 2</text>
+        <rect y="74" width="160" height="16" fill="#8a5a3a"/><rect y="74" width="160" height="3" fill="#62c24f"/><rect y="77" width="160" height="1" fill="#3f8f37"/>
+        <g fill="#6e4529"><rect x="9" y="81" width="2" height="2"/><rect x="37" y="85" width="2" height="2"/><rect x="66" y="82" width="2" height="2"/><rect x="95" y="86" width="2" height="2"/><rect x="128" y="81" width="2" height="2"/></g>
+        <g class="float"><rect x="31" y="22" width="14" height="14" fill="#1f2f42"/><rect x="32" y="23" width="12" height="12" fill="#f0a83a"/><rect x="32" y="23" width="12" height="2" fill="#ffd27c"/>
+        <text x="38" y="33.5" font-family="Pixelify Sans, monospace" font-size="10" font-weight="700" text-anchor="middle" fill="#1f2f42">?</text></g>
+        <g transform="translate(26 44) scale(2)"><g class="hop">
+          <rect x="1" y="0" width="9" height="3" fill="#f0a83a"/><rect x="8" y="2" width="4" height="1" fill="#f0a83a"/><rect x="1" y="0" width="9" height="1" fill="#ffd27c"/>
+          <rect x="1" y="3" width="2" height="3" fill="#3a2a1e"/><rect x="3" y="3" width="7" height="4" fill="#f1c6a0"/><rect x="7" y="4" width="1" height="2" fill="#1f2f42"/>
+          <rect x="2" y="7" width="8" height="5" fill="#2e8f83"/><rect x="2" y="7" width="8" height="1" fill="#56b3a6"/><rect x="9" y="8" width="2" height="3" fill="#f1c6a0"/>
+          <rect x="2" y="12" width="3" height="3" fill="#1f2f42"/><rect x="7" y="12" width="3" height="3" fill="#1f2f42"/></g></g>
+        <g transform="translate(76 62)"><path d="M0 12 V7 A7 7 0 0 1 14 7 V12Z" fill="#d4483c"/><rect x="3" y="4" width="3" height="4" fill="#fff"/><rect x="8" y="4" width="3" height="4" fill="#fff"/><rect x="3" y="6" width="2" height="2" fill="#1f2f42"/><rect x="8" y="6" width="2" height="2" fill="#1f2f42"/><rect x="1" y="10" width="4" height="2" fill="#1f2f42"/><rect x="9" y="10" width="4" height="2" fill="#1f2f42"/></g>
+      </svg>
+      <div class="cart-body">
+        <h2>Quête Trigonométrique</h2>
+        <p class="lead">Plateformes en plein jour, bord de mer, volcan et montagne, musique 8 bits originale.</p>
+        <ul class="worldlist">
+          <li><span class="n">Monde 1</span><span>La plaine du cercle</span></li>
+          <li><span class="n">Monde 2</span><span>La vallée des identités</span></li>
+          <li><span class="n">Monde 3</span><span>La côte des sinusoïdes</span></li>
+          <li><span class="n">Monde 4</span><span>Le volcan des équations</span></li>
+          <li><span class="n">Monde 5</span><span>La montagne de la tangente</span></li>
+        </ul>
+        <span class="chip">Toute l’année</span>
+        <div class="btns"><button class="play" data-game="trigo"><span aria-hidden="true">▶</span> Jouer</button><button class="play alt" data-duo="trigo">2 joueurs · même écran</button></div>
+      </div>
+    </article>
+
+    <article class="cart fetes">
+      <svg class="scene" viewBox="0 0 160 90" shape-rendering="crispEdges" role="img" aria-label="Héros en tuque sous un cadeau question, près d’un sapin illuminé et d’un bonhomme de neige, la nuit">
+        <defs><linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1f3a"/><stop offset="1" stop-color="#3a5f8f"/></linearGradient>
+          <radialGradient id="fstar"><stop offset="0" stop-color="#ffd34d" stop-opacity=".55"/><stop offset="1" stop-color="#ffd34d" stop-opacity="0"/></radialGradient></defs>
+        <rect width="160" height="90" fill="url(#fsky)"/>
+        <path d="M0 6 Q16 12 32 11 T64 7 T96 4 T128 7 T160 11" stroke="#20322a" stroke-width=".8" fill="none"/><rect x="8" y="6" width="2" height="2" fill="#ff4d4d"/><rect x="24" y="9" width="2" height="2" fill="#4ade80"/><rect x="40" y="10" width="2" height="2" fill="#ffd34d"/><rect x="56" y="9" width="2" height="2" fill="#5ab0ff"/><rect x="72" y="6" width="2" height="2" fill="#ff8af0"/><rect x="88" y="4" width="2" height="2" fill="#ff4d4d"/><rect x="104" y="4" width="2" height="2" fill="#4ade80"/><rect x="120" y="6" width="2" height="2" fill="#ffd34d"/><rect x="136" y="9" width="2" height="2" fill="#5ab0ff"/><rect x="152" y="10" width="2" height="2" fill="#ff8af0"/>
+        <path d="M0 58 L20 46 L40 54 L64 40 L90 52 L112 42 L138 50 L160 44 V90 H0Z" fill="#9fb8d8"/>
+        <path d="M0 66 Q30 58 60 63 T120 60 T160 62 V90 H0Z" fill="#c8d8ea"/>
+        <rect y="74" width="160" height="16" fill="#5b4636"/><rect y="73" width="160" height="5" fill="#f7fbff"/><rect y="78" width="160" height="1" fill="#c7d9ec"/>
+        <circle cx="128" cy="30" r="10" fill="url(#fstar)"/>
+        <g fill="#1f6b45"><path d="M108 74 L128 52 L148 74Z"/><path d="M112 62 L128 42 L144 62Z"/><path d="M116 50 L128 32 L140 50Z"/></g>
+        <g fill="#f6fbff"><rect x="110" y="72" width="36" height="2"/><rect x="114" y="60" width="28" height="2"/><rect x="118" y="48" width="20" height="2"/></g>
+        <rect x="126" y="74" width="4" height="0" fill="#4a3326"/><rect x="124" y="44" width="2" height="2" fill="#ff4d4d"/><rect x="131" y="50" width="2" height="2" fill="#5ab0ff"/><rect x="122" y="56" width="2" height="2" fill="#ffd34d"/><rect x="133" y="61" width="2" height="2" fill="#ff8af0"/><rect x="118" y="66" width="2" height="2" fill="#4ade80"/><rect x="128" y="68" width="2" height="2" fill="#ff4d4d"/><rect x="139" y="69" width="2" height="2" fill="#ffd34d"/>
+        <path d="M128 25 L129.6 29 L134 29.2 L130.6 32 L131.8 36.2 L128 33.7 L124.2 36.2 L125.4 32 L122 29.2 L126.4 29Z" fill="#ffd34d"/>
+        <g transform="translate(78 54)"><circle cx="8" cy="13" r="7" fill="#f4f8fc"/><circle cx="8" cy="4.5" r="4.5" fill="#f4f8fc"/>
+          <rect x="4" y="-4" width="8" height="4" fill="#1b1b1f"/><rect x="2.5" y="-.5" width="11" height="1.2" fill="#1b1b1f"/><rect x="4" y="-1.6" width="8" height="1" fill="#c8102e"/>
+          <rect x="3.5" y="8" width="9" height="1.6" fill="#c8102e"/><rect x="10" y="9" width="2" height="4" fill="#c8102e"/>
+          <rect x="6" y="3" width="1" height="1" fill="#1b1b1f"/><rect x="9" y="3" width="1" height="1" fill="#1b1b1f"/><rect x="8" y="5" width="4" height="1" fill="#f28c28"/>
+          <path d="M1.5 10 L-4 6 M14.5 10 L20 7" stroke="#6b4a2b" stroke-width="1"/></g>
+        <g class="float"><rect x="31" y="23" width="14" height="13" fill="#7a0a1c"/><rect x="32" y="24" width="12" height="11" fill="#c8102e"/>
+          <rect x="37" y="24" width="2" height="11" fill="#f2b134"/><rect x="32" y="28.5" width="12" height="2" fill="#f2b134"/><rect x="34" y="21" width="3" height="3" fill="#f2b134"/><rect x="39" y="21" width="3" height="3" fill="#f2b134"/>
+          <text x="38" y="33.5" font-family="Pixelify Sans, monospace" font-size="9" font-weight="700" text-anchor="middle" fill="#ffffff" stroke="#5a0614" stroke-width=".6" paint-order="stroke">?</text></g>
+        <g transform="translate(26 44) scale(2)"><g class="hop">
+          <rect x="4" y="-3" width="3" height="2" fill="#ffffff"/><rect x="2" y="-1" width="7" height="1" fill="#c8102e"/><rect x="1" y="0" width="9" height="2" fill="#c8102e"/><rect x="1" y="2" width="10" height="1" fill="#ffffff"/>
+          <rect x="1" y="3" width="2" height="3" fill="#3a2a1e"/><rect x="3" y="3" width="7" height="4" fill="#f1c6a0"/><rect x="7" y="4" width="1" height="2" fill="#1f2f42"/>
+          <rect x="2" y="7" width="8" height="5" fill="#1f7a4d"/><rect x="2" y="7" width="9" height="1" fill="#f2b134"/><rect x="2" y="8" width="2" height="3" fill="#f2b134"/><rect x="9" y="8" width="2" height="3" fill="#f1c6a0"/>
+          <rect x="2" y="12" width="3" height="3" fill="#1f2f42"/><rect x="7" y="12" width="3" height="3" fill="#1f2f42"/></g></g>
+        <g fill="#ffffff"><rect class="snowf" x="8" y="2" width="1.3" height="1.3" style="animation-delay:-0s;animation-duration:6s"/><rect class="snowf" x="22" y="-4" width="1.3" height="1.3" style="animation-delay:-2.1s;animation-duration:7s"/><rect class="snowf" x="37" y="0" width="1.3" height="1.3" style="animation-delay:-4.3s;animation-duration:5.5s"/><rect class="snowf" x="51" y="-6" width="1.3" height="1.3" style="animation-delay:-1.2s;animation-duration:6.5s"/><rect class="snowf" x="66" y="-2" width="1.3" height="1.3" style="animation-delay:-3.3s;animation-duration:7.5s"/><rect class="snowf" x="83" y="1" width="1.3" height="1.3" style="animation-delay:-0.7s;animation-duration:6s"/><rect class="snowf" x="97" y="-5" width="1.3" height="1.3" style="animation-delay:-5.1s;animation-duration:6.8s"/><rect class="snowf" x="112" y="-1" width="1.3" height="1.3" style="animation-delay:-2.7s;animation-duration:5.8s"/><rect class="snowf" x="128" y="-3" width="1.3" height="1.3" style="animation-delay:-4.8s;animation-duration:7.2s"/><rect class="snowf" x="143" y="0" width="1.3" height="1.3" style="animation-delay:-1.6s;animation-duration:6.2s"/><rect class="snowf" x="155" y="-6" width="1.3" height="1.3" style="animation-delay:-3.9s;animation-duration:6.6s"/><rect class="snowf" x="30" y="-8" width="1.3" height="1.3" style="animation-delay:-5.6s;animation-duration:7.8s"/></g>
+      </svg>
+      <div class="cart-body">
+        <h2>Quête Trigonométrique <span style="color:#ff6b6b">des Fêtes</span></h2>
+        <p class="lead">Les mêmes notions sous la neige, avec des cadeaux, des bonshommes de neige et des chants de Noël en 8 bits.</p>
+        <ul class="worldlist">
+          <li><span class="n">Monde 1</span><span>Le village du cercle</span></li>
+          <li><span class="n">Monde 2</span><span>L’atelier des identités</span></li>
+          <li><span class="n">Monde 3</span><span>La forêt des sinusoïdes</span></li>
+          <li><span class="n">Monde 4</span><span>Le lac gelé des équations</span></li>
+          <li><span class="n">Monde 5</span><span>Le sommet de la tangente</span></li>
+        </ul>
+        <span class="chip">Édition du temps des fêtes</span>
+        <div class="btns"><button class="play" data-game="fetes"><span aria-hidden="true">▶</span> Jouer</button><button class="play alt" data-duo="fetes">2 joueurs · même écran</button></div>
+      </div>
+    </article>
+    </div>
   </section>
 
   <ul class="foot">
@@ -254,11 +368,14 @@ kbd{font-family:var(--display);background:var(--cab);border:2px solid var(--line
 <script>
 (() => {
   const GAMES = null;
-  const PAGES = { classic: 'quete-exponentielle.html', horror: 'manoir-exponentiel.html' };
-  const NAMES = { classic: 'Quête Exponentielle', horror: 'Le Manoir Exponentiel' };
+  const PAGES = { classic: 'quete-exponentielle.html', horror: 'manoir-exponentiel.html', trigo: 'quete-trigonometrique.html', fetes: 'quete-trigonometrique-fetes.html' };
+  const NAMES = { classic: 'Quête Exponentielle', horror: 'Le Manoir Exponentiel', trigo: 'Quête Trigonométrique', fetes: 'Quête Trigonométrique des Fêtes' };
+  const EXT = { classic: true, horror: true };
   const WORLDS = {
     classic: ['La plaine des exposants', 'La vallée des paramètres', 'Le volcan des situations', 'La montagne des logarithmes'],
-    horror: ['Le cimetière des exposants', 'Le manoir des paramètres', 'La crypte des situations', 'Le marais des logarithmes']
+    horror: ['Le cimetière des exposants', 'Le manoir des paramètres', 'La crypte des situations', 'Le marais des logarithmes'],
+    trigo: ["La plaine du cercle", "La vallée des identités", "La côte des sinusoïdes", "Le volcan des équations", "La montagne de la tangente"],
+    fetes: ["Le village du cercle", "L’atelier des identités", "La forêt des sinusoïdes", "Le lac gelé des équations", "Le sommet de la tangente"]
   };
   const $ = id => document.getElementById(id);
   const launcher = $('launcher');
@@ -292,7 +409,7 @@ kbd{font-family:var(--display);background:var(--cab);border:2px solid var(--line
   let duo = null, pickK = 'classic', pickW = 0;
   function openSetup(k){
     pickK = k;
-    $('duoWorlds').innerHTML = WORLDS[k].map((t, i) => '<button data-w="' + i + '" aria-pressed="' + (i === pickW) + '"><b>' + (i === 3 ? 'Extension' : 'Monde ' + (i + 1)) + '</b><span>' + t + '</span></button>').join('');
+    $('duoWorlds').innerHTML = WORLDS[k].map((t, i) => '<button data-w="' + i + '" aria-pressed="' + (i === pickW) + '"><b>' + (EXT[k] && i === 3 ? 'Extension' : 'Monde ' + (i + 1)) + '</b><span>' + t + '</span></button>').join('');
     $('duoTitle').textContent = 'Course à 2 joueurs · ' + NAMES[k];
     $('duoSetup').hidden = false; $('duoGo').focus();
   }
