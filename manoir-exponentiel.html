@@ -1422,7 +1422,7 @@ function drawPlayer(cx){
   lights.push({ x:(f > 0 ? x + 13 : x - 1) - cx, y:P.y + 10, r:48, c:'rgba(255,200,110,.22)' });
   if (P.inv > 0 && Math.floor(P.inv / 4) % 2 === 0) return;
   drawPlayerHero();
-  if (hasP('bouclier') && PW.shield === 0){ ctx.strokeStyle = 'rgba(110,210,255,' + (.45 + Math.sin(frame / 8) * .2) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(P.x + 6, P.y + 7, 11, 0, Math.PI * 2); ctx.stroke(); }
+  if (hasP('bouclier') && PW.shield === 0){ ctx.strokeStyle = 'rgba(' + PW_FX.ring + ',' + (.45 + Math.sin(frame / 8) * .2) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(P.x + 6, P.y + 7, 11, 0, Math.PI * 2); ctx.stroke(); }
 }
 function drawEnemy(e){
   const x = e.x, y = e.y - 3 + Math.sin(frame / 12 + e.x * .1) * 1.5;
@@ -1700,7 +1700,7 @@ function scareSettingHTML(){
 function showTitle(){
   state = 'title'; $('#qov').hidden = true; $('#bov').hidden = true;
   showCard(`${brandHTML()}
-    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5 · Édition horreur · <b style="color:var(--teal)">Version du 27 octobre</b></div>
+    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 20 L52 20" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 19 C 22 18.5, 34 16, 42 10 S 50 3, 52 1" stroke="currentColor" stroke-width="2.4" fill="none"/></svg>Révision des fonctions exponentielles · Secondaire 5 · Édition horreur · <b style="color:var(--teal)">Version du 4 novembre</b></div>
     <p>La nuit est tombée sur le manoir. Frappe les citrouilles <b>?</b> par en dessous pour obtenir une question. Tu commences chaque monde avec 3 cœurs; chaque bonne réponse donne de l’XP et un cœur de plus, chaque erreur en coûte un, avec l’explication. Un boss t’attend au bout de chaque monde… et des sursauts peuvent surgir à tout moment.</p>
     <div class="legend">
       <span class="chip qb"></span><span>Citrouille question : saute dessous</span>
@@ -1777,6 +1777,7 @@ const SKINS = [
   { id:'givre', name:'Givré', price:50, pw:['gel'], pal:{ cap:'#7fd3ff', capHi:'#e0f7ff', hair:'#dff4ff', shirt:'#3a86ff', shirtHi:'#7fd3ff', legs:'#1d3557' } },
   { id:'ninja', name:'Ninja', price:60, pw:['vite'], pal:{ cap:'#1b1b1f', capHi:'#e63946', hair:'#1b1b1f', shirt:'#26262c', shirtHi:'#3a3a44', legs:'#111114', deco:'mask' } },
   { id:'citrouille', name:'Citrouille', price:70, pw:['coeur'], pal:{ cap:'#e8771e', capHi:'#4f6b2a', shirt:'#e8771e', shirtHi:'#ffb347', legs:'#3d2b1f' } },
+  { id:'tortuezombie', name:'Tortue zombie', price:75, pw:['bouclier', 'morsure'], pal:{ hat:'none', hair:'#5f7d3e', skin:'#9db56a', eye:'#ff3b3b', shirt:'#6b5a3a', shirtHi:'#857049', legs:'#4f6b35', deco:'zshell' } },
   { id:'tortue', name:'Tortue', price:45, pw:['bouclier'], pal:{ hat:'none', hair:'#6fbf5a', skin:'#8fd16f', eye:'#1b1b1f', shirt:'#f0d97a', shirtHi:'#fff0a8', legs:'#5aa346', deco:'shell' } },
   { id:'chat', name:'Chat noir', price:55, pw:['double'], pal:{ hat:'ears', hair:'#1b1b1f', skin:'#2a2a33', eye:'#ffd34d', shirt:'#1b1b1f', shirtHi:'#33333d', legs:'#111114', deco:'cat' } },
   { id:'fantome', name:'Fantôme', price:65, pw:['plane'], pal:{ hat:'none', deco:'ghost' } },
@@ -1785,6 +1786,9 @@ const SKINS = [
   { id:'sorciere', name:'Sorcière', price:100, pw:['retire'], pal:{ hat:'witch', cap:'#2b1d3a', capHi:'#9be36b', hair:'#e8771e', shirt:'#5b2a86', shirtHi:'#7d44b0', legs:'#1b1624', deco:'witch' } },
   { id:'vampire', name:'Vampire', price:110, pw:['morsure'], pal:{ hat:'none', hair:'#111114', skin:'#e6e6f0', eye:'#c8102e', shirt:'#1b1b1f', shirtHi:'#c8102e', legs:'#111114', deco:'vampire' } },
   { id:'monstre', name:'Monstre de Frankenstein', price:130, pw:['ecrase'], pal:{ hat:'flat', hair:'#1b1b1f', skin:'#8fc47a', eye:'#1b1b1f', shirt:'#3d4a3d', shirtHi:'#56664f', legs:'#2a2a2a', deco:'bolts' } },
+  { id:'canard', name:'Canard', price:35, pw:['plane'], pal:{ hat:'none', hair:'#ffd93b', skin:'#ffd93b', eye:'#1b1b1f', shirt:'#ffd93b', shirtHi:'#ffe98a', legs:'#f28c28', deco:'duck' } },
+  { id:'colvert', name:'Canard colvert', price:95, pw:['double', 'plane'], pal:{ hat:'none', hair:'#1f7a4d', skin:'#2a8f5a', eye:'#1b1b1f', shirt:'#8a6b52', shirtHi:'#ffffff', legs:'#f28c28', bill:'#e8c43a', wing:'#5a6f8f', deco:'duck' } },
+  { id:'canardvampire', name:'Canard vampire', price:85, pw:['morsure', 'plane'], pal:{ hat:'none', hair:'#111114', skin:'#ece6f2', eye:'#c8102e', shirt:'#ece6f2', shirtHi:'#ffffff', legs:'#f28c28', wing:'#bdb3c9', deco:'vduck' } },
   { id:'robot', name:'Robot', price:90, pw:['aimant'], pal:{ cap:'#9aa5b1', capHi:'#d9e2ec', hair:'#7b8794', skin:'#c5ccd3', eye:'#00c8e0', shirt:'#616e7c', shirtHi:'#9aa5b1', legs:'#3e4c59', deco:'antenna' } },
   { id:'astro', name:'Astronaute', price:120, pw:['lune'], pal:{ cap:'#f1f5f9', capHi:'#cbd5e1', hair:'#e2e8f0', shirt:'#f1f5f9', shirtHi:'#ffffff', legs:'#94a3b8', deco:'visor' } },
   { id:'arc', name:'Arc-en-ciel', price:160, pw:['double', 'vite'], pal:{ deco:'rainbow' } },
@@ -1825,6 +1829,8 @@ function drawHero(c, x, y, f, pal, st){
   else if (pal.deco === 'mask') px(3, 5, 7, 2, '#111114');
   else if (pal.deco === 'antenna'){ px(5, -3, 1, 3, '#9aa5b1'); px(4, -4, 3, 1, '#ff4d4d'); }
   else if (pal.deco === 'visor'){ px(4, 3, 6, 3, '#5bc0eb'); px(5, 3, 2, 1, '#d6f3ff'); }
+  else if (pal.deco === 'zshell'){ px(-1, 6, 5, 7, '#34492a'); px(0, 5, 3, 1, '#34492a'); px(0, 7, 2, 2, '#5f7d3e'); px(2, 10, 2, 2, '#5f7d3e'); px(1, 9, 1, 1, '#1b1b1f'); px(2, 8, 1, 1, '#1b1b1f'); px(0, 12, 3, 1, '#1b1b1f'); px(9, 8, 3, 2, pal.skin); px(4, 3, 1, 1, '#4a5f32'); px(6, 6, 3, 1, '#3a2a1e'); px(3, 9, 2, 1, '#2f2618'); px(7, 11, 2, 1, '#2f2618'); px(8, 7, 1, 1, '#c8102e'); }
+  else if (pal.deco === 'duck' || pal.deco === 'vduck'){ px(10, 5, 3, 2, pal.bill || '#f28c28'); px(3, 9, 4, 2, pal.wing || '#e6b800'); px(0, 8, 2, 2, pal.shirt); if (!st.air){ px(1, 14, 4, 1, pal.legs); px(6, 14, 4, 1, pal.legs); } if (pal.deco === 'vduck'){ px(-1, 7, 3, 7, '#8a0a1c'); px(1, 6, 2, 2, '#1b1b1f'); px(10, 7, 1, 1, '#ffffff'); px(5, 3, 2, 1, pal.hair); } }
   else if (pal.deco === 'shell'){ px(-1, 6, 5, 7, '#3f7a2c'); px(0, 5, 3, 1, '#3f7a2c'); px(0, 7, 2, 2, '#8bbf4a'); px(2, 9, 2, 2, '#8bbf4a'); px(0, 11, 2, 1, '#8bbf4a'); }
   else if (pal.deco === 'cat'){ px(9, 6, 3, 1, '#9a9aa8'); px(-1, 9, 3, 1, '#1b1b1f'); px(-2, 6, 1, 4, '#1b1b1f'); }
   else if (pal.deco === 'ghost'){ const g = '#f4f4fb', wv = Math.floor(t / 12) % 2; px(2, -1, 8, 1, g); px(1, 0, 10, 13, g); for (let i = 0; i < 3; i++) px(1 + i * 4 + wv, 13, 2, 1, g);
@@ -1841,22 +1847,23 @@ let runCoins = 0, coinStreak = 0;
 
 /* ================== Pouvoirs des skins ================== */
 var POWER_INFO = {
-  double:['Double saut', 'saute une 2e fois dans les airs'],
-  vite:['Vitesse', 'cours 25 % plus vite'],
-  saut:['Super saut', 'saute plus haut'],
-  plane:['Planeur', 'garde le saut enfoncé pour redescendre lentement'],
-  lune:['Gravité lunaire', 'sauts plus hauts et plus lents; garde le saut enfoncé pour planer'],
-  aimant:['Aimant', 'attire les pièces proches'],
-  piece2:['Pièces ×2', 'chaque pièce ramassée dans le niveau en vaut 2'],
-  bouclier:['Bouclier', 'bloque un coup d’ennemi, puis se recharge en 20 secondes'],
-  gel:['Gel', 'les ennemis avancent 2 fois moins vite'],
-  ecrase:['Force', 'les ennemis tombent au moindre contact'],
-  morsure:['Morsure', 'chaque 3e ennemi écrasé donne +1 cœur'],
-  coeur:['Cœur bonus', 'commence chaque monde avec 4 cœurs'],
-  chance:['Seconde chance', 'une erreur par monde ne coûte pas de cœur'],
-  retire:['Sortilège', 'un mauvais choix disparaît à chaque question'],
-  xp:['Savant', '+50 % d’XP'],
+  double:["Saut de chauve-souris", "saute une 2e fois dans les airs"],
+  vite:["Course du loup-garou", "cours 25 % plus vite"],
+  saut:["Bond de citrouille", "saute plus haut"],
+  plane:["Vol de fantôme", "garde le saut enfoncé pour flotter vers le sol"],
+  lune:["Pleine lune", "sauts plus hauts et plus lents; garde le saut enfoncé pour flotter"],
+  aimant:["Aimant à bonbons", "attire les pièces proches"],
+  piece2:["Double butin", "chaque pièce ramassée dans le niveau en vaut 2"],
+  bouclier:["Amulette", "bloque un coup d’ennemi, puis se recharge en 20 secondes"],
+  gel:["Toile d’araignée", "les ennemis avancent 2 fois moins vite"],
+  ecrase:["Force du monstre", "les ennemis tombent au moindre contact"],
+  morsure:["Morsure", "chaque 3e ennemi écrasé donne +1 cœur"],
+  coeur:["Potion de vie", "commence chaque monde avec 4 cœurs"],
+  chance:["Neuf vies", "une erreur par monde ne coûte pas de cœur"],
+  retire:["Sortilège", "un mauvais choix disparaît à chaque question"],
+  xp:["Grimoire", "+50 % d’XP"],
 };
+var PW_FX = { puff:'rgba(155,227,107,.9)', ring:'155,227,107' };
 var PW = { set:[], air2:true, shield:0, chance:false, stomps:0 };
 function myPowers(){ return (skinById(mySkin()).pw || []).filter(k => POWER_INFO[k]); }
 function hasP(k){ return PW.set.indexOf(k) >= 0; }
@@ -1866,7 +1873,7 @@ function powerText(s){ const p = (s.pw || []).filter(k => POWER_INFO[k]); return
 function powerLong(s){ const p = (s.pw || []).filter(k => POWER_INFO[k]); return p.length ? p.map(k => POWER_INFO[k][0] + ' : ' + POWER_INFO[k][1]).join(' · ') : 'Aucun pouvoir'; }
 function jMul(){ return hasP('saut') ? 1.15 : 1; }
 function ESPD(){ return hasP('gel') ? 0.22 : 0.45; }
-function puff(x, y){ for (let i = 0; i < 6; i++) parts.push({ x:x - 2, y:y - 2, vx:(i - 2.5) * .5, vy:-.4 + Math.random() * .6, life:16, c:'rgba(255,255,255,.85)', s:3 }); }
+function puff(x, y){ for (let i = 0; i < 6; i++) parts.push({ x:x - 2, y:y - 2, vx:(i - 2.5) * .5, vy:-.4 + Math.random() * .6, life:16, c:PW_FX.puff, s:3 }); }
 function pwStomp(e){
   if (!hasP('morsure')) return;
   if (++PW.stomps % 3 === 0 && gainHeart()){ addFloat('+1 ♥', P.x, P.y - 14, '#e8505b'); sfx('lvl'); }

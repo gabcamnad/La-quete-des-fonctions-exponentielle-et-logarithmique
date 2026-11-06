@@ -1326,7 +1326,7 @@ function drawCastle(){
 function drawPlayer(){
   if (P.inv > 0 && Math.floor(P.inv / 4) % 2 === 0) return;
   drawPlayerHero();
-  if (hasP('bouclier') && PW.shield === 0){ ctx.strokeStyle = 'rgba(110,210,255,' + (.45 + Math.sin(frame / 8) * .2) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(P.x + 6, P.y + 7, 11, 0, Math.PI * 2); ctx.stroke(); }
+  if (hasP('bouclier') && PW.shield === 0){ ctx.strokeStyle = 'rgba(' + PW_FX.ring + ',' + (.45 + Math.sin(frame / 8) * .2) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(P.x + 6, P.y + 7, 11, 0, Math.PI * 2); ctx.stroke(); }
 }
 function render(){
   const th = TH = WORLDS[world].theme;
@@ -1603,7 +1603,7 @@ function timeSettingHTML(){
 function showTitle(){
   state = 'title'; $('#qov').hidden = true; $('#bov').hidden = true;
   showCard(`${brandHTML()}
-    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 11 L52 11" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 11 C 8 1, 14 1, 14.5 1 S 21 1, 27 11 S 40 21, 40 21 S 46 21, 52 11" stroke="currentColor" stroke-width="2.4" fill="none"/></svg><span>Cercle trigonométrique, identités, sinus, cosinus et tangente · Secondaire 5 · <b style="color:var(--red)">Édition des fêtes</b> · <b>Version du 27 octobre</b></span></div>
+    <div class="brand-sub"><svg width="54" height="22" viewBox="0 0 54 22" aria-hidden="true"><path d="M2 11 L52 11" stroke="currentColor" stroke-dasharray="3 3" fill="none"/><path d="M2 11 C 8 1, 14 1, 14.5 1 S 21 1, 27 11 S 40 21, 40 21 S 46 21, 52 11" stroke="currentColor" stroke-width="2.4" fill="none"/></svg><span>Cercle trigonométrique, identités, sinus, cosinus et tangente · Secondaire 5 · <b style="color:var(--red)">Édition des fêtes</b> · <b>Version du 4 novembre</b></span></div>
     <p>Frappe les cadeaux <b>?</b> par en dessous pour obtenir une question. Tu commences chaque monde avec 3 cœurs; chaque niveau gagné t'en donne un de plus jusqu'à la fin du monde. Chaque bonne réponse donne de l'XP et un cœur de plus, même au-delà de 3; une erreur coûte un cœur, avec l'explication. Au bout de chaque monde, l'atelier du père Noël… et un boss coiffé d'une tuque t'attendent.</p>
     <div class="legend">
       <span class="chip qb"></span><span>Cadeau question : saute dessous</span>
@@ -1674,7 +1674,9 @@ const SKINS = [
   { id:'pingouin', name:'Pingouin', price:40, pw:['vite'], pal:{ cap:'#5ab0ff', capHi:'#ffffff', hair:'#1b1b1f', skin:'#f4f6f8', eye:'#1b1b1f', shirt:'#1b1b1f', shirtHi:'#2b2b33', legs:'#f5a623', scarf:'#5ab0ff', deco:'penguin' } },
   { id:'renne', name:'Renne', price:50, pw:['double'], pal:{ hat:'none', hair:'#8a5a34', skin:'#a8703f', eye:'#1b1b1f', shirt:'#8a5a34', shirtHi:'#a8703f', legs:'#5a3a20', scarf:'#c8102e', deco:'antlers' } },
   { id:'pain', name:'Pain d’épices', price:60, pw:['coeur'], pal:{ hat:'none', hair:'#c47a3a', skin:'#c47a3a', eye:'#3a1f10', shirt:'#c47a3a', shirtHi:'#ffffff', legs:'#a8622a', scarf:'', deco:'ginger' } },
+  { id:'canardneige', name:'Canard des neiges', price:65, pw:['plane', 'aimant'], pal:{ hair:'#ffd93b', skin:'#ffd93b', eye:'#1b1b1f', shirt:'#ffd93b', shirtHi:'#ffe98a', legs:'#f28c28', scarf:'#c8102e', deco:'duck' } },
   { id:'neige', name:'Bonhomme de neige', price:70, pw:['gel'], pal:{ hat:'top', cap:'#1b1b1f', capHi:'#c8102e', hair:'#f4f8fc', skin:'#f4f8fc', eye:'#1b1b1f', shirt:'#f4f8fc', shirtHi:'#ffffff', legs:'#dfe8f2', scarf:'#c8102e', deco:'carrot' } },
+  { id:'tortuenoel', name:'Tortue de Noël', price:75, pw:['bouclier', 'aimant'], pal:{ cap:'#c8102e', capHi:'#ffffff', pom:'#ffffff', hair:'#6fbf5a', skin:'#8fd16f', eye:'#1b1b1f', shirt:'#f0d97a', shirtHi:'#fff0a8', legs:'#5aa346', scarf:'#c8102e', deco:'xshell' } },
   { id:'noisette', name:'Casse-noisette', price:90, pw:['bouclier'], pal:{ hat:'tall', cap:'#1b1b1f', capHi:'#f2b134', hair:'#f4f4f4', shirt:'#c8102e', shirtHi:'#f2b134', legs:'#1e3a8a', scarf:'', deco:'mustache' } },
   { id:'pere', name:'Père Noël', price:120, pw:['aimant', 'piece2'], pal:{ cap:'#c8102e', capHi:'#ffffff', hair:'#ffffff', shirt:'#c8102e', shirtHi:'#ffffff', legs:'#1b1b1f', scarf:'', deco:'santa' } },
   { id:'sapin', name:'Sapin', price:160, pw:['retire'], pal:{ hat:'elf', cap:'#1f6b45', capHi:'#ffd34d', pom:'#ffd34d', shirt:'#1f6b45', shirtHi:'#2f8f5a', legs:'#5a3a20', scarf:'#ffd34d', deco:'ornaments' } },
@@ -1709,6 +1711,8 @@ function drawHero(c, x, y, f, pal, st){
   else { px(2, 12, 3, 3, L); px(7, 12, 3, 3, L); }
   const d = pal.deco;
   if (d === 'antlers'){ const A = '#6b4426'; px(3, -3, 1, 3, A); px(2, -4, 1, 1, A); px(4, -5, 1, 2, A); px(8, -3, 1, 3, A); px(7, -4, 1, 1, A); px(9, -5, 1, 2, A); px(10, 5, 2, 1, Math.floor(t / 20) % 2 ? '#ff3b3b' : '#ff7b7b'); }
+  if (d === 'xshell'){ const k = Math.floor(t / 15) % 3, O = ['#ff4d4d', '#ffd34d', '#5ab0ff']; px(-1, 6, 4, 7, '#2f6b2a'); px(0, 5, 2, 1, '#2f6b2a'); px(-1, 6, 4, 1, '#f6fbff'); px(0, 8, 1, 1, O[k]); px(2, 9, 1, 1, O[(k + 1) % 3]); px(0, 11, 1, 1, O[(k + 2) % 3]); px(1, 4, 1, 1, '#ffd34d'); }
+  else if (d === 'duck'){ px(10, 5, 3, 2, pal.bill || '#f28c28'); px(3, 9, 4, 2, pal.wing || '#e6b800'); px(0, 8, 2, 2, pal.shirt); if (!st.air){ px(1, 14, 4, 1, pal.legs); px(6, 14, 4, 1, pal.legs); } }
   else if (d === 'carrot') px(10, 5, 3, 1, '#f28c28');
   else if (d === 'penguin'){ px(4, 8, 5, 4, '#ffffff'); px(10, 5, 2, 1, '#f5a623'); }
   else if (d === 'ginger'){ px(3, 6, 6, 1, '#ffffff'); px(5, 9, 1, 1, '#ff4d4d'); px(5, 11, 1, 1, '#4ade80'); px(2, 12, 3, 1, '#ffffff'); px(7, 12, 3, 1, '#ffffff'); }
@@ -1722,22 +1726,23 @@ let runCoins = 0, coinStreak = 0;
 
 /* ================== Pouvoirs des skins ================== */
 var POWER_INFO = {
-  double:['Double saut', 'saute une 2e fois dans les airs'],
-  vite:['Vitesse', 'cours 25 % plus vite'],
-  saut:['Super saut', 'saute plus haut'],
-  plane:['Planeur', 'garde le saut enfoncé pour redescendre lentement'],
-  lune:['Gravité lunaire', 'sauts plus hauts et plus lents; garde le saut enfoncé pour planer'],
-  aimant:['Aimant', 'attire les pièces proches'],
-  piece2:['Pièces ×2', 'chaque pièce ramassée dans le niveau en vaut 2'],
-  bouclier:['Bouclier', 'bloque un coup d’ennemi, puis se recharge en 20 secondes'],
-  gel:['Gel', 'les ennemis avancent 2 fois moins vite'],
-  ecrase:['Force', 'les ennemis tombent au moindre contact'],
-  morsure:['Morsure', 'chaque 3e ennemi écrasé donne +1 cœur'],
-  coeur:['Cœur bonus', 'commence chaque monde avec 4 cœurs'],
-  chance:['Seconde chance', 'une erreur par monde ne coûte pas de cœur'],
-  retire:['Sortilège', 'un mauvais choix disparaît à chaque question'],
-  xp:['Savant', '+50 % d’XP'],
+  double:["Saut du renne", "saute une 2e fois dans les airs"],
+  vite:["Glissade sur glace", "cours 25 % plus vite"],
+  saut:["Ressort de lutin", "saute plus haut"],
+  plane:["Flocon planeur", "garde le saut enfoncé pour redescendre lentement"],
+  lune:["Traîneau volant", "sauts plus hauts et plus lents; garde le saut enfoncé pour planer"],
+  aimant:["Aimant à cadeaux", "attire les pièces proches"],
+  piece2:["Hotte pleine", "chaque pièce ramassée dans le niveau en vaut 2"],
+  bouclier:["Carapace de glace", "bloque un coup d’ennemi, puis se recharge en 20 secondes"],
+  gel:["Grand froid", "les bonshommes de neige avancent 2 fois moins vite"],
+  ecrase:["Avalanche", "les ennemis tombent au moindre contact"],
+  morsure:["Lait et biscuits", "chaque 3e ennemi écrasé donne +1 cœur"],
+  coeur:["Chocolat chaud", "commence chaque monde avec 4 cœurs"],
+  chance:["Vœu de Noël", "une erreur par monde ne coûte pas de cœur"],
+  retire:["Magie de Noël", "un mauvais choix disparaît à chaque question"],
+  xp:["Liste du père Noël", "+50 % d’XP"],
 };
+var PW_FX = { puff:'rgba(255,255,255,.95)', ring:'200,235,255' };
 var PW = { set:[], air2:true, shield:0, chance:false, stomps:0 };
 function myPowers(){ return (skinById(mySkin()).pw || []).filter(k => POWER_INFO[k]); }
 function hasP(k){ return PW.set.indexOf(k) >= 0; }
@@ -1747,7 +1752,7 @@ function powerText(s){ const p = (s.pw || []).filter(k => POWER_INFO[k]); return
 function powerLong(s){ const p = (s.pw || []).filter(k => POWER_INFO[k]); return p.length ? p.map(k => POWER_INFO[k][0] + ' : ' + POWER_INFO[k][1]).join(' · ') : 'Aucun pouvoir'; }
 function jMul(){ return hasP('saut') ? 1.15 : 1; }
 function ESPD(){ return hasP('gel') ? 0.22 : 0.45; }
-function puff(x, y){ for (let i = 0; i < 6; i++) parts.push({ x:x - 2, y:y - 2, vx:(i - 2.5) * .5, vy:-.4 + Math.random() * .6, life:16, c:'rgba(255,255,255,.85)', s:3 }); }
+function puff(x, y){ for (let i = 0; i < 6; i++) parts.push({ x:x - 2, y:y - 2, vx:(i - 2.5) * .5, vy:-.4 + Math.random() * .6, life:16, c:PW_FX.puff, s:3 }); }
 function pwStomp(e){
   if (!hasP('morsure')) return;
   if (++PW.stomps % 3 === 0 && gainHeart()){ addFloat('+1 ♥', P.x, P.y - 14, '#e8505b'); sfx('lvl'); }

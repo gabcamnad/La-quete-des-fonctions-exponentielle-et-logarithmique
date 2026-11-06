@@ -1,11 +1,12 @@
 # Les Quêtes Mathématiques
 
-Quatre jeux de plateforme pour réviser les mathématiques de secondaire 5 (Québec), réunis sur un même écran titre.
+Cinq jeux de plateforme pour réviser les mathématiques de secondaire 5 (Québec), réunis sur un même écran titre.
 
 | Jeu | Notions | Ambiance |
 |---|---|---|
 | **Quête Exponentielle** | Fonctions exponentielles, extension sur les logarithmes | Plateformes en plein jour |
 | **Le Manoir Exponentiel** | Mêmes notions | Manoir hanté la nuit, sursauts sans violence (désactivables) |
+| **Quête Exponentielle des Fêtes** | Mêmes notions | Neige, cadeaux et chants de Noël en 8 bits |
 | **Quête Trigonométrique** | Cercle trigonométrique, identités, sinus, cosinus, tangente | Plateformes en plein jour, bord de mer |
 | **Quête Trigonométrique des Fêtes** | Mêmes notions | Neige, cadeaux et chants de Noël en 8 bits |
 
@@ -32,9 +33,9 @@ Les questions sont générées au hasard à chaque partie. Chaque réponse est s
 
 - Pièces à ramasser dans chaque niveau (+1), blocs à casser (+1) et bonnes réponses (+5)
 - Toutes les 25 pièces gagnées dans un monde : +1 cœur
-- Jeux exponentiels : 18 skins partagés entre la Quête et le Manoir (dont une tortue et des skins d'Halloween)
-- Jeux de trigonométrie : pièces partagées entre les deux versions, 10 skins par version
-- Chaque skin (sauf le premier) donne un **pouvoir**, actif aussi en course : double saut, vitesse, super saut, planeur, aimant à pièces, pièces ×2, bouclier, gel des ennemis, cœur bonus, seconde chance, sortilège (un mauvais choix disparaît), +50 % d'XP, etc. Le pouvoir est indiqué dans la boutique et dans le menu pause.
+- Jeux exponentiels : 18 skins partagés entre la Quête et le Manoir (dont une tortue et des skins d'Halloween), des canards, plus une tortue zombie et un canard vampire exclusifs au Manoir
+- Jeux de trigonométrie : pièces partagées entre les deux versions, 10 skins dans la version normale, 12 dans les versions des fêtes (avec la tortue de Noël et le canard des neiges); la Quête Exponentielle des Fêtes partage ses pièces avec la Quête et le Manoir
+- Chaque skin (sauf le premier) donne un **pouvoir**, actif aussi en course : double saut, vitesse, super saut, planeur, aimant à pièces, pièces ×2, bouclier, gel des ennemis, cœur bonus, seconde chance, sortilège (un mauvais choix disparaît), +50 % d'XP, etc. Le pouvoir est indiqué dans la boutique et dans le menu pause. Dans le Manoir et dans la version des fêtes, les pouvoirs portent des noms d'Halloween (Saut de chauve-souris, Amulette, Toile d'araignée…) ou du temps des fêtes (Saut du renne, Carapace de glace, Vœu de Noël…).
 - Tout est gardé sur l'appareil; en course, les adversaires voient ton skin
 
 ## Multijoueur : courses
@@ -69,12 +70,13 @@ Il faut une connexion Internet. Chaque appareil essaie deux chemins en même tem
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | Écran titre : choix parmi les 4 jeux |
+| `index.html` | Écran titre : choix parmi les 5 jeux |
 | `quete-exponentielle.html` | Quête Exponentielle |
 | `manoir-exponentiel.html` | Le Manoir Exponentiel |
+| `quete-exponentielle-fetes.html` | Quête Exponentielle des Fêtes |
 | `quete-trigonometrique.html` | Quête Trigonométrique |
 | `quete-trigonometrique-fetes.html` | Quête Trigonométrique des Fêtes |
-| `quetes-mathematiques-hors-ligne.html` | Les 4 jeux et l'écran titre dans **un seul fichier**, pour jouer sans Internet |
+| `quetes-mathematiques-hors-ligne.html` | Les 5 jeux et l'écran titre dans **un seul fichier**, pour jouer sans Internet |
 
 Aucune installation n'est nécessaire : chaque fichier est autonome (HTML, CSS et JavaScript dans le même fichier).
 
